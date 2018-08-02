@@ -4528,6 +4528,15 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		}
 	}
 
+	void ProgramGL::unbindInstanceData() const
+	{
+		for(uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
+		{
+			GLint loc = m_instanceData[ii];
+			GL_CHECK(glDisableVertexAttribArray(loc));
+		}
+	}
+
 	void IndexBufferGL::destroy()
 	{
 		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0) );
@@ -6988,6 +6997,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
+				bool instancesChanged = false;
 				bool bindAttribs = false;
 				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
@@ -7201,7 +7211,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						{
 							m_occlusionQuery.begin(_render, draw.m_occlusionQuery);
 						}
-
+						
 						if (isValid(draw.m_indirectBuffer) )
 						{
 							const VertexBufferGL& vb = m_vertexBuffers[draw.m_indirectBuffer.idx];
@@ -7311,6 +7321,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						if (hasOcclusionQuery)
 						{
 							m_occlusionQuery.end();
+						}
+
+						if(isValid(draw.m_instanceDataBuffer))
+						{
+							program.unbindInstanceData();
 						}
 
 						statsNumPrimsSubmitted[primIndex] += numPrimsSubmitted;
