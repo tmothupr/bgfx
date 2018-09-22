@@ -1878,7 +1878,7 @@ namespace bgfx
 
 	/// Begin submitting draw calls from thread.
 	///
-	Encoder* begin();
+	Encoder* begin(bool _forThread = false);
 
 	/// End submitting draw calls from thread.
 	///
