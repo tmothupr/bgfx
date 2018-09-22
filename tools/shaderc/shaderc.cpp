@@ -112,8 +112,12 @@ namespace bgfx
 		"uint2",
 		"uint3",
 		"uint4",
+		"isampler2D",
+		"usampler2D",
 		"isampler3D",
 		"usampler3D",
+		"isamplerCube",
+		"usamplerCube",
 		NULL
 	};
 
@@ -336,7 +340,7 @@ namespace bgfx
 					bx::snprintf(&hex[hexPos], sizeof(hex)-hexPos, "0x%02x, ", data[asciiPos]);
 					hexPos += 6;
 
-					ascii[asciiPos] = isprint(data[asciiPos]) && data[asciiPos] != '\\' ? data[asciiPos] : '.';
+					ascii[asciiPos] = isprint(data[asciiPos]) && data[asciiPos] != '\\'  && data[asciiPos] != '\t' ? data[asciiPos] : '.';
 					asciiPos++;
 
 					if (HEX_DUMP_WIDTH == asciiPos)
@@ -1145,8 +1149,13 @@ namespace bgfx
 				// To avoid commented code being recognized as used feature,
 				// first preprocess pass is used to strip all comments before
 				// substituting code.
-				preprocessor.run(data);
+				bool ok = preprocessor.run(data);
 				delete [] data;
+
+				if (!ok)
+				{
+					return false;
+				}
 
 				size = (uint32_t)preprocessor.m_preprocessed.size();
 				data = new char[size+padding+1];

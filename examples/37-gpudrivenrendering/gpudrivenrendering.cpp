@@ -7,10 +7,10 @@
  * References:
  *
  * Experiments in GPU-based occlusion culling
- * https://interplayoflight.wordpress.com/2017/11/15/experiments-in-gpu-based-occlusion-culling/
+ * https://web.archive.org/web/20180920045301/https://interplayoflight.wordpress.com/2017/11/15/experiments-in-gpu-based-occlusion-culling/
  *
  * Experiments in GPU-based occlusion culling part 2: MultiDrawIndirect and mesh lodding
- * https://interplayoflight.wordpress.com/2018/01/15/experiments-in-gpu-based-occlusion-culling-part-2-multidrawindirect-and-mesh-lodding/
+ * https://web.archive.org/web/20180920045332/https://interplayoflight.wordpress.com/2018/01/15/experiments-in-gpu-based-occlusion-culling-part-2-multidrawindirect-and-mesh-lodding/
  */
 
 #include "common.h"
@@ -588,19 +588,19 @@ public:
 
 		//Setup Occlusion pass
 		{
-			const uint32_t samplerFlags = 0
+			const uint64_t tsFlags = 0
 				| BGFX_TEXTURE_RT
-				| BGFX_TEXTURE_MIN_POINT
-				| BGFX_TEXTURE_MAG_POINT
-				| BGFX_TEXTURE_MIP_POINT
-				| BGFX_TEXTURE_U_CLAMP
-				| BGFX_TEXTURE_V_CLAMP
+				| BGFX_SAMPLER_MIN_POINT
+				| BGFX_SAMPLER_MAG_POINT
+				| BGFX_SAMPLER_MIP_POINT
+				| BGFX_SAMPLER_U_CLAMP
+				| BGFX_SAMPLER_V_CLAMP
 				;
 
 			// Create buffers for the HiZ pass
-			m_hiZDepthBuffer = bgfx::createFrameBuffer(uint16_t(m_hiZwidth), uint16_t(m_hiZheight), bgfx::TextureFormat::D32, samplerFlags);
+			m_hiZDepthBuffer = bgfx::createFrameBuffer(uint16_t(m_hiZwidth), uint16_t(m_hiZheight), bgfx::TextureFormat::D32, tsFlags);
 
-			bgfx::TextureHandle buffer = bgfx::createTexture2D(uint16_t(m_hiZwidth), uint16_t(m_hiZheight), true, 1, bgfx::TextureFormat::R32F, BGFX_TEXTURE_COMPUTE_WRITE | samplerFlags);
+			bgfx::TextureHandle buffer = bgfx::createTexture2D(uint16_t(m_hiZwidth), uint16_t(m_hiZheight), true, 1, bgfx::TextureFormat::R32F, BGFX_TEXTURE_COMPUTE_WRITE | tsFlags);
 			m_hiZBuffer = bgfx::createFrameBuffer(1, &buffer, true);
 
 			//how many mip will the Hi Z buffer have?

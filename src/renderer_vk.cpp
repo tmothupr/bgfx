@@ -700,8 +700,8 @@ VK_IMPORT_DEVICE
 	{
 		RendererContextVK()
 			: m_allocatorCb(NULL)
-			, m_renderdocdll(NULL)
-			, m_vulkan1dll(NULL)
+			, m_renderDocDll(NULL)
+			, m_vulkan1Dll(NULL)
 			, m_maxAnisotropy(1)
 			, m_depthClamp(false)
 			, m_wireframe(false)
@@ -746,10 +746,10 @@ VK_IMPORT_DEVICE
 			if (_init.debug
 			||  _init.profile)
 			{
-				m_renderdocdll = loadRenderDoc();
+				m_renderDocDll = loadRenderDoc();
 			}
 
-			m_vulkan1dll = bx::dlopen(
+			m_vulkan1Dll = bx::dlopen(
 #if BX_PLATFORM_WINDOWS
 					"vulkan-1.dll"
 #elif BX_PLATFORM_ANDROID
@@ -759,7 +759,7 @@ VK_IMPORT_DEVICE
 #endif // BX_PLATFORM_*
 					);
 
-			if (NULL == m_vulkan1dll)
+			if (NULL == m_vulkan1Dll)
 			{
 				BX_TRACE("Init error: Failed to load vulkan dynamic library.");
 				goto error;
@@ -768,10 +768,10 @@ VK_IMPORT_DEVICE
 			errorState = ErrorState::LoadedVulkan1;
 
 			BX_TRACE("Shared library functions:");
-#define VK_IMPORT_FUNC(_optional, _func) \
-			_func = (PFN_##_func)bx::dlsym(m_vulkan1dll, #_func); \
-			BX_TRACE("\t%p " #_func, _func); \
-			imported &= _optional || NULL != _func
+#define VK_IMPORT_FUNC(_optional, _func)                  \
+	_func = (PFN_##_func)bx::dlsym(m_vulkan1Dll, #_func); \
+	BX_TRACE("\t%p " #_func, _func);                      \
+	imported &= _optional || NULL != _func
 VK_IMPORT
 #undef VK_IMPORT_FUNC
 
@@ -977,8 +977,9 @@ VK_IMPORT_INSTANCE
 				g_caps.vendorId = uint16_t(m_deviceProperties.vendorID);
 				g_caps.deviceId = uint16_t(m_deviceProperties.deviceID);
 
-				g_caps.limits.maxTextureSize   = m_deviceProperties.limits.maxImageDimension2D;
-				g_caps.limits.maxFBAttachments = uint8_t(bx::uint32_min(m_deviceProperties.limits.maxFragmentOutputAttachments, BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS) );
+				g_caps.limits.maxTextureSize     = m_deviceProperties.limits.maxImageDimension2D;
+				g_caps.limits.maxFBAttachments   = uint8_t(bx::uint32_min(m_deviceProperties.limits.maxFragmentOutputAttachments, BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS) );
+				g_caps.limits.maxComputeBindings = BGFX_MAX_COMPUTE_BINDINGS;
 
 				{
 //					VkFormatProperties fp;
@@ -1842,10 +1843,10 @@ VK_IMPORT_DEVICE
 				BX_FALLTHROUGH;
 
 			case ErrorState::LoadedVulkan1:
-				bx::dlclose(m_vulkan1dll);
-				m_vulkan1dll  = NULL;
+				bx::dlclose(m_vulkan1Dll);
+				m_vulkan1Dll  = NULL;
 				m_allocatorCb = NULL;
-				unloadRenderDoc(m_renderdocdll);
+				unloadRenderDoc(m_renderDocDll);
 				BX_FALLTHROUGH;
 
 			case ErrorState::Default:
@@ -1938,10 +1939,10 @@ VK_IMPORT_DEVICE
 
 			vkDestroyInstance(m_instance, m_allocatorCb);
 
-			bx::dlclose(m_vulkan1dll);
-			m_vulkan1dll  = NULL;
+			bx::dlclose(m_vulkan1Dll);
+			m_vulkan1Dll  = NULL;
 			m_allocatorCb = NULL;
-			unloadRenderDoc(m_renderdocdll);
+			unloadRenderDoc(m_renderDocDll);
 		}
 
 		RendererType::Enum getRendererType() const override
@@ -2060,7 +2061,7 @@ VK_IMPORT_DEVICE
 			m_program[_handle.idx].destroy();
 		}
 
-		void* createTexture(TextureHandle /*_handle*/, const Memory* /*_mem*/, uint32_t /*_flags*/, uint8_t /*_skip*/) override
+		void* createTexture(TextureHandle /*_handle*/, const Memory* /*_mem*/, uint64_t /*_flags*/, uint8_t /*_skip*/) override
 		{
 			return NULL;
 		}
@@ -2081,7 +2082,7 @@ VK_IMPORT_DEVICE
 		{
 		}
 
-		void resizeTexture(TextureHandle /*_handle*/, uint16_t /*_width*/, uint16_t /*_height*/, uint8_t /*_numMips*/) override
+		void resizeTexture(TextureHandle /*_handle*/, uint16_t /*_width*/, uint16_t /*_height*/, uint8_t /*_numMips*/, uint16_t /*_numLayers*/) override
 		{
 		}
 
@@ -2102,7 +2103,7 @@ VK_IMPORT_DEVICE
 		{
 		}
 
-		void createFrameBuffer(FrameBufferHandle /*_handle*/, void* /*_nwh*/, uint32_t /*_width*/, uint32_t /*_height*/, TextureFormat::Enum /*_depthFormat*/) override
+		void createFrameBuffer(FrameBufferHandle /*_handle*/, void* /*_nwh*/, uint32_t /*_width*/, uint32_t /*_height*/, TextureFormat::Enum /*_format*/, TextureFormat::Enum /*_depthFormat*/) override
 		{
 		}
 
@@ -3051,8 +3052,8 @@ VK_IMPORT_DEVICE
 		VkPipelineCache m_pipelineCache;
 		VkCommandPool m_commandPool;
 
-		void* m_renderdocdll;
-		void* m_vulkan1dll;
+		void* m_renderDocDll;
+		void* m_vulkan1Dll;
 
 		IndexBufferVK m_indexBuffers[BGFX_CONFIG_MAX_INDEX_BUFFERS];
 		VertexBufferVK m_vertexBuffers[BGFX_CONFIG_MAX_VERTEX_BUFFERS];
@@ -3694,6 +3695,9 @@ VK_DESTROY
 		Rect viewScissorRect;
 		viewScissorRect.clear();
 
+		const uint32_t maxComputeBindings = g_caps.limits.maxComputeBindings;
+		BX_UNUSED(maxComputeBindings);
+
 		uint32_t statsNumPrimsSubmitted[BX_COUNTOF(s_primInfo)] = {};
 		uint32_t statsNumPrimsRendered[BX_COUNTOF(s_primInfo)] = {};
 		uint32_t statsNumInstances[BX_COUNTOF(s_primInfo)] = {};
@@ -3878,7 +3882,7 @@ BX_UNUSED(currentSamplerStateIdx);
 //							D3D12_GPU_DESCRIPTOR_HANDLE srvHandle[BGFX_MAX_COMPUTE_BINDINGS] = {};
 //							uint32_t samplerFlags[BGFX_MAX_COMPUTE_BINDINGS] = {};
 //
-//							for (uint32_t ii = 0; ii < BGFX_MAX_COMPUTE_BINDINGS; ++ii)
+//							for (uint32_t ii = 0; ii < maxComputeBindings; ++ii)
 //							{
 //								const Binding& bind = renderBind.m_bind[ii];
 //								if (kInvalidHandle != bind.m_idx)
@@ -3927,7 +3931,7 @@ BX_UNUSED(currentSamplerStateIdx);
 //								}
 //							}
 //
-//							uint16_t samplerStateIdx = getSamplerState(samplerFlags, BGFX_MAX_COMPUTE_BINDINGS, _render->m_colorPalette);
+//							uint16_t samplerStateIdx = getSamplerState(samplerFlags, maxComputeBindings, _render->m_colorPalette);
 //							if (samplerStateIdx != currentSamplerStateIdx)
 //							{
 //								currentSamplerStateIdx = samplerStateIdx;
@@ -4528,7 +4532,7 @@ BX_UNUSED(presentMin, presentMax);
 //					, m_batch.m_stats.m_numImmediate[BatchD3D12::DrawIndexed]
 //					);
 
- 				if (NULL != m_renderdocdll)
+ 				if (NULL != m_renderDocDll)
  				{
  					tvm.printf(tvm.m_width-27, 0, 0x4f, " [F11 - RenderDoc capture] ");
  				}
