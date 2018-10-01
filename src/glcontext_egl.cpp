@@ -319,7 +319,9 @@ EGL_IMPORT
 			BGFX_FATAL(success, Fatal::UnableToInitialize, "Failed to set context.");
 			m_current = NULL;
 
+#	if !BX_PLATFORM_EMSCRIPTEN
 			eglSwapInterval(m_display, 0);
+#	endif // !BX_PLATFORM_EMSCRIPTEN
 		}
 
 		import();
@@ -368,11 +370,13 @@ EGL_IMPORT
 		BX_UNUSED(_width, _height);
 #	endif // BX_PLATFORM_*
 
+#	if !BX_PLATFORM_EMSCRIPTEN
 		if (NULL != m_display)
 		{
 			bool vsync = !!(_flags&BGFX_RESET_VSYNC);
 			eglSwapInterval(m_display, vsync ? 1 : 0);
 		}
+#	endif // !BX_PLATFORM_EMSCRIPTEN
 	}
 
 	uint64_t GlContext::getCaps() const
