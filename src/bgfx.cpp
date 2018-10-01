@@ -3312,6 +3312,8 @@ namespace bgfx
 	void Encoder::blit(ViewId _id, TextureHandle _dst, uint8_t _dstMip, uint16_t _dstX, uint16_t _dstY, uint16_t _dstZ, TextureHandle _src, uint8_t _srcMip, uint16_t _srcX, uint16_t _srcY, uint16_t _srcZ, uint16_t _width, uint16_t _height, uint16_t _depth)
 	{
 		BGFX_CHECK_CAPS(BGFX_CAPS_TEXTURE_BLIT, "Texture blit is not supported!");
+		BGFX_CHECK_HANDLE("blit/src TextureHandle", s_ctx->m_textureHandle, _src);
+		BGFX_CHECK_HANDLE("blit/dst TextureHandle", s_ctx->m_textureHandle, _dst);
 		const Context::TextureRef& src = s_ctx->m_textureRef[_src.idx];
 		const Context::TextureRef& dst = s_ctx->m_textureRef[_dst.idx];
 		BX_CHECK(src.m_format == dst.m_format
@@ -4045,7 +4047,7 @@ namespace bgfx
 			, "Invalid texture format for color (%s)."
 			, bimg::getName(bimg::TextureFormat::Enum(_format) )
 			);
-		BX_CHECK(_format == TextureFormat::Count || bimg::isDepth(bimg::TextureFormat::Enum(_depthFormat) )
+		BX_CHECK(_depthFormat == TextureFormat::Count || bimg::isDepth(bimg::TextureFormat::Enum(_depthFormat) )
 			, "Invalid texture format for depth (%s)."
 			, bimg::getName(bimg::TextureFormat::Enum(_depthFormat) )
 			);
@@ -4638,6 +4640,60 @@ BX_STATIC_ASSERT( (0
 	^ BGFX_STATE_LINEAA
 	^ BGFX_STATE_CONSERVATIVE_RASTER
 	^ BGFX_STATE_RESERVED_MASK
+	) );
+
+BX_STATIC_ASSERT(FLAGS_MASK_TEST(BGFX_CAPS_TEXTURE_COMPARE_LEQUAL, BGFX_CAPS_TEXTURE_COMPARE_ALL) );
+
+BX_STATIC_ASSERT( (0
+	| BGFX_CAPS_ALPHA_TO_COVERAGE
+	| BGFX_CAPS_BLEND_INDEPENDENT
+	| BGFX_CAPS_COMPUTE
+	| BGFX_CAPS_CONSERVATIVE_RASTER
+	| BGFX_CAPS_DRAW_INDIRECT
+	| BGFX_CAPS_FRAGMENT_DEPTH
+	| BGFX_CAPS_FRAGMENT_ORDERING
+	| BGFX_CAPS_GRAPHICS_DEBUGGER
+	| BGFX_CAPS_HDR10
+	| BGFX_CAPS_HIDPI
+	| BGFX_CAPS_INDEX32
+	| BGFX_CAPS_INSTANCING
+	| BGFX_CAPS_OCCLUSION_QUERY
+	| BGFX_CAPS_RENDERER_MULTITHREADED
+	| BGFX_CAPS_SWAP_CHAIN
+	| BGFX_CAPS_TEXTURE_2D_ARRAY
+	| BGFX_CAPS_TEXTURE_3D
+	| BGFX_CAPS_TEXTURE_BLIT
+	| BGFX_CAPS_TEXTURE_CUBE_ARRAY
+	| BGFX_CAPS_TEXTURE_DIRECT_ACCESS
+	| BGFX_CAPS_TEXTURE_READ_BACK
+	| BGFX_CAPS_VERTEX_ATTRIB_HALF
+	| BGFX_CAPS_VERTEX_ATTRIB_UINT10
+	| BGFX_CAPS_VERTEX_ID
+	) == (0
+	^ BGFX_CAPS_ALPHA_TO_COVERAGE
+	^ BGFX_CAPS_BLEND_INDEPENDENT
+	^ BGFX_CAPS_COMPUTE
+	^ BGFX_CAPS_CONSERVATIVE_RASTER
+	^ BGFX_CAPS_DRAW_INDIRECT
+	^ BGFX_CAPS_FRAGMENT_DEPTH
+	^ BGFX_CAPS_FRAGMENT_ORDERING
+	^ BGFX_CAPS_GRAPHICS_DEBUGGER
+	^ BGFX_CAPS_HDR10
+	^ BGFX_CAPS_HIDPI
+	^ BGFX_CAPS_INDEX32
+	^ BGFX_CAPS_INSTANCING
+	^ BGFX_CAPS_OCCLUSION_QUERY
+	^ BGFX_CAPS_RENDERER_MULTITHREADED
+	^ BGFX_CAPS_SWAP_CHAIN
+	^ BGFX_CAPS_TEXTURE_2D_ARRAY
+	^ BGFX_CAPS_TEXTURE_3D
+	^ BGFX_CAPS_TEXTURE_BLIT
+	^ BGFX_CAPS_TEXTURE_CUBE_ARRAY
+	^ BGFX_CAPS_TEXTURE_DIRECT_ACCESS
+	^ BGFX_CAPS_TEXTURE_READ_BACK
+	^ BGFX_CAPS_VERTEX_ATTRIB_HALF
+	^ BGFX_CAPS_VERTEX_ATTRIB_UINT10
+	^ BGFX_CAPS_VERTEX_ID
 	) );
 
 #undef FLAGS_MASK_TEST
