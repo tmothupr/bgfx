@@ -6354,6 +6354,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		viewState.reset(_render, hmdEnabled);
 
 		uint16_t programIdx = kInvalidHandle;
+		uint16_t boundProgramIdx = kInvalidHandle;
 		SortKey key;
 		uint16_t view = UINT16_MAX;
 		FrameBufferHandle fbh = { BGFX_CONFIG_MAX_FRAME_BUFFERS };
@@ -7044,12 +7045,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				if (key.m_program != programIdx)
 				{
-					if(kInvalidHandle != programIdx)
-					{
-						ProgramGL& previousProgram = m_program[programIdx];
-						previousProgram.unbindAttributes();
-					}
-
 					programIdx = key.m_program;
 					GLuint id = kInvalidHandle == programIdx ? 0 : m_program[programIdx].m_id;
 
@@ -7195,6 +7190,14 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 							if (bindAttribs || diffStartVertex)
 							{
+								if(kInvalidHandle != boundProgramIdx)
+								{
+									ProgramGL& boundProgram = m_program[boundProgramIdx];
+									boundProgram.unbindAttributes();
+								}
+
+								boundProgramIdx = programIdx;
+
 								program.bindAttributesBegin();
 
 								if (UINT8_MAX != draw.m_streamMask)
@@ -7212,6 +7215,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 										const VertexBufferGL& vb = m_vertexBuffers[draw.m_stream[idx].m_handle.idx];
 										uint16_t decl = !isValid(vb.m_decl) ? draw.m_stream[idx].m_decl.idx : vb.m_decl.idx;
 										GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, vb.m_id) );
+										printf("bind buffer %i\n", int(vb.m_id));
 										program.bindAttributes(m_vertexDecls[decl], draw.m_stream[idx].m_startVertex);
 									}
 								}
@@ -7383,10 +7387,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				}
 			}
 
-			if(kInvalidHandle != programIdx)
+			if(kInvalidHandle != boundProgramIdx)
 			{
-				ProgramGL& program = m_program[programIdx];
-				program.unbindAttributes();
+				ProgramGL& boundProgram = m_program[boundProgramIdx];
+				boundProgram.unbindAttributes();
 			}
 
 			submitBlit(bs, BGFX_CONFIG_MAX_VIEWS);
