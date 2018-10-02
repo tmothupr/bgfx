@@ -4508,6 +4508,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			{
 				if (UINT16_MAX != _vertexDecl.m_attributes[attr])
 				{
+					printf("program %i, enable vertex attrib array %i\n", int(m_id), int(loc));
 					GL_CHECK(glEnableVertexAttribArray(loc) );
 					GL_CHECK(glVertexAttribDivisor(loc, 0) );
 
@@ -4548,6 +4549,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			{
 				Attrib::Enum attr = Attrib::Enum(m_used[ii]);
 				GLint loc = m_attributes[attr];
+				printf("program %i, disable vertex attrib array %i\n", int(m_id), int(loc));
 				GL_CHECK(glDisableVertexAttribArray(loc));
 			}
 		}
@@ -4559,6 +4561,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		for (uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
 		{
 			GLint loc = m_instanceData[ii];
+			printf("program %i, enable vertex attrib array %i\n", int(m_id), int(loc));
 			GL_CHECK(glEnableVertexAttribArray(loc) );
 			GL_CHECK(glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, _stride, (void*)(uintptr_t)baseVertex) );
 			GL_CHECK(glVertexAttribDivisor(loc, 1) );
@@ -4571,6 +4574,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		for(uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
 		{
 			GLint loc = m_instanceData[ii];
+			printf("program %i, disable vertex attrib array %i\n", int(m_id), int(loc));
 			GL_CHECK(glDisableVertexAttribArray(loc));
 		}
 	}
