@@ -7383,6 +7383,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				}
 			}
 
+			if(kInvalidHandle != programIdx)
+			{
+				ProgramGL& program = m_program[programIdx];
+				program.unbindAttributes();
+			}
+
 			submitBlit(bs, BGFX_CONFIG_MAX_VIEWS);
 
 			blitMsaaFbo();
