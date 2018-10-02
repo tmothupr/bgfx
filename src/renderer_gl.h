@@ -115,8 +115,6 @@ typedef uint64_t GLuint64;
 #include "renderer.h"
 #include "debug_renderdoc.h"
 
-#include <stdio.h>
-
 #ifndef GL_LUMINANCE
 #	define GL_LUMINANCE 0x1909
 #endif // GL_LUMINANCE
