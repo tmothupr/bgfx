@@ -2120,31 +2120,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					}
 				}
 
-#if BX_PLATFORM_EMSCRIPTEN
-				TextureFormat::Enum texture_formats[] =
-				{
-					TextureFormat::R8,
-					TextureFormat::R32F,
-					TextureFormat::RGB8,
-					TextureFormat::BGRA8,
-					TextureFormat::RGBA8,
-					TextureFormat::RGBA16F,
-					TextureFormat::RGBA32F,
-					TextureFormat::RGB10A2,
-					TextureFormat::D24,
-					TextureFormat::D24S8,
-					TextureFormat::D32,
-				};
-#endif
-
-#if BX_PLATFORM_EMSCRIPTEN
-				for (uint32_t ii : texture_formats)
-#else
 				for (uint32_t ii = BX_ENABLED(BX_PLATFORM_IOS) ? TextureFormat::Unknown : 0 // skip test on iOS!
 					; ii < TextureFormat::Count
 					; ++ii
 					)
-#endif
 				{
 					if (TextureFormat::Unknown != ii
 					&&  TextureFormat::UnknownDepth != ii)
@@ -2167,11 +2146,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					|| s_extension[Extension::ARB_compute_shader].m_supported
 					;
 
-#if BX_PLATFORM_EMSCRIPTEN
-				for (uint32_t ii : texture_formats)
-#else
 				for (uint32_t ii = 0; ii < TextureFormat::Count; ++ii)
-#endif
 				{
 					uint16_t supported = BGFX_CAPS_FORMAT_TEXTURE_NONE;
 					supported |= s_textureFormat[ii].m_supported
