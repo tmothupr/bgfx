@@ -4540,6 +4540,19 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		}
 	}
 
+	void ProgramGL::unbindAttributes()
+	{
+		for(uint32_t ii = 0, iiEnd = m_usedCount; ii < iiEnd; ++ii)
+		{
+			if(Attrib::Count == m_unboundUsedAttrib[ii])
+			{
+				Attrib::Enum attr = Attrib::Enum(m_used[ii]);
+				GLint loc = m_attributes[attr];
+				GL_CHECK(glDisableVertexAttribArray(loc));
+			}
+		}
+	}
+
 	void ProgramGL::bindInstanceData(uint32_t _stride, uint32_t _baseVertex) const
 	{
 		uint32_t baseVertex = _baseVertex;
@@ -7027,6 +7040,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				if (key.m_program != programIdx)
 				{
+					if(kInvalidHandle != programIdx)
+					{
+						ProgramGL& previousProgram = m_program[programIdx];
+						previousProgram.unbindAttributes();
+					}
+
 					programIdx = key.m_program;
 					GLuint id = kInvalidHandle == programIdx ? 0 : m_program[programIdx].m_id;
 
