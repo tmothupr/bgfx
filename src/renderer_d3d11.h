@@ -157,10 +157,11 @@ namespace bgfx { namespace d3d11
 
 		union
 		{
-			ID3D11ComputeShader* m_computeShader;
-			ID3D11PixelShader*   m_pixelShader;
-			ID3D11VertexShader*  m_vertexShader;
-			ID3D11DeviceChild*   m_ptr;
+			ID3D11ComputeShader*  m_computeShader;
+			ID3D11PixelShader*    m_pixelShader;
+			ID3D11GeometryShader* m_geometryShader;
+			ID3D11VertexShader*   m_vertexShader;
+			ID3D11DeviceChild*    m_ptr;
 		};
 		const Memory* m_code;
 		ID3D11Buffer* m_buffer;
@@ -180,16 +181,25 @@ namespace bgfx { namespace d3d11
 	{
 		ProgramD3D11()
 			: m_vsh(NULL)
+			, m_gsh(NULL)
 			, m_fsh(NULL)
 		{
 		}
 
-		void create(const ShaderD3D11* _vsh, const ShaderD3D11* _fsh)
+		void create(const ShaderD3D11* _vsh, const ShaderD3D11* _gsh, const ShaderD3D11* _fsh)
 		{
 			BX_CHECK(NULL != _vsh->m_ptr, "Vertex shader doesn't exist.");
 			m_vsh = _vsh;
 			bx::memCopy(&m_predefined[0], _vsh->m_predefined, _vsh->m_numPredefined*sizeof(PredefinedUniform) );
 			m_numPredefined = _vsh->m_numPredefined;
+			
+			if (NULL != _gsh)
+			{
+				BX_CHECK(NULL != _gsh->m_ptr, "Geometry shader doesn't exist.");
+				m_gsh = _gsh;
+				bx::memCopy(&m_predefined[m_numPredefined], _gsh->m_predefined, _gsh->m_numPredefined*sizeof(PredefinedUniform) );
+				m_numPredefined += _gsh->m_numPredefined;
+			}
 
 			if (NULL != _fsh)
 			{
@@ -204,10 +214,12 @@ namespace bgfx { namespace d3d11
 		{
 			m_numPredefined = 0;
 			m_vsh = NULL;
+			m_gsh = NULL;
 			m_fsh = NULL;
 		}
 
 		const ShaderD3D11* m_vsh;
+		const ShaderD3D11* m_gsh;
 		const ShaderD3D11* m_fsh;
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count*2];
@@ -322,6 +334,7 @@ namespace bgfx { namespace d3d11
 		void postReset();
 		void resolve();
 		void clear(const Clear& _clear, const float _palette[][4]);
+		void set(uint32_t _num_uavs, ID3D11UnorderedAccessView** _uavs);
 		void set();
 		HRESULT present(uint32_t _syncInterval);
 

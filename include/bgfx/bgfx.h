@@ -2453,6 +2453,25 @@ namespace bgfx
 	/// @attention C99 equivalent is `bgfx_destroy_shader`.
 	///
 	void destroy(ShaderHandle _handle);
+	
+	/// Create program with vertex geometry and fragment shaders.
+	///
+	/// @param[in] _vsh Vertex shader.
+	/// @param[in] _gsh Geometry shader.
+	/// @param[in] _fsh Fragment shader.
+	/// @param[in] _destroyShaders If true, shaders will be destroyed when
+	///   program is destroyed.
+	/// @returns Program handle if vertex shader output and fragment shader
+	///   input are matching, otherwise returns invalid program handle.
+	///
+	/// @attention C99 equivalent is `bgfx_create_program`.
+	///
+	ProgramHandle createProgram(
+		  ShaderHandle _vsh
+		, ShaderHandle _gsh
+		, ShaderHandle _fsh
+		, bool _destroyShaders = false
+		);
 
 	/// Create program with vertex and fragment shaders.
 	///
@@ -3288,6 +3307,25 @@ namespace bgfx
 		, uint16_t _num = UINT16_MAX
 		, const ViewId* _remap = NULL
 		);
+
+	/// Set image from texture.
+	///
+	/// @param[in] _stage Texture unit.
+	/// @param[in] _handle Texture handle.
+	/// @param[in] _mip Mip level.
+	/// @param[in] _access Texture access. See `Access::Enum`.
+	/// @param[in] _format Texture format. See: `TextureFormat::Enum`.
+	///
+	/// @attention C99 equivalent is `bgfx_set_image`.
+	///
+	void setViewImage(
+		  ViewId _id
+		, uint8_t _stage
+		, TextureHandle _handle
+		, uint8_t _mip
+		, Access::Enum _access
+		, TextureFormat::Enum _format = TextureFormat::Count
+	);
 
 	/// Reset all view settings to default.
 	///

@@ -487,6 +487,7 @@ namespace bgfx { namespace gl
 			ARB_ES3_compatibility,
 			ARB_framebuffer_object,
 			ARB_framebuffer_sRGB,
+			ARB_geometry_shader,
 			ARB_get_program_binary,
 			ARB_half_float_pixel,
 			ARB_half_float_vertex,
@@ -550,6 +551,7 @@ namespace bgfx { namespace gl
 			EXT_framebuffer_blit,
 			EXT_framebuffer_object,
 			EXT_framebuffer_sRGB,
+			EXT_geometry_shader,
 			EXT_gpu_shader4,
 			EXT_multi_draw_indirect,
 			EXT_occlusion_query_boolean,
@@ -697,6 +699,7 @@ namespace bgfx { namespace gl
 		{ "ARB_ES3_compatibility",                    BGFX_CONFIG_RENDERER_OPENGL >= 43, true  },
 		{ "ARB_framebuffer_object",                   BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_framebuffer_sRGB",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
+		{ "ARB_geometry_shader",                      BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_get_program_binary",                   BGFX_CONFIG_RENDERER_OPENGL >= 41, true  },
 		{ "ARB_half_float_pixel",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_half_float_vertex",                    BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
@@ -760,6 +763,7 @@ namespace bgfx { namespace gl
 		{ "EXT_framebuffer_blit",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "EXT_framebuffer_object",                   BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "EXT_framebuffer_sRGB",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
+		{ "EXT_geometry_shader",                      false,                             true  },
 		{ "EXT_gpu_shader4",                          false,                             true  },
 		{ "EXT_multi_draw_indirect",                  false,                             true  }, // GLES3.1 extension.
 		{ "EXT_occlusion_query_boolean",              false,                             true  }, // GLES2 extension.
@@ -2145,6 +2149,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					|| !!(BGFX_CONFIG_RENDERER_OPENGLES >= 31)
 					|| s_extension[Extension::ARB_compute_shader].m_supported
 					;
+				
+				const bool geometrySupport = false
+					|| !!(BGFX_CONFIG_RENDERER_OPENGLES >= 31)
+					|| s_extension[Extension::ARB_geometry_shader].m_supported
+					|| s_extension[Extension::EXT_geometry_shader].m_supported
+					;
 
 				for (uint32_t ii = 0; ii < TextureFormat::Count; ++ii)
 				{
@@ -2427,6 +2437,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					| (m_occlusionQuerySupport     ? BGFX_CAPS_OCCLUSION_QUERY        : 0)
 					| (m_depthTextureSupport       ? BGFX_CAPS_TEXTURE_COMPARE_LEQUAL : 0)
 					| (computeSupport              ? BGFX_CAPS_COMPUTE                : 0)
+					;
+
+				g_caps.supported |= geometrySupport
+					? BGFX_CAPS_GEOMETRY_SHADER
+					: 0
 					;
 
 				g_caps.supported |= m_glctx.getCaps();
@@ -2713,10 +2728,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			m_shaders[_handle.idx].destroy();
 		}
 
-		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _fsh) override
+		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh) override
 		{
 			ShaderGL dummyFragmentShader;
-			m_program[_handle.idx].create(m_shaders[_vsh.idx], isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader);
+			ShaderGL dummyGeometryShader;
+			m_program[_handle.idx].create(m_shaders[_vsh.idx], isValid(_gsh) ? m_shaders[_gsh.idx] : dummyGeometryShader, isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader);
 		}
 
 		void destroyProgram(ProgramHandle _handle) override
@@ -4082,10 +4098,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		return UniformType::End;
 	}
 
-	void ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _fsh)
+	void ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _gsh, const ShaderGL& _fsh)
 	{
 		m_id = glCreateProgram();
-		BX_TRACE("Program create: GL%d: GL%d, GL%d", m_id, _vsh.m_id, _fsh.m_id);
+		BX_TRACE("Program create: GL%d: GL%d, GL%d, GL%d", m_id, _vsh.m_id, _gsh.m_id, _fsh.m_id);
 
 		const uint64_t id = (uint64_t(_vsh.m_hash)<<32) | _fsh.m_hash;
 		const bool cached = s_renderGL->programFetchFromCache(m_id, id);
@@ -4096,6 +4112,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			if (0 != _vsh.m_id)
 			{
 				GL_CHECK(glAttachShader(m_id, _vsh.m_id) );
+				
+				if (0 != _gsh.m_id)
+				{
+					GL_CHECK(glAttachShader(m_id, _gsh.m_id) );
+				}
 
 				if (0 != _fsh.m_id)
 				{
@@ -5260,6 +5281,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 		case BGFX_CHUNK_MAGIC_CSH: m_type = GL_COMPUTE_SHADER;  break;
 		case BGFX_CHUNK_MAGIC_FSH: m_type = GL_FRAGMENT_SHADER;	break;
+		case BGFX_CHUNK_MAGIC_GSH: m_type = GL_GEOMETRY_SHADER; break;
 		case BGFX_CHUNK_MAGIC_VSH: m_type = GL_VERTEX_SHADER;   break;
 
 		default:
@@ -5312,7 +5334,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		if (0 != m_id)
 		{
-			if (GL_COMPUTE_SHADER != m_type
+			if ((GL_FRAGMENT_SHADER == m_type || GL_VERTEX_SHADER == m_type)
 			&&  0 != bx::strCmp(code, "#version 430", 12) )
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
@@ -5769,6 +5791,26 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				code = temp;
 			}
 			else if (GL_COMPUTE_SHADER == m_type)
+			{
+				int32_t codeLen = (int32_t)bx::strLen(code);
+				int32_t tempLen = codeLen + (4<<10);
+				char* temp = (char*)alloca(tempLen);
+				bx::StaticMemoryBlockWriter writer(temp, tempLen);
+
+				writeString(&writer, "#version 430\n");
+				writeString(&writer, "#define texture2DLod    textureLod\n");
+				writeString(&writer, "#define texture3DLod    textureLod\n");
+				writeString(&writer, "#define textureCubeLod  textureLod\n");
+				writeString(&writer, "#define texture2DGrad   textureGrad\n");
+				writeString(&writer, "#define texture3DGrad   textureGrad\n");
+				writeString(&writer, "#define textureCubeGrad textureGrad\n");
+
+				bx::write(&writer, code+bx::strLen("#version 430"), codeLen);
+				bx::write(&writer, '\0');
+
+				code = temp;
+			}
+			else if (GL_GEOMETRY_SHADER == m_type)
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
 				int32_t tempLen = codeLen + (4<<10);
@@ -7054,6 +7096,28 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								{
 									switch (bind.m_type)
 									{
+									case Binding::Image:
+										{
+											if (Access::Read == bind.m_un.m_compute.m_access)
+											{
+												TextureGL& texture = m_textures[bind.m_idx];
+												texture.commit(stage, uint32_t(texture.m_flags), _render->m_colorPalette);
+											}
+											else
+											{
+												const TextureGL& texture = m_textures[bind.m_idx];
+												GL_CHECK(glBindImageTexture(stage
+													, texture.m_id
+													, bind.m_un.m_compute.m_mip
+													, texture.isCubeMap() ? GL_TRUE : GL_FALSE
+													, 0
+													, s_access[bind.m_un.m_compute.m_access]
+													, s_imageFormat[bind.m_un.m_compute.m_format])
+													);
+											}
+										}
+										break;
+
 									case Binding::Texture:
 										{
 											TextureGL& texture = m_textures[bind.m_idx];

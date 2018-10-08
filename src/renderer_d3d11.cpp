@@ -376,10 +376,12 @@ namespace bgfx { namespace d3d11
 
 		void clear()
 		{
+			bx::memSet(m_uav, 0, sizeof(m_uav));
 			bx::memSet(m_srv, 0, sizeof(m_srv) );
 			bx::memSet(m_sampler, 0, sizeof(m_sampler) );
 		}
 
+		ID3D11UnorderedAccessView* m_uav[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 		ID3D11ShaderResourceView* m_srv[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 		ID3D11SamplerState* m_sampler[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 	};
@@ -665,6 +667,7 @@ namespace bgfx { namespace d3d11
 			, m_wireframe(false)
 			, m_currentProgram(NULL)
 			, m_vsChanges(0)
+			, m_gsChanges(0)
 			, m_fsChanges(0)
 			, m_rtMsaa(false)
 			, m_timerQuerySupport(false)
@@ -1716,9 +1719,9 @@ namespace bgfx { namespace d3d11
 			m_shaders[_handle.idx].destroy();
 		}
 
-		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _fsh) override
+		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh) override
 		{
-			m_program[_handle.idx].create(&m_shaders[_vsh.idx], isValid(_fsh) ? &m_shaders[_fsh.idx] : NULL);
+			m_program[_handle.idx].create(&m_shaders[_vsh.idx], isValid(_gsh) ? &m_shaders[_gsh.idx] : NULL, isValid(_fsh) ? &m_shaders[_fsh.idx] : NULL);
 		}
 
 		void destroyProgram(ProgramHandle _handle) override
@@ -2048,8 +2051,18 @@ namespace bgfx { namespace d3d11
 			m_currentProgram = &program;
 			deviceCtx->VSSetShader(program.m_vsh->m_vertexShader, NULL, 0);
 			deviceCtx->VSSetConstantBuffers(0, 1, &program.m_vsh->m_buffer);
-			deviceCtx->PSSetShader(program.m_fsh->m_pixelShader, NULL, 0);
-			deviceCtx->PSSetConstantBuffers(0, 1, &program.m_fsh->m_buffer);
+
+			if(NULL != program.m_gsh)
+			{
+				deviceCtx->GSSetShader(program.m_gsh->m_geometryShader, NULL, 0);
+				deviceCtx->GSSetConstantBuffers(0, 1, &program.m_gsh->m_buffer);
+			}
+
+			if(NULL != program.m_fsh)
+			{
+				deviceCtx->PSSetShader(program.m_fsh->m_pixelShader, NULL, 0);
+				deviceCtx->PSSetConstantBuffers(0, 1, &program.m_fsh->m_buffer);
+			}
 
 			VertexBufferD3D11& vb = m_vertexBuffers[_blitter.m_vb->handle.idx];
 			VertexDecl& vertexDecl = m_vertexDecls[_blitter.m_vb->decl.idx];
@@ -2413,6 +2426,11 @@ namespace bgfx { namespace d3d11
 				bx::memCopy(&m_fsScratch[_regIndex], _val, _numRegs*16);
 				m_fsChanges += _numRegs;
 			}
+			else if (_flags&BGFX_UNIFORM_GEOMETRYBIT)
+			{
+				bx::memCopy(&m_gsScratch[_regIndex], _val, _numRegs*16);
+				m_gsChanges += _numRegs;
+			}
 			else
 			{
 				bx::memCopy(&m_vsScratch[_regIndex], _val, _numRegs*16);
@@ -2442,6 +2460,16 @@ namespace bgfx { namespace d3d11
 				m_vsChanges = 0;
 			}
 
+			if(0 < m_gsChanges)
+			{
+				if(NULL != m_currentProgram->m_gsh->m_buffer)
+				{
+					m_deviceCtx->UpdateSubresource(m_currentProgram->m_gsh->m_buffer, 0, 0, m_gsScratch, 0, 0);
+				}
+
+				m_gsChanges = 0;
+			}
+
 			if (0 < m_fsChanges)
 			{
 				if (NULL != m_currentProgram->m_fsh->m_buffer)
@@ -2453,7 +2481,7 @@ namespace bgfx { namespace d3d11
 			}
 		}
 
-		void setFrameBuffer(FrameBufferHandle _fbh, bool _msaa = true, bool _needPresent = true)
+		void setFrameBuffer(FrameBufferHandle _fbh, const RenderBind* _renderBind = NULL, bool _msaa = true, bool _needPresent = true)
 		{
 			if (isValid(m_fbh)
 			&&  m_fbh.idx != _fbh.idx
@@ -2463,20 +2491,44 @@ namespace bgfx { namespace d3d11
 				frameBuffer.resolve();
 			}
 
+			const uint32_t maxTextureSamplers = g_caps.limits.maxTextureSamplers;
+
+			m_textureStage.clear();
+
+			if(NULL != _renderBind)
+			{
+				for(uint8_t stage = 0; stage < maxTextureSamplers; ++stage)
+				{
+					const Binding& bind = _renderBind->m_bind[stage];
+
+					if(kInvalidHandle != bind.m_idx
+					&& bind.m_type == Binding::Image)
+					{
+						TextureD3D11& texture = m_textures[bind.m_idx];
+
+						m_textureStage.m_uav[stage] = 0 == bind.m_un.m_compute.m_mip
+							? texture.m_uav
+							: getCachedUav(texture.getHandle(), bind.m_un.m_compute.m_mip)
+							;
+					}
+				}
+			}
+
+			commitTextureStage();
+
 			if (!isValid(_fbh) )
 			{
 				m_currentColor        = m_backBufferColor;
 				m_currentDepthStencil = m_backBufferDepthStencil;
 
+				m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(1, &m_currentColor, m_currentDepthStencil, 1, maxTextureSamplers, m_textureStage.m_uav, NULL);
 				m_deviceCtx->OMSetRenderTargets(1, &m_currentColor, m_currentDepthStencil);
 				m_needPresent |= _needPresent;
 			}
 			else
 			{
-				invalidateTextureStage();
-
 				FrameBufferD3D11& frameBuffer = m_frameBuffers[_fbh.idx];
-				frameBuffer.set();
+				frameBuffer.set(maxTextureSamplers, m_textureStage.m_uav);
 			}
 
 			m_fbh = _fbh;
@@ -3195,6 +3247,7 @@ namespace bgfx { namespace d3d11
 #define CASE_IMPLEMENT_UNIFORM(_uniform, _dxsuffix, _type) \
 		case UniformType::_uniform: \
 		case UniformType::_uniform|BGFX_UNIFORM_FRAGMENTBIT: \
+		case UniformType::_uniform|BGFX_UNIFORM_GEOMETRYBIT: \
 				{ \
 					setShaderUniform(uint8_t(type), loc, data, num); \
 				} \
@@ -3204,6 +3257,7 @@ namespace bgfx { namespace d3d11
 				{
 				case UniformType::Mat3:
 				case UniformType::Mat3|BGFX_UNIFORM_FRAGMENTBIT: \
+				case UniformType::Mat3|BGFX_UNIFORM_GEOMETRYBIT: \
 					 {
 						 float* value = (float*)data;
 						 for (uint32_t ii = 0, count = num/3; ii < count; ++ii,  loc += 3*16, value += 9)
@@ -3335,6 +3389,8 @@ namespace bgfx { namespace d3d11
 					deviceCtx->PSSetShader(NULL, NULL, 0);
 				}
 
+				deviceCtx->GSSetShader(NULL, NULL, 0);
+
 				VertexBufferD3D11& vb = m_vertexBuffers[_clearQuad.m_vb->handle.idx];
 				const VertexDecl& vertexDecl = m_vertexDecls[_clearQuad.m_vb->decl.idx];
 				const uint32_t stride = vertexDecl.m_stride;
@@ -3450,8 +3506,10 @@ namespace bgfx { namespace d3d11
 		ProgramD3D11* m_currentProgram;
 
 		uint8_t m_vsScratch[64<<10];
+		uint8_t m_gsScratch[64<<10];
 		uint8_t m_fsScratch[64<<10];
 		uint32_t m_vsChanges;
+		uint32_t m_gsChanges;
 		uint32_t m_fsChanges;
 
 		FrameBufferHandle m_fbh;
@@ -3843,6 +3901,7 @@ namespace bgfx { namespace d3d11
 		{
 		case BGFX_CHUNK_MAGIC_CSH:
 		case BGFX_CHUNK_MAGIC_FSH:
+		case BGFX_CHUNK_MAGIC_GSH:
 		case BGFX_CHUNK_MAGIC_VSH:
 			break;
 
@@ -3867,7 +3926,13 @@ namespace bgfx { namespace d3d11
 			, count
 			);
 
-		uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
+		//uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
+		uint8_t fragmentBit =
+			(magic == BGFX_CHUNK_MAGIC_FSH
+				? BGFX_UNIFORM_FRAGMENTBIT
+				: magic == BGFX_CHUNK_MAGIC_GSH
+				? BGFX_UNIFORM_GEOMETRYBIT
+				: 0);
 
 		if (0 < count)
 		{
@@ -3916,7 +3981,7 @@ namespace bgfx { namespace d3d11
 						}
 
 						kind = "user";
-						m_constantBuffer->writeUniformHandle( (UniformType::Enum)(type|fragmentBit), regIndex, info->m_handle, regCount);
+						m_constantBuffer->writeUniformHandle( (UniformType::Enum)((type&~BGFX_UNIFORM_MASK)|fragmentBit), regIndex, info->m_handle, regCount);
 					}
 				}
 				else
@@ -3952,6 +4017,11 @@ namespace bgfx { namespace d3d11
 			m_hasDepthOp = hasDepthOp(code, shaderSize);
 			DX_CHECK(s_renderD3D11->m_device->CreatePixelShader(code, shaderSize, NULL, &m_pixelShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create fragment shader.");
+		}
+		else if (BGFX_CHUNK_MAGIC_GSH == magic)
+		{
+			DX_CHECK(s_renderD3D11->m_device->CreateGeometryShader(code, shaderSize, NULL, &m_geometryShader) );
+			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create geometry shader.");
 		}
 		else if (BGFX_CHUNK_MAGIC_VSH == magic)
 		{
@@ -4874,6 +4944,16 @@ namespace bgfx { namespace d3d11
 		}
 	}
 
+	void FrameBufferD3D11::set(uint32_t _num_uavs, ID3D11UnorderedAccessView** _uavs)
+	{
+		if(_num_uavs > 0 && _uavs[0] != NULL)
+			int i = 0;
+		s_renderD3D11->m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(m_num, m_rtv, m_dsv, m_num, _num_uavs, _uavs, NULL);
+		m_needPresent = UINT16_MAX != m_denseIdx;
+		s_renderD3D11->m_currentColor = m_rtv[0];
+		s_renderD3D11->m_currentDepthStencil = m_dsv;
+	}
+
 	void FrameBufferD3D11::set()
 	{
 		s_renderD3D11->m_deviceCtx->OMSetRenderTargets(m_num, m_rtv, m_dsv);
@@ -5270,7 +5350,7 @@ namespace bgfx { namespace d3d11
 		{
 			// reset the framebuffer to be the backbuffer; depending on the swap effect,
 			// if we don't do this we'll only see one frame of output and then nothing
-			setFrameBuffer(BGFX_INVALID_HANDLE, true, false);
+			setFrameBuffer(BGFX_INVALID_HANDLE, NULL, true, false);
 
 			bool viewRestart = false;
 			uint8_t eye = 0;
@@ -5308,10 +5388,13 @@ namespace bgfx { namespace d3d11
 					view = key.m_view;
 					programIdx = kInvalidHandle;
 
-					if (_render->m_view[view].m_fbh.idx != fbh.idx)
+					if(_render->m_view[view].m_has_bind)
+						int i = 0;
+
+					if (_render->m_view[view].m_fbh.idx != fbh.idx || _render->m_view[view].m_has_bind)
 					{
 						fbh = _render->m_view[view].m_fbh;
-						setFrameBuffer(fbh);
+						setFrameBuffer(fbh, &_render->m_view[view].m_bind);
 					}
 
 					viewRestart = ( (BGFX_VIEW_STEREO == (_render->m_view[view].m_flags & BGFX_VIEW_STEREO) ) );
@@ -5721,6 +5804,7 @@ namespace bgfx { namespace d3d11
 						m_currentProgram = NULL;
 
 						deviceCtx->VSSetShader(NULL, NULL, 0);
+						deviceCtx->GSSetShader(NULL, NULL, 0);
 						deviceCtx->PSSetShader(NULL, NULL, 0);
 					}
 					else
@@ -5731,6 +5815,17 @@ namespace bgfx { namespace d3d11
 						const ShaderD3D11* vsh = program.m_vsh;
 						deviceCtx->VSSetShader(vsh->m_vertexShader, NULL, 0);
 						deviceCtx->VSSetConstantBuffers(0, 1, &vsh->m_buffer);
+						
+						const ShaderD3D11* gsh = program.m_gsh;
+                        if (NULL != gsh)
+                        {
+                            deviceCtx->GSSetShader(gsh->m_geometryShader, NULL, 0);
+                            deviceCtx->GSSetConstantBuffers(0, 1, &gsh->m_buffer);
+                        }
+                        else
+                        {
+                            deviceCtx->GSSetShader(NULL, NULL, 0);
+                        }
 
 						const ShaderD3D11* fsh = program.m_fsh;
 						if (NULL != fsh
@@ -5759,6 +5854,15 @@ namespace bgfx { namespace d3d11
 						if (NULL != vcb)
 						{
 							commit(*vcb);
+						}
+						
+						if (NULL != program.m_gsh)
+						{
+							UniformBuffer* gcb = program.m_gsh->m_constantBuffer;
+							if (NULL != gcb)
+							{
+								commit(*gcb);
+							}
 						}
 
 						if (NULL != program.m_fsh)
@@ -5795,6 +5899,24 @@ namespace bgfx { namespace d3d11
 							{
 								switch (bind.m_type)
 								{
+								case Binding::Image:
+									{
+										TextureD3D11& texture = m_textures[bind.m_idx];
+
+										if (Access::Read != bind.m_un.m_compute.m_access)
+										{
+											m_textureStage.m_uav[stage] = 0 == bind.m_un.m_compute.m_mip
+												? texture.m_uav
+												: s_renderD3D11->getCachedUav(texture.getHandle(), bind.m_un.m_compute.m_mip)
+												;
+										}
+										else
+										{
+											texture.commit(stage, bind.m_un.m_draw.m_textureFlags, _render->m_colorPalette);
+										}
+									}
+									break;
+
 								case Binding::Texture:
 									{
 										TextureD3D11& texture = m_textures[bind.m_idx];

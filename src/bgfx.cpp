@@ -2499,10 +2499,13 @@ namespace bgfx
 					ShaderHandle vsh;
 					_cmdbuf.read(vsh);
 
+					ShaderHandle gsh;
+					_cmdbuf.read(gsh);
+
 					ShaderHandle fsh;
 					_cmdbuf.read(fsh);
 
-					m_renderCtx->createProgram(handle, vsh, fsh);
+					m_renderCtx->createProgram(handle, vsh, gsh, fsh);
 				}
 				break;
 
@@ -3614,6 +3617,16 @@ namespace bgfx
 		s_ctx->destroyShader(_handle);
 	}
 
+	ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh, bool _destroyShaders)
+	{
+		if (!isValid(_fsh) )
+		{
+			return createProgram(_vsh, _destroyShaders);
+		}
+
+		return s_ctx->createProgram(_vsh, _gsh, _fsh, _destroyShaders);
+	}
+
 	ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _fsh, bool _destroyShaders)
 	{
 		if (!isValid(_fsh) )
@@ -4201,6 +4214,12 @@ namespace bgfx
 	{
 		BX_CHECK(checkView(_id), "Invalid view id: %d", _id);
 		s_ctx->setViewOrder(_id, _num, _order);
+	}
+
+	void setViewImage(ViewId _id, uint8_t _stage, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format)
+	{
+		BX_CHECK(checkView(_id), "Invalid view id: %d", _id);
+		s_ctx->setViewImage(_id, _stage, _handle, _mip, _access, _format);
 	}
 
 	void resetView(ViewId _id)
