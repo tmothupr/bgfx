@@ -1721,7 +1721,12 @@ namespace bgfx { namespace d3d11
 
 		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh) override
 		{
-			m_program[_handle.idx].create(&m_shaders[_vsh.idx], isValid(_gsh) ? &m_shaders[_gsh.idx] : NULL, isValid(_fsh) ? &m_shaders[_fsh.idx] : NULL);
+			ShaderD3D11* vsh = &m_shaders[_vsh.idx];
+			ShaderD3D11* gsh = isValid(_gsh) ? &m_shaders[_gsh.idx] : NULL;
+			ShaderD3D11* fsh = isValid(_fsh) ? &m_shaders[_fsh.idx] : NULL;
+			if(isValid(_gsh))
+				int i = 0;
+			m_program[_handle.idx].create(vsh, gsh, fsh);
 		}
 
 		void destroyProgram(ProgramHandle _handle) override
@@ -2481,7 +2486,7 @@ namespace bgfx { namespace d3d11
 			}
 		}
 
-		void setFrameBuffer(FrameBufferHandle _fbh, const RenderBind* _renderBind = NULL, bool _msaa = true, bool _needPresent = true)
+		void setFrameBuffer(FrameBufferHandle _fbh, bool _msaa = true, bool _needPresent = true)
 		{
 			if (isValid(m_fbh)
 			&&  m_fbh.idx != _fbh.idx
@@ -2491,44 +2496,21 @@ namespace bgfx { namespace d3d11
 				frameBuffer.resolve();
 			}
 
-			const uint32_t maxTextureSamplers = g_caps.limits.maxTextureSamplers;
-
-			m_textureStage.clear();
-
-			if(NULL != _renderBind)
-			{
-				for(uint8_t stage = 0; stage < maxTextureSamplers; ++stage)
-				{
-					const Binding& bind = _renderBind->m_bind[stage];
-
-					if(kInvalidHandle != bind.m_idx
-					&& bind.m_type == Binding::Image)
-					{
-						TextureD3D11& texture = m_textures[bind.m_idx];
-
-						m_textureStage.m_uav[stage] = 0 == bind.m_un.m_compute.m_mip
-							? texture.m_uav
-							: getCachedUav(texture.getHandle(), bind.m_un.m_compute.m_mip)
-							;
-					}
-				}
-			}
-
-			commitTextureStage();
-
 			if (!isValid(_fbh) )
 			{
 				m_currentColor        = m_backBufferColor;
 				m_currentDepthStencil = m_backBufferDepthStencil;
 
-				m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(1, &m_currentColor, m_currentDepthStencil, 1, maxTextureSamplers, m_textureStage.m_uav, NULL);
-				m_deviceCtx->OMSetRenderTargets(1, &m_currentColor, m_currentDepthStencil);
+				m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(1, &m_currentColor, m_currentDepthStencil, 1, 0, NULL, NULL);
 				m_needPresent |= _needPresent;
 			}
 			else
 			{
+				m_textureStage.clear();
+				commitTextureStage();
+
 				FrameBufferD3D11& frameBuffer = m_frameBuffers[_fbh.idx];
-				frameBuffer.set(maxTextureSamplers, m_textureStage.m_uav);
+				frameBuffer.set();
 			}
 
 			m_fbh = _fbh;
@@ -3912,8 +3894,11 @@ namespace bgfx { namespace d3d11
 
 		bool fragment = BGFX_CHUNK_MAGIC_FSH == magic;
 
-		uint32_t iohash;
-		bx::read(&reader, iohash);
+		uint32_t inputHash;
+		bx::read(&reader, inputHash);
+
+		uint32_t outputHash;
+		bx::read(&reader, outputHash);
 
 		uint16_t count;
 		bx::read(&reader, count);
@@ -4036,6 +4021,8 @@ namespace bgfx { namespace d3d11
 			DX_CHECK(s_renderD3D11->m_device->CreateComputeShader(code, shaderSize, NULL, &m_computeShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create compute shader.");
 		}
+
+		BX_CHECK(m_pixelShader || m_geometryShader || m_vertexShader || m_computeShader, "No shader");
 
 		uint8_t numAttrs = 0;
 		bx::read(&reader, numAttrs);
@@ -4619,6 +4606,12 @@ namespace bgfx { namespace d3d11
 		{
 			m_rtv[ii] = NULL;
 		}
+
+		for (uint32_t ii = 0; ii < BX_COUNTOF(m_uav); ++ii)
+		{
+			m_uav[ii] = NULL;
+		}
+
 		m_dsv       = NULL;
 		m_swapChain = NULL;
 
@@ -4720,6 +4713,8 @@ namespace bgfx { namespace d3d11
 		if (0 < m_numTh)
 		{
 			m_num = 0;
+			m_numUav = 0;
+
 			for (uint32_t ii = 0; ii < m_numTh; ++ii)
 			{
 				TextureHandle handle = m_attachment[ii].handle;
@@ -4752,6 +4747,8 @@ namespace bgfx { namespace d3d11
 						}
 					}
 
+					const bool computeWrite = 0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE);
+					const bool renderTarget = 0 != (texture.m_flags&BGFX_TEXTURE_RT_MASK);
 					const uint32_t msaaQuality = bx::uint32_satsub( (texture.m_flags&BGFX_TEXTURE_RT_MSAA_MASK)>>BGFX_TEXTURE_RT_MSAA_SHIFT, 1);
 					const DXGI_SAMPLE_DESC& msaa = s_msaa[msaaQuality];
 
@@ -4803,7 +4800,7 @@ namespace bgfx { namespace d3d11
 							break;
 						}
 					}
-					else
+					else if(renderTarget)
 					{
 						D3D11_RENDER_TARGET_VIEW_DESC desc;
 						desc.Format = texture.getSrvFormat();
@@ -4876,6 +4873,12 @@ namespace bgfx { namespace d3d11
 						DX_CHECK(s_renderD3D11->m_device->CreateShaderResourceView(texture.m_ptr, NULL, &m_srv[m_num]) );
 						m_num++;
 					}
+					else if(computeWrite)
+					{
+						m_uav[m_num + m_numUav] = texture.m_uav;
+						//s_renderD3D11->getCachedUav(texture, m_attachment[ii].mip);
+						m_numUav++;
+					}
 				}
 			}
 		}
@@ -4944,19 +4947,9 @@ namespace bgfx { namespace d3d11
 		}
 	}
 
-	void FrameBufferD3D11::set(uint32_t _num_uavs, ID3D11UnorderedAccessView** _uavs)
-	{
-		if(_num_uavs > 0 && _uavs[0] != NULL)
-			int i = 0;
-		s_renderD3D11->m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(m_num, m_rtv, m_dsv, m_num, _num_uavs, _uavs, NULL);
-		m_needPresent = UINT16_MAX != m_denseIdx;
-		s_renderD3D11->m_currentColor = m_rtv[0];
-		s_renderD3D11->m_currentDepthStencil = m_dsv;
-	}
-
 	void FrameBufferD3D11::set()
 	{
-		s_renderD3D11->m_deviceCtx->OMSetRenderTargets(m_num, m_rtv, m_dsv);
+		s_renderD3D11->m_deviceCtx->OMSetRenderTargetsAndUnorderedAccessViews(m_num, m_rtv, m_dsv, m_num, m_numUav, m_uav + m_num, NULL);
 		m_needPresent = UINT16_MAX != m_denseIdx;
 		s_renderD3D11->m_currentColor        = m_rtv[0];
 		s_renderD3D11->m_currentDepthStencil = m_dsv;
@@ -5350,7 +5343,7 @@ namespace bgfx { namespace d3d11
 		{
 			// reset the framebuffer to be the backbuffer; depending on the swap effect,
 			// if we don't do this we'll only see one frame of output and then nothing
-			setFrameBuffer(BGFX_INVALID_HANDLE, NULL, true, false);
+			setFrameBuffer(BGFX_INVALID_HANDLE, true, false);
 
 			bool viewRestart = false;
 			uint8_t eye = 0;
@@ -5388,13 +5381,10 @@ namespace bgfx { namespace d3d11
 					view = key.m_view;
 					programIdx = kInvalidHandle;
 
-					if(_render->m_view[view].m_has_bind)
-						int i = 0;
-
-					if (_render->m_view[view].m_fbh.idx != fbh.idx || _render->m_view[view].m_has_bind)
+					if (_render->m_view[view].m_fbh.idx != fbh.idx)
 					{
 						fbh = _render->m_view[view].m_fbh;
-						setFrameBuffer(fbh, &_render->m_view[view].m_bind);
+						setFrameBuffer(fbh);
 					}
 
 					viewRestart = ( (BGFX_VIEW_STEREO == (_render->m_view[view].m_flags & BGFX_VIEW_STEREO) ) );

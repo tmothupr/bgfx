@@ -1671,8 +1671,6 @@ namespace bgfx
 			setMode(ViewMode::Default);
 			setFrameBuffer(BGFX_INVALID_HANDLE);
 			setTransform(NULL, NULL, BGFX_VIEW_NONE, NULL);
-			m_has_bind = false;
-			m_bind.clear();
 		}
 
 		void setRect(uint16_t _x, uint16_t _y, uint16_t _width, uint16_t _height)
@@ -1709,18 +1707,6 @@ namespace bgfx
 		void setFrameBuffer(FrameBufferHandle _handle)
 		{
 			m_fbh = _handle;
-		}
-
-		void setImage(uint8_t _stage, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format)
-		{
-			Binding& bind = m_bind.m_bind[_stage];
-			bind.m_idx = _handle.idx;
-			bind.m_type = uint8_t(Binding::Image);
-			bind.m_un.m_compute.m_format = uint8_t(_format);
-			bind.m_un.m_compute.m_access = uint8_t(_access);
-			bind.m_un.m_compute.m_mip = _mip;
-
-			m_has_bind = true;
 		}
 
 		void setTransform(const void* _view, const void* _proj, uint8_t _flags, const void* _proj1)
@@ -1763,8 +1749,6 @@ namespace bgfx
 		FrameBufferHandle m_fbh;
 		uint8_t m_mode;
 		uint8_t m_flags;
-		bool m_has_bind;
-		RenderBind m_bind;
 	};
 
 	struct FrameCache
@@ -3600,7 +3584,7 @@ namespace bgfx
 			ShaderRef& sr   = m_shaderRef[handle.idx];
 			sr.m_refCount   = 1;
 			sr.m_inputHash  = inputHash;
-			sr.m_outputHash = inputHash;
+			sr.m_outputHash = outputHash;
 			sr.m_num        = 0;
 			sr.m_uniforms   = NULL;
 
@@ -3787,6 +3771,7 @@ namespace bgfx
 				if (isValid(handle) )
 				{
 					shaderIncRef(_vsh);
+					shaderIncRef(_gsh);
 					shaderIncRef(_fsh);
 					ProgramRef& pr = m_programRef[handle.idx];
 					pr.m_vsh = _vsh;
@@ -4585,11 +4570,6 @@ namespace bgfx
 			m_view[_id].setTransform(_view, _proj, _flags, _proj1);
 		}
 		
-		BGFX_API_FUNC(void setViewImage(ViewId _id, uint8_t _stage, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format) )
-		{
-			m_view[_id].setImage(_stage, _handle, _mip, _access, _format);
-		}
-
 		BGFX_API_FUNC(void resetView(ViewId _id) )
 		{
 			m_view[_id].reset();

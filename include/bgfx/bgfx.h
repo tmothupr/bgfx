@@ -3308,25 +3308,6 @@ namespace bgfx
 		, const ViewId* _remap = NULL
 		);
 
-	/// Set image from texture.
-	///
-	/// @param[in] _stage Texture unit.
-	/// @param[in] _handle Texture handle.
-	/// @param[in] _mip Mip level.
-	/// @param[in] _access Texture access. See `Access::Enum`.
-	/// @param[in] _format Texture format. See: `TextureFormat::Enum`.
-	///
-	/// @attention C99 equivalent is `bgfx_set_image`.
-	///
-	void setViewImage(
-		  ViewId _id
-		, uint8_t _stage
-		, TextureHandle _handle
-		, uint8_t _mip
-		, Access::Enum _access
-		, TextureFormat::Enum _format = TextureFormat::Count
-	);
-
 	/// Reset all view settings to default.
 	///
 	/// @param[in] _id View id.

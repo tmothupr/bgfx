@@ -3215,6 +3215,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					m_glctx.makeCurrent(NULL);
 					m_currentFbo = frameBuffer.m_fbo[0];
 				}
+
+				frameBuffer.set();
 			}
 
 			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_currentFbo) );
@@ -4594,6 +4596,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		m_currentSamplerHash = UINT32_MAX;
 
 		const bool writeOnly    = 0 != (m_flags&BGFX_TEXTURE_RT_WRITE_ONLY);
+		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
 		const bool computeWrite = 0 != (m_flags&BGFX_TEXTURE_COMPUTE_WRITE );
 		const bool srgb         = 0 != (m_flags&BGFX_TEXTURE_SRGB);
 		const bool textureArray = false
@@ -4680,8 +4683,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				GL_CHECK(glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask) );
 			}
 		}
-
-		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
 
 		if (renderTarget)
 		{
@@ -5289,8 +5290,16 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			break;
 		}
 
-		uint32_t iohash;
-		bx::read(&reader, iohash);
+		if(m_type == GL_GEOMETRY_SHADER)
+			int i = 0;
+		if(m_type == GL_FRAGMENT_SHADER)
+			int i = 0;
+
+		uint32_t inputHash;
+		bx::read(&reader, inputHash);
+
+		uint32_t outputHash;
+		bx::read(&reader, outputHash);
 
 		uint16_t count;
 		bx::read(&reader, count);
@@ -5908,6 +5917,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 	{
 		if (0 != m_fbo[0])
 		{
+			m_num = 0;
+			m_numCompute = 0;
+
 			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo[0]) );
 
 			bool needResolve = false;
@@ -5921,6 +5933,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				if (isValid(handle) )
 				{
 					const TextureGL& texture = s_renderGL->m_textures[handle.idx];
+
+					const bool renderTarget = 0 != (texture.m_flags&BGFX_TEXTURE_RT_MASK);
+					const bool computeWrite = 0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE);
 
 					if (0 == colorIdx)
 					{
@@ -5946,10 +5961,14 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							attachment = GL_DEPTH_ATTACHMENT;
 						}
 					}
-					else
+					else if(renderTarget)
 					{
 						buffers[colorIdx] = attachment;
 						++colorIdx;
+					}
+					else if(computeWrite)
+					{
+						m_numCompute++;
 					}
 
 					if (0 != texture.m_rbo)
@@ -6179,6 +6198,30 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		}
 
 		GL_CHECK(glInvalidateFramebuffer(GL_FRAMEBUFFER, idx, buffers) );
+	}
+
+	void FrameBufferGL::set()
+	{
+		for(uint32_t ii = 0; ii < m_numTh; ++ii)
+		{
+			TextureHandle handle = m_attachment[ii].handle;
+			if(isValid(handle))
+			{
+				const TextureGL& texture = s_renderGL->m_textures[handle.idx];
+
+				if(0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE))
+				{
+					GL_CHECK(glBindImageTexture(ii
+						, texture.m_id
+						, m_attachment[ii].mip
+						, texture.isLayered() ? GL_TRUE : GL_FALSE
+						, m_attachment[ii].layer
+						, s_access[Access::ReadWrite]
+						, s_imageFormat[texture.m_textureFormat])
+					);
+				}
+			}
+		}
 	}
 
 	void OcclusionQueryGL::create()
@@ -6595,7 +6638,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 											GL_CHECK(glBindImageTexture(ii
 												, texture.m_id
 												, bind.m_un.m_compute.m_mip
-												, texture.isCubeMap() ? GL_TRUE : GL_FALSE
+												, texture.isLayered() ? GL_TRUE : GL_FALSE
 												, 0
 												, s_access[bind.m_un.m_compute.m_access]
 												, s_imageFormat[bind.m_un.m_compute.m_format])
@@ -7096,28 +7139,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								{
 									switch (bind.m_type)
 									{
-									case Binding::Image:
-										{
-											if (Access::Read == bind.m_un.m_compute.m_access)
-											{
-												TextureGL& texture = m_textures[bind.m_idx];
-												texture.commit(stage, uint32_t(texture.m_flags), _render->m_colorPalette);
-											}
-											else
-											{
-												const TextureGL& texture = m_textures[bind.m_idx];
-												GL_CHECK(glBindImageTexture(stage
-													, texture.m_id
-													, bind.m_un.m_compute.m_mip
-													, texture.isCubeMap() ? GL_TRUE : GL_FALSE
-													, 0
-													, s_access[bind.m_un.m_compute.m_access]
-													, s_imageFormat[bind.m_un.m_compute.m_format])
-													);
-											}
-										}
-										break;
-
 									case Binding::Texture:
 										{
 											TextureGL& texture = m_textures[bind.m_idx];

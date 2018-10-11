@@ -2408,8 +2408,11 @@ namespace bgfx { namespace d3d9
 
 		bool fragment = BGFX_CHUNK_MAGIC_FSH == magic;
 
-		uint32_t iohash;
-		bx::read(&reader, iohash);
+		uint32_t inputHash;
+		bx::read(&reader, inputHash);
+
+		uint32_t outputHash;
+		bx::read(&reader, outputHash);
 
 		uint16_t count;
 		bx::read(&reader, count);

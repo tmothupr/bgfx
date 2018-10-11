@@ -323,6 +323,7 @@ namespace bgfx { namespace d3d11
 			, m_denseIdx(UINT16_MAX)
 			, m_num(0)
 			, m_numTh(0)
+			, m_numUav(0)
 			, m_needPresent(false)
 		{
 		}
@@ -334,13 +335,13 @@ namespace bgfx { namespace d3d11
 		void postReset();
 		void resolve();
 		void clear(const Clear& _clear, const float _palette[][4]);
-		void set(uint32_t _num_uavs, ID3D11UnorderedAccessView** _uavs);
 		void set();
 		HRESULT present(uint32_t _syncInterval);
 
 		ID3D11RenderTargetView* m_rtv[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		ID3D11ShaderResourceView* m_srv[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		ID3D11DepthStencilView* m_dsv;
+		ID3D11UnorderedAccessView* m_uav[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		Dxgi::SwapChainI* m_swapChain;
 		void* m_nwh;
 		uint32_t m_width;
@@ -350,6 +351,7 @@ namespace bgfx { namespace d3d11
 		uint16_t m_denseIdx;
 		uint8_t m_num;
 		uint8_t m_numTh;
+		uint8_t m_numUav;
 		bool m_needPresent;
 	};
 
