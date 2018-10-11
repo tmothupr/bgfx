@@ -5290,11 +5290,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			break;
 		}
 
-		if(m_type == GL_GEOMETRY_SHADER)
-			int i = 0;
-		if(m_type == GL_FRAGMENT_SHADER)
-			int i = 0;
-
 		uint32_t inputHash;
 		bx::read(&reader, inputHash);
 
@@ -6627,22 +6622,18 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 								case Binding::Image:
 									{
-										if (Access::Read == bind.m_un.m_compute.m_access)
+										const TextureGL& texture = m_textures[bind.m_idx];
+										GL_CHECK(glBindImageTexture(ii
+											, texture.m_id
+											, bind.m_un.m_compute.m_mip
+											, texture.isLayered() ? GL_TRUE : GL_FALSE
+											, 0
+											, s_access[bind.m_un.m_compute.m_access]
+											, s_imageFormat[bind.m_un.m_compute.m_format])
+											);
+
+										if (Access::Read != bind.m_un.m_compute.m_access)
 										{
-											TextureGL& texture = m_textures[bind.m_idx];
-											texture.commit(ii, uint32_t(texture.m_flags), _render->m_colorPalette);
-										}
-										else
-										{
-											const TextureGL& texture = m_textures[bind.m_idx];
-											GL_CHECK(glBindImageTexture(ii
-												, texture.m_id
-												, bind.m_un.m_compute.m_mip
-												, texture.isLayered() ? GL_TRUE : GL_FALSE
-												, 0
-												, s_access[bind.m_un.m_compute.m_access]
-												, s_imageFormat[bind.m_un.m_compute.m_format])
-												);
 											barrier |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
 										}
 									}
