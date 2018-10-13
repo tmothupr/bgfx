@@ -2352,29 +2352,25 @@ namespace bgfx { namespace mtl
 		uint32_t magic;
 		bx::read(&reader, magic);
 
-		switch (magic)
+		uint32_t hashIn;
+		bx::read(&reader, hashIn);
+
+		uint32_t hashOut;
+
+		if (isShaderVerLess(magic, 6) )
 		{
-			case BGFX_CHUNK_MAGIC_CSH:
-			case BGFX_CHUNK_MAGIC_FSH:
-			case BGFX_CHUNK_MAGIC_VSH:
-				break;
-
-			default:
-				BGFX_FATAL(false, Fatal::InvalidShader, "Unknown shader format %x.", magic);
-				break;
+			hashOut = hashIn;
 		}
-		
-		uint32_t inputHash;
-		bx::read(&reader, inputHash);
-
-		uint32_t outputHash;
-		bx::read(&reader, outputHash);
+		else
+		{
+			bx::read(&reader, hashOut);
+		}
 
 		uint16_t count;
 		bx::read(&reader, count);
 
 		BX_TRACE("%s Shader consts %d"
-			, BGFX_CHUNK_MAGIC_FSH == magic ? "Fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "Vertex" : "Compute"
+			, getShaderTypeName(magic)
 			, count
 			);
 
@@ -2417,13 +2413,18 @@ namespace bgfx { namespace mtl
 		BGFX_FATAL(NULL != m_function
 			, bgfx::Fatal::InvalidShader
 			, "Failed to create %s shader."
-			, BGFX_CHUNK_MAGIC_FSH == magic ? "Fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "Vertex" : "Compute"
+			, getShaderTypeName(magic)
 			);
 
 		bx::HashMurmur2A murmur;
 		murmur.begin();
+<<<<<<< HEAD
 		murmur.add(inputHash);
 		murmur.add(outputHash);
+=======
+		murmur.add(hashIn);
+		murmur.add(hashOut);
+>>>>>>> upstream/master
 		murmur.add(code, shaderSize);
 //		murmur.add(numAttrs);
 //		murmur.add(m_attrMask, numAttrs);

@@ -5277,29 +5277,38 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		uint32_t magic;
 		bx::read(&reader, magic);
 
-		switch (magic)
+		if (isShaderType(magic, 'C') )
 		{
-		case BGFX_CHUNK_MAGIC_CSH: m_type = GL_COMPUTE_SHADER;  break;
-		case BGFX_CHUNK_MAGIC_FSH: m_type = GL_FRAGMENT_SHADER;	break;
-		case BGFX_CHUNK_MAGIC_GSH: m_type = GL_GEOMETRY_SHADER; break;
-		case BGFX_CHUNK_MAGIC_VSH: m_type = GL_VERTEX_SHADER;   break;
-
-		default:
-			BGFX_FATAL(false, Fatal::InvalidShader, "Unknown shader format %x.", magic);
-			break;
+			m_type = GL_COMPUTE_SHADER;
+		}
+		else if (isShaderType(magic, 'F') )
+		{
+			m_type = GL_FRAGMENT_SHADER;
+		}
+		else if (isShaderType(magic, 'V') )
+		{
+			m_type = GL_VERTEX_SHADER;
 		}
 
-		uint32_t inputHash;
-		bx::read(&reader, inputHash);
+		uint32_t hashIn;
+		bx::read(&reader, hashIn);
 
-		uint32_t outputHash;
-		bx::read(&reader, outputHash);
+		uint32_t hashOut;
+
+		if (isShaderVerLess(magic, 6) )
+		{
+			hashOut = hashIn;
+		}
+		else
+		{
+			bx::read(&reader, hashOut);
+		}
 
 		uint16_t count;
 		bx::read(&reader, count);
 
 		BX_TRACE("%s Shader consts %d"
-			, BGFX_CHUNK_MAGIC_FSH == magic ? "Fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "Vertex" : "Compute"
+			, getShaderTypeName(magic)
 			, count
 			);
 
@@ -5329,9 +5338,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		bx::read(&reader, shaderSize);
 
 		m_id = glCreateShader(m_type);
-		BX_WARN(0 != m_id, "Failed to create %s shader."
-				, BGFX_CHUNK_MAGIC_FSH == magic ? "fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "vertex" : "compute"
-				);
+		BX_WARN(0 != m_id, "Failed to create shader.");
 
 		const char* code = (const char*)reader.getDataPtr();
 

@@ -13,10 +13,10 @@ extern "C"
 #include <fpp.h>
 } // extern "C"
 
-#define BGFX_CHUNK_MAGIC_CSH BX_MAKEFOURCC('C', 'S', 'H', 0x3)
-#define BGFX_CHUNK_MAGIC_FSH BX_MAKEFOURCC('F', 'S', 'H', 0x5)
-#define BGFX_CHUNK_MAGIC_GSH BX_MAKEFOURCC('G', 'S', 'H', 0x5)
-#define BGFX_CHUNK_MAGIC_VSH BX_MAKEFOURCC('V', 'S', 'H', 0x5)
+#define BGFX_SHADER_BIN_VERSION 6
+#define BGFX_CHUNK_MAGIC_CSH BX_MAKEFOURCC('C', 'S', 'H', BGFX_SHADER_BIN_VERSION)
+#define BGFX_CHUNK_MAGIC_FSH BX_MAKEFOURCC('F', 'S', 'H', BGFX_SHADER_BIN_VERSION)
+#define BGFX_CHUNK_MAGIC_VSH BX_MAKEFOURCC('V', 'S', 'H', BGFX_SHADER_BIN_VERSION)
 
 #define BGFX_SHADERC_VERSION_MAJOR 1
 #define BGFX_SHADERC_VERSION_MINOR 16
@@ -1206,28 +1206,27 @@ namespace bgfx
 			}
 		}
 
-		if('f' == _options.shaderType)
-		{
-			bx::write(_writer, BGFX_CHUNK_MAGIC_FSH);
-		}
-		else if('g' == _options.shaderType)
-		{
-			bx::write(_writer, BGFX_CHUNK_MAGIC_GSH);
-		}
-		else if('v' == _options.shaderType)
-		{
-			bx::write(_writer, BGFX_CHUNK_MAGIC_VSH);
-		}
-		else
-		{
-			bx::write(_writer, BGFX_CHUNK_MAGIC_CSH);
-		}
-
-		bx::write(_writer, inputHash);
-		bx::write(_writer, outputHash);
-
 		if (raw)
 		{
+			if ('f' == _options.shaderType)
+			{
+				bx::write(_writer, BGFX_CHUNK_MAGIC_FSH);
+				bx::write(_writer, inputHash);
+				bx::write(_writer, uint32_t(0) );
+			}
+			else if ('v' == _options.shaderType)
+			{
+				bx::write(_writer, BGFX_CHUNK_MAGIC_VSH);
+				bx::write(_writer, uint32_t(0) );
+				bx::write(_writer, outputHash);
+			}
+			else
+			{
+				bx::write(_writer, BGFX_CHUNK_MAGIC_CSH);
+				bx::write(_writer, uint32_t(0) );
+				bx::write(_writer, outputHash);
+			}
+
 			if (0 != glsl)
 			{
 				bx::write(_writer, uint16_t(0) );
@@ -1347,6 +1346,10 @@ namespace bgfx
 
 					{
 						std::string code;
+
+						bx::write(_writer, BGFX_CHUNK_MAGIC_CSH);
+						bx::write(_writer, uint32_t(0) );
+						bx::write(_writer, outputHash);
 
 						if (0 != glsl
 						||  0 != essl)
@@ -2045,6 +2048,25 @@ namespace bgfx
 
 					{
 						std::string code;
+
+						if ('f' == _options.shaderType)
+						{
+							bx::write(_writer, BGFX_CHUNK_MAGIC_FSH);
+							bx::write(_writer, inputHash);
+							bx::write(_writer, uint32_t(0) );
+						}
+						else if ('v' == _options.shaderType)
+						{
+							bx::write(_writer, BGFX_CHUNK_MAGIC_VSH);
+							bx::write(_writer, uint32_t(0) );
+							bx::write(_writer, outputHash);
+						}
+						else
+						{
+							bx::write(_writer, BGFX_CHUNK_MAGIC_CSH);
+							bx::write(_writer, uint32_t(0) );
+							bx::write(_writer, outputHash);
+						}
 
 						if (0 != glsl
 						||  0 != essl

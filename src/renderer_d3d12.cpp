@@ -4339,25 +4339,21 @@ namespace bgfx { namespace d3d12
 		uint32_t magic;
 		bx::read(&reader, magic);
 
-		switch (magic)
+		const bool fragment = isShaderType(magic, 'F');
+
+		uint32_t hashIn;
+		bx::read(&reader, hashIn);
+
+		uint32_t hashOut;
+
+		if (isShaderVerLess(magic, 6) )
 		{
-		case BGFX_CHUNK_MAGIC_CSH:
-		case BGFX_CHUNK_MAGIC_FSH:
-		case BGFX_CHUNK_MAGIC_VSH:
-			break;
-
-		default:
-			BGFX_FATAL(false, Fatal::InvalidShader, "Unknown shader format %x.", magic);
-			break;
+			hashOut = hashIn;
 		}
-
-		bool fragment = BGFX_CHUNK_MAGIC_FSH == magic;
-
-		uint32_t inputHash;
-		bx::read(&reader, inputHash);
-
-		uint32_t outputHash;
-		bx::read(&reader, outputHash);
+		else
+		{
+			bx::read(&reader, hashOut);
+		}
 
 		uint16_t count;
 		bx::read(&reader, count);
@@ -4366,7 +4362,7 @@ namespace bgfx { namespace d3d12
 		m_numUniforms = count;
 
 		BX_TRACE("%s Shader consts %d"
-			, BGFX_CHUNK_MAGIC_FSH == magic ? "Fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "Vertex" : "Compute"
+			, getShaderTypeName(magic)
 			, count
 			);
 
@@ -4472,8 +4468,8 @@ namespace bgfx { namespace d3d12
 
 		bx::HashMurmur2A murmur;
 		murmur.begin();
-		murmur.add(inputHash);
-		murmur.add(outputHash);
+		murmur.add(hashIn);
+		murmur.add(hashOut);
 		murmur.add(code, shaderSize);
 		murmur.add(numAttrs);
 		murmur.add(m_attrMask, numAttrs);

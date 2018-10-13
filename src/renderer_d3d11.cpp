@@ -3881,26 +3881,21 @@ namespace bgfx { namespace d3d11
 		uint32_t magic;
 		bx::read(&reader, magic);
 
-		switch (magic)
+		const bool fragment = isShaderType(magic, 'F');
+
+		uint32_t hashIn;
+		bx::read(&reader, hashIn);
+
+		uint32_t hashOut;
+
+		if (isShaderVerLess(magic, 6) )
 		{
-		case BGFX_CHUNK_MAGIC_CSH:
-		case BGFX_CHUNK_MAGIC_FSH:
-		case BGFX_CHUNK_MAGIC_GSH:
-		case BGFX_CHUNK_MAGIC_VSH:
-			break;
-
-		default:
-			BGFX_FATAL(false, Fatal::InvalidShader, "Unknown shader format %x.", magic);
-			break;
+			hashOut = hashIn;
 		}
-
-		bool fragment = BGFX_CHUNK_MAGIC_FSH == magic;
-
-		uint32_t inputHash;
-		bx::read(&reader, inputHash);
-
-		uint32_t outputHash;
-		bx::read(&reader, outputHash);
+		else
+		{
+			bx::read(&reader, hashOut);
+		}
 
 		uint16_t count;
 		bx::read(&reader, count);
@@ -3909,17 +3904,11 @@ namespace bgfx { namespace d3d11
 		m_numUniforms = count;
 
 		BX_TRACE("%s Shader consts %d"
-			, BGFX_CHUNK_MAGIC_FSH == magic ? "Fragment" : BGFX_CHUNK_MAGIC_VSH == magic ? "Vertex" : "Compute"
+			, getShaderTypeName(magic)
 			, count
 			);
 
-		//uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
-		uint8_t fragmentBit =
-			(magic == BGFX_CHUNK_MAGIC_FSH
-				? BGFX_UNIFORM_FRAGMENTBIT
-				: magic == BGFX_CHUNK_MAGIC_GSH
-				? BGFX_UNIFORM_GEOMETRYBIT
-				: 0);
+		const uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
 
 		if (0 < count)
 		{
@@ -3999,18 +3988,18 @@ namespace bgfx { namespace d3d11
 		const void* code = reader.getDataPtr();
 		bx::skip(&reader, shaderSize+1);
 
-		if (BGFX_CHUNK_MAGIC_FSH == magic)
+		if (isShaderType(magic, 'F') )
 		{
 			m_hasDepthOp = hasDepthOp(code, shaderSize);
 			DX_CHECK(s_renderD3D11->m_device->CreatePixelShader(code, shaderSize, NULL, &m_pixelShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create fragment shader.");
 		}
-		else if (BGFX_CHUNK_MAGIC_GSH == magic)
+		else if (isShaderType(magic, 'G'))
 		{
 			DX_CHECK(s_renderD3D11->m_device->CreateGeometryShader(code, shaderSize, NULL, &m_geometryShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create geometry shader.");
 		}
-		else if (BGFX_CHUNK_MAGIC_VSH == magic)
+		else if (isShaderType(magic, 'V') )
 		{
 			m_hash = bx::hash<bx::HashMurmur2A>(code, shaderSize);
 			m_code = copy(code, shaderSize);
@@ -4018,7 +4007,7 @@ namespace bgfx { namespace d3d11
 			DX_CHECK(s_renderD3D11->m_device->CreateVertexShader(code, shaderSize, NULL, &m_vertexShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create vertex shader.");
 		}
-		else
+		else if (isShaderType(magic, 'C') )
 		{
 			DX_CHECK(s_renderD3D11->m_device->CreateComputeShader(code, shaderSize, NULL, &m_computeShader) );
 			BGFX_FATAL(NULL != m_ptr, bgfx::Fatal::InvalidShader, "Failed to create compute shader.");
