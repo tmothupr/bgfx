@@ -2418,13 +2418,8 @@ namespace bgfx { namespace mtl
 
 		bx::HashMurmur2A murmur;
 		murmur.begin();
-<<<<<<< HEAD
-		murmur.add(inputHash);
-		murmur.add(outputHash);
-=======
 		murmur.add(hashIn);
 		murmur.add(hashOut);
->>>>>>> upstream/master
 		murmur.add(code, shaderSize);
 //		murmur.add(numAttrs);
 //		murmur.add(m_attrMask, numAttrs);
