@@ -5232,13 +5232,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		}
 	}
 
-	void TextureGL::resolve() const
+	void TextureGL::resolve(uint8_t _resolve) const
 	{
 		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
-		const bool mipAutoGen   = 0 == (m_flags&BGFX_TEXTURE_NO_MIP_AUTOGEN);
 		if (renderTarget
-		&&  mipAutoGen
-		&&  1 < m_numMips)
+		&&  1 < m_numMips
+		&&  0 != (_resolve & BGFX_RESOLVE_AUTO_GEN_MIPS) )
 		{
 			GL_CHECK(glBindTexture(m_target, m_id) );
 			GL_CHECK(glGenerateMipmap(m_target) );
@@ -6149,11 +6148,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		for (uint32_t ii = 0; ii < m_numTh; ++ii)
 		{
-			TextureHandle handle = m_attachment[ii].handle;
-			if (isValid(handle) )
+			const Attachment& at = m_attachment[ii];
+			if (isValid(at.handle) )
 			{
-				const TextureGL& texture = s_renderGL->m_textures[handle.idx];
-				texture.resolve();
+				const TextureGL& texture = s_renderGL->m_textures[at.handle.idx];
+				texture.resolve(at.resolve);
 			}
 		}
 	}
@@ -7500,6 +7499,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		perfStats.gpuTimerFreq  = 1000000000;
 		perfStats.numDraw       = statsKeyType[0];
 		perfStats.numCompute    = statsKeyType[1];
+		perfStats.numBlit       = _render->m_numBlitItems;
 		perfStats.maxGpuLatency = maxGpuLatency;
 		bx::memCopy(perfStats.numPrims, statsNumPrimsRendered, sizeof(perfStats.numPrims) );
 		perfStats.gpuMemoryMax  = -INT64_MAX;
