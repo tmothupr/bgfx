@@ -3447,6 +3447,10 @@ VK_DESTROY
 		{
 			shaderStage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		}
+		else if (isShaderType(magic, 'G') )
+		{
+			shaderStage = VK_SHADER_STAGE_GEOMETRY_BIT;
+		}
 		else if (isShaderType(magic, 'V') )
 		{
 			shaderStage = VK_SHADER_STAGE_VERTEX_BIT;

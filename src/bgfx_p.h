@@ -323,7 +323,7 @@ namespace bgfx
 	inline bool isShaderBin(uint32_t _magic)
 	{
 		return BX_MAKEFOURCC(0, 'S', 'H', 0) == (_magic & BX_MAKEFOURCC(0, 0xff, 0xff, 0) )
-			&& (isShaderType(_magic, 'C') || isShaderType(_magic, 'F') || isShaderType(_magic, 'V') )
+			&& (isShaderType(_magic, 'C') || isShaderType(_magic, 'F') || isShaderType(_magic, 'G') || isShaderType(_magic, 'V') )
 			;
 	}
 
@@ -3564,7 +3564,8 @@ namespace bgfx
 
 			if ( (isShaderType(magic, 'C') && isShaderVerLess(magic, 3) )
 			||   (isShaderType(magic, 'F') && isShaderVerLess(magic, 5) )
-			||   (isShaderType(magic, 'V') && isShaderVerLess(magic, 5) ) )
+			||   (isShaderType(magic, 'V') && isShaderVerLess(magic, 5) )
+			||   (isShaderType(magic, 'G') && isShaderVerLess(magic, 6) ) )
 			{
 				BX_TRACE("Unsupported shader binary version.");
 				release(_mem);

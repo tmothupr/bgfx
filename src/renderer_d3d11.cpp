@@ -1726,8 +1726,6 @@ namespace bgfx { namespace d3d11
 			ShaderD3D11* vsh = &m_shaders[_vsh.idx];
 			ShaderD3D11* gsh = isValid(_gsh) ? &m_shaders[_gsh.idx] : NULL;
 			ShaderD3D11* fsh = isValid(_fsh) ? &m_shaders[_fsh.idx] : NULL;
-			if(isValid(_gsh))
-				int i = 0;
 			m_program[_handle.idx].create(vsh, gsh, fsh);
 		}
 
@@ -3908,7 +3906,13 @@ namespace bgfx { namespace d3d11
 			, count
 			);
 
-		const uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
+		//const uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
+		uint8_t fragmentBit =
+			( isShaderType(magic, 'F')
+				? BGFX_UNIFORM_FRAGMENTBIT
+				: isShaderType(magic, 'G')
+				? BGFX_UNIFORM_GEOMETRYBIT
+				: 0);
 
 		if (0 < count)
 		{
@@ -5609,6 +5613,21 @@ namespace bgfx { namespace d3d11
 						deviceCtx->Dispatch(compute.m_numX, compute.m_numY, compute.m_numZ);
 					}
 
+					
+					for (uint32_t ii = 0; ii < maxComputeBindings; ++ii)
+					{
+						const Binding& bind = renderBind.m_bind[ii];
+						if (kInvalidHandle != bind.m_idx
+						&&  Binding::Image == bind.m_type)
+						{
+							TextureD3D11& texture = m_textures[bind.m_idx];
+							if(Access::ReadWrite == bind.m_un.m_compute.m_access
+							|| Access::Write     == bind.m_un.m_compute.m_access)
+							{
+								texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
+							}
+						}
+					}
 					continue;
 				}
 
@@ -5778,6 +5797,9 @@ namespace bgfx { namespace d3d11
 				if (key.m_program != programIdx)
 				{
 					programIdx = key.m_program;
+
+					if(programIdx == 15)
+						int i = 0;
 
 					if (kInvalidHandle == programIdx)
 					{

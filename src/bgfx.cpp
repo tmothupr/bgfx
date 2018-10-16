@@ -1402,6 +1402,10 @@ namespace bgfx
 		{
 			return "Fragment";
 		}
+		else if (isShaderType(_magic, 'G'))
+		{
+			return "Geometry";
+		}
 		else if (isShaderType(_magic, 'V') )
 		{
 			return "Vertex";

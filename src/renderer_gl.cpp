@@ -5285,6 +5285,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			m_type = GL_FRAGMENT_SHADER;
 		}
+		else if (isShaderType(magic, 'G') )
+		{
+			m_type = GL_GEOMETRY_SHADER;
+		}
 		else if (isShaderType(magic, 'V') )
 		{
 			m_type = GL_VERTEX_SHADER;
@@ -6710,6 +6714,21 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							}
 
 							GL_CHECK(glMemoryBarrier(barrier) );
+
+							for (uint32_t ii = 0; ii < maxComputeBindings; ++ii)
+							{
+								const Binding& bind = renderBind.m_bind[ii];
+								if (kInvalidHandle != bind.m_idx
+								&&  Binding::Image == bind.m_type)
+								{
+									TextureGL& texture = m_textures[bind.m_idx];
+									if(Access::ReadWrite == bind.m_un.m_compute.m_access
+									|| Access::Write     == bind.m_un.m_compute.m_access)
+									{
+										texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
+									}
+								}
+							}
 						}
 					}
 
