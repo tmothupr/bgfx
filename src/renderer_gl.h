@@ -1250,7 +1250,7 @@ namespace bgfx { namespace gl
 		bool isLayered() const
 		{
 			return 0
-				|| GL_TEXTURE_1D_ARRAY == m_target
+//				|| GL_TEXTURE_1D_ARRAY == m_target
 				|| GL_TEXTURE_2D_ARRAY == m_target
 				|| GL_TEXTURE_3D == m_target
 				|| GL_TEXTURE_CUBE_MAP == m_target

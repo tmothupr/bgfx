@@ -5285,10 +5285,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			m_type = GL_FRAGMENT_SHADER;
 		}
+#if BGFX_CONFIG_RENDERER_OPENGL > 31
 		else if (isShaderType(magic, 'G') )
 		{
 			m_type = GL_GEOMETRY_SHADER;
 		}
+#endif
 		else if (isShaderType(magic, 'V') )
 		{
 			m_type = GL_VERTEX_SHADER;
@@ -5824,6 +5826,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code = temp;
 			}
+#if BGFX_CONFIG_RENDERER_OPENGL > 31
 			else if (GL_GEOMETRY_SHADER == m_type)
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
@@ -5844,6 +5847,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code = temp;
 			}
+#endif
 
 			GL_CHECK(glShaderSource(m_id, 1, (const GLchar**)&code, NULL) );
 			GL_CHECK(glCompileShader(m_id) );
