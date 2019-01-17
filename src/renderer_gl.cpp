@@ -5286,7 +5286,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			m_type = GL_FRAGMENT_SHADER;
 		}
-#if BGFX_CONFIG_RENDERER_OPENGL > 31
+#if !BX_PLATFORM_EMSCRIPTEN
 		else if (isShaderType(magic, 'G') )
 		{
 			m_type = GL_GEOMETRY_SHADER;
@@ -5827,7 +5827,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code = temp;
 			}
-#if BGFX_CONFIG_RENDERER_OPENGL > 31
+#if !BX_PLATFORM_EMSCRIPTEN
 			else if (GL_GEOMETRY_SHADER == m_type)
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
