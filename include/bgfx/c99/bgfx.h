@@ -278,6 +278,20 @@ typedef enum bgfx_uniform_type
 } bgfx_uniform_type_t;
 
 /**
+ * Uniform freq enum.
+ *
+ */
+typedef enum bgfx_uniform_freq
+{
+	BGFX_UNIFORM_FREQ_FRAME,
+	BGFX_UNIFORM_FREQ_VIEW,
+	BGFX_UNIFORM_FREQ_SUBMIT,
+
+	BGFX_UNIFORM_FREQ_COUNT
+
+} bgfx_uniform_freq_t;
+
+/**
  * Backbuffer ratio enum.
  *
  */
@@ -2060,7 +2074,7 @@ BGFX_C_API void bgfx_destroy_frame_buffer(bgfx_frame_buffer_handle_t _handle);
  * @returns Handle to uniform object.
  *
  */
-BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num);
+BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num, bgfx_uniform_freq_t _freq);
 
 /**
  * Retrieve uniform info.

@@ -394,7 +394,7 @@ VK_DESTROY
 		ShaderVK()
 			: m_code(NULL)
 			, m_module(VK_NULL_HANDLE)
-			, m_constantBuffer(NULL)
+			, m_constantBuffer{}
 			, m_hash(0)
 			, m_numUniforms(0)
 			, m_numPredefined(0)
@@ -408,7 +408,7 @@ VK_DESTROY
 
 		const Memory* m_code;
 		VkShaderModule m_module;
-		UniformBuffer* m_constantBuffer;
+		UniformBuffer* m_constantBuffer[UniformFreq::Count];
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint16_t m_attrMask[Attrib::Count];

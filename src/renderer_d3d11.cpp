@@ -1900,7 +1900,7 @@ namespace bgfx { namespace d3d11
 			}
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -1911,7 +1911,7 @@ namespace bgfx { namespace d3d11
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -2096,13 +2096,13 @@ namespace bgfx { namespace d3d11
 			deviceCtx->VSSetShader(program.m_vsh->m_vertexShader, NULL, 0);
 			deviceCtx->VSSetConstantBuffers(0, 1, &program.m_vsh->m_buffer);
 
-			if(NULL != program.m_gsh)
+			if (NULL != program.m_gsh)
 			{
 				deviceCtx->GSSetShader(program.m_gsh->m_geometryShader, NULL, 0);
 				deviceCtx->GSSetConstantBuffers(0, 1, &program.m_gsh->m_buffer);
 			}
 
-			if(NULL != program.m_fsh)
+			if (NULL != program.m_fsh)
 			{
 				deviceCtx->PSSetShader(program.m_fsh->m_pixelShader, NULL, 0);
 				deviceCtx->PSSetConstantBuffers(0, 1, &program.m_fsh->m_buffer);
@@ -2507,9 +2507,9 @@ namespace bgfx { namespace d3d11
 				m_vsChanges = 0;
 			}
 
-			if(0 < m_gsChanges)
+			if (0 < m_gsChanges)
 			{
-				if(NULL != m_currentProgram->m_gsh->m_buffer)
+				if (NULL != m_currentProgram->m_gsh->m_buffer)
 				{
 					m_deviceCtx->UpdateSubresource(m_currentProgram->m_gsh->m_buffer, 0, 0, m_gsScratch, 0, 0);
 				}
@@ -3305,8 +3305,8 @@ namespace bgfx { namespace d3d11
 				switch ( (uint32_t)type)
 				{
 				case UniformType::Mat3:
-				case UniformType::Mat3|BGFX_UNIFORM_FRAGMENTBIT: \
-				case UniformType::Mat3|BGFX_UNIFORM_GEOMETRYBIT: \
+				case UniformType::Mat3|BGFX_UNIFORM_FRAGMENTBIT:
+				case UniformType::Mat3|BGFX_UNIFORM_GEOMETRYBIT:
 					 {
 						 float* value = (float*)data;
 						 for (uint32_t ii = 0, count = num/3; ii < count; ++ii,  loc += 3*16, value += 9)
@@ -3992,17 +3992,22 @@ namespace bgfx { namespace d3d11
 				else if (0 == (BGFX_UNIFORM_SAMPLERBIT & type) )
 				{
 					const UniformRegInfo* info = s_renderD3D11->m_uniformReg.find(name);
+					const UniformFreq::Enum freq = info->m_freq;
 					BX_WARN(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					if (NULL != info)
 					{
-						if (NULL == m_constantBuffer)
+						if (NULL == m_constantBuffer[freq])
 						{
-							m_constantBuffer = UniformBuffer::create(1024);
+							m_constantBuffer[freq] = UniformBuffer::create(1024);
 						}
 
 						kind = "user";
-						m_constantBuffer->writeUniformHandle( (UniformType::Enum)((type&~BGFX_UNIFORM_MASK)|fragmentBit), regIndex, info->m_handle, regCount);
+//<<<<<<< HEAD
+//						m_constantBuffer[freq]->writeUniformHandle( (UniformType::Enum)((type&~BGFX_UNIFORM_MASK)|fragmentBit), regIndex, info->m_handle, regCount);
+//=======
+						m_constantBuffer[freq]->writeUniformHandle( (UniformType::Enum)(type|fragmentBit), regIndex, info->m_handle, regCount);
+//>>>>>>> 645c66c76... Per-View Uniforms
 					}
 				}
 				else
@@ -4021,9 +4026,12 @@ namespace bgfx { namespace d3d11
 				BX_UNUSED(kind);
 			}
 
-			if (NULL != m_constantBuffer)
+			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				m_constantBuffer->finish();
+				if (NULL != m_constantBuffer[ii])
+				{
+					m_constantBuffer[ii]->finish();
+				}
 			}
 		}
 
@@ -5417,6 +5425,9 @@ namespace bgfx { namespace d3d11
 
 		m_occlusionQuery.resolve(_render);
 
+		rendererUpdateUniforms(this, _render->m_frameUniforms, 0, UINT32_MAX);
+		_render->m_frameUniforms->reset();
+
 		if (0 == (_render->m_debug&BGFX_DEBUG_IFH) )
 		{
 			// reset the framebuffer to be the backbuffer; depending on the swap effect,
@@ -5493,6 +5504,16 @@ namespace bgfx { namespace d3d11
 					}
 
 					submitBlit(bs, view);
+
+					if (UINT32_MAX != _render->m_view[view].m_uniformBegin)
+					{
+						rendererUpdateUniforms(this
+							, _render->m_viewUniforms
+							, _render->m_view[view].m_uniformBegin
+							, _render->m_view[view].m_uniformEnd
+						);
+						_render->m_viewUniforms->reset();
+					}
 				}
 
 				if (isCompute)
@@ -5519,7 +5540,7 @@ namespace bgfx { namespace d3d11
 
 					bool programChanged = false;
 					bool constantsChanged = compute.m_uniformBegin < compute.m_uniformEnd;
-					rendererUpdateUniforms(this, _render->m_uniformBuffer[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
+					rendererUpdateUniforms(this, _render->m_submitUniforms[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
 
 					if (key.m_program.idx != currentProgram.idx)
 					{
@@ -5541,7 +5562,7 @@ namespace bgfx { namespace d3d11
 
 						if (constantsChanged)
 						{
-							UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+							UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
 							if (NULL != vcb)
 							{
 								commit(*vcb);
@@ -5658,8 +5679,8 @@ namespace bgfx { namespace d3d11
 						&&  Binding::Image == bind.m_type)
 						{
 							TextureD3D11& texture = m_textures[bind.m_idx];
-							if(Access::ReadWrite == bind.m_un.m_compute.m_access
-							|| Access::Write     == bind.m_un.m_compute.m_access)
+							if (Access::ReadWrite == bind.m_access
+							||  Access::Write     == bind.m_access)
 							{
 								texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
 							}
@@ -5825,7 +5846,7 @@ namespace bgfx { namespace d3d11
 
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				if (key.m_program.idx != currentProgram.idx)
 				{
@@ -5880,9 +5901,9 @@ namespace bgfx { namespace d3d11
 				{
 					ProgramD3D11& program = m_program[currentProgram.idx];
 
-					if (constantsChanged)
+					auto commitConstants = [&](bgfx::UniformFreq::Enum freq)
 					{
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[freq];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
@@ -5890,7 +5911,7 @@ namespace bgfx { namespace d3d11
 						
 						if (NULL != program.m_gsh)
 						{
-							UniformBuffer* gcb = program.m_gsh->m_constantBuffer;
+							UniformBuffer* gcb = program.m_gsh->m_constantBuffer[freq];
 							if (NULL != gcb)
 							{
 								commit(*gcb);
@@ -5899,17 +5920,35 @@ namespace bgfx { namespace d3d11
 
 						if (NULL != program.m_fsh)
 						{
-							UniformBuffer* fcb = program.m_fsh->m_constantBuffer;
+							UniformBuffer* fcb = program.m_fsh->m_constantBuffer[freq];
 							if (NULL != fcb)
 							{
 								commit(*fcb);
 							}
 						}
+					};
+
+					// data is stored globally in xxScratch, so we must update that each type the program changes
+					if (programChanged)
+					{
+						commitConstants(UniformFreq::Frame);
+					}
+
+					if (programChanged)
+					{
+						commitConstants(UniformFreq::View);
+					}
+
+					if (constantsChanged)
+					{
+						commitConstants(UniformFreq::Submit);
 					}
 
 					viewState.setPredefined<4>(this, view, program, _render, draw);
+					//viewState.setPredefined<4>(this, view, program, _render, draw, true);// programChanged || viewChanged);
 
 					if (constantsChanged
+					||  programChanged
 					||  program.m_numPredefined > 0)
 					{
 						commitShaderConstants();
@@ -5935,16 +5974,16 @@ namespace bgfx { namespace d3d11
 									{
 										TextureD3D11& texture = m_textures[bind.m_idx];
 
-										if (Access::Read != bind.m_un.m_compute.m_access)
+										if (Access::Read != bind.m_access)
 										{
-											m_textureStage.m_uav[stage] = 0 == bind.m_un.m_compute.m_mip
+											m_textureStage.m_uav[stage] = 0 == bind.m_mip
 												? texture.m_uav
-												: s_renderD3D11->getCachedUav(texture.getHandle(), bind.m_un.m_compute.m_mip)
+												: s_renderD3D11->getCachedUav(texture.getHandle(), bind.m_mip)
 												;
 										}
 										else
 										{
-											texture.commit(stage, bind.m_un.m_draw.m_textureFlags, _render->m_colorPalette);
+											texture.commit(stage, bind.m_samplerFlags, _render->m_colorPalette);
 										}
 									}
 									break;

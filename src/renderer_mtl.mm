@@ -967,7 +967,7 @@ namespace bgfx { namespace mtl
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -1153,7 +1153,7 @@ namespace bgfx { namespace mtl
 				const uint32_t vertexUniformBufferSize   = pso->m_vshConstantBufferSize;
 				const uint32_t fragmentUniformBufferSize = pso->m_fshConstantBufferSize;
 
-				if (vertexUniformBufferSize)
+				if (0 != vertexUniformBufferSize)
 				{
 					m_uniformBufferVertexOffset = BX_ALIGN_MASK(m_uniformBufferVertexOffset, pso->m_vshConstantBufferAlignmentMask);
 					rce.setVertexBuffer(m_uniformBuffer, m_uniformBufferVertexOffset, 0);
@@ -1375,7 +1375,7 @@ namespace bgfx { namespace mtl
 				? m_uniformBufferFragmentOffset
 				: m_uniformBufferVertexOffset
 				;
-			uint8_t* dst = (uint8_t*)m_uniformBuffer.contents();
+			uint8_t* dst = (uint8_t*)m_submitUniforms.contents();
 			bx::memCopy(&dst[offset + _loc], _val, _numRegs*16);
 		}
 
@@ -1538,7 +1538,7 @@ namespace bgfx { namespace mtl
 			if (fragmentUniformBufferSize)
 			{
 				m_uniformBufferFragmentOffset = BX_ALIGN_MASK(m_uniformBufferFragmentOffset, pso->m_fshConstantBufferAlignmentMask);
-				m_renderCommandEncoder.setFragmentBuffer(m_uniformBuffer, m_uniformBufferFragmentOffset, 0);
+				m_renderCommandEncoder.setFragmentBuffer(m_submitUniforms, m_uniformBufferFragmentOffset, 0);
 			}
 
 			float mrtClearColor[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS][4];
@@ -1551,6 +1551,11 @@ namespace bgfx { namespace mtl
 					uint8_t index = (uint8_t)bx::uint32_min(BGFX_CONFIG_MAX_COLOR_PALETTE-1, _clear.m_index[ii]);
 					bx::memCopy(mrtClearColor[ii], _palette[index], 16);
 				}
+
+				bx::memCopy( (uint8_t*)m_submitUniforms.contents() + m_uniformBufferFragmentOffset
+					, mrtClear
+					, bx::uint32_min(fragmentUniformBufferSize, sizeof(mrtClear) )
+					);
 			}
 			else
 			{
@@ -1571,12 +1576,12 @@ namespace bgfx { namespace mtl
 				}
 			}
 
-			bx::memCopy( (uint8_t*)m_uniformBuffer.contents() + m_uniformBufferVertexOffset
+			bx::memCopy( (uint8_t*)m_submitUniforms.contents() + m_uniformBufferVertexOffset
 						, mrtClearDepth
 						, bx::uint32_min(vertexUniformBufferSize, sizeof(mrtClearDepth) )
 						);
 
-			bx::memCopy( (uint8_t*)m_uniformBuffer.contents() + m_uniformBufferFragmentOffset
+			bx::memCopy( (uint8_t*)m_submitUniforms.contents() + m_uniformBufferFragmentOffset
 						, mrtClearColor
 						, bx::uint32_min(fragmentUniformBufferSize, sizeof(mrtClearColor) )
 						);
@@ -2295,7 +2300,7 @@ namespace bgfx { namespace mtl
 		bool m_macOS11Runtime;
 		bool m_hasPixelFormatDepth32Float_Stencil8;
 
-		Buffer   m_uniformBuffer;
+		Buffer   m_submitUniforms;
 		Buffer   m_uniformBuffers[MTL_MAX_FRAMES_IN_FLIGHT];
 		uint32_t m_uniformBufferVertexOffset;
 		uint32_t m_uniformBufferFragmentOffset;
@@ -3667,7 +3672,7 @@ namespace bgfx { namespace mtl
 			MTL_RELEASE(m_screenshotTarget);
 		}
 
-		m_uniformBuffer = m_uniformBuffers[m_bufferIndex];
+		m_submitUniforms = m_uniformBuffers[m_bufferIndex];
 		m_bufferIndex = (m_bufferIndex + 1) % MTL_MAX_FRAMES_IN_FLIGHT;
 		m_uniformBufferVertexOffset = 0;
 		m_uniformBufferFragmentOffset = 0;
@@ -4271,7 +4276,8 @@ namespace bgfx { namespace mtl
 				}
 
 				bool programChanged = false;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				bool vertexStreamChanged = hasVertexStreamChanged(currentState, draw);
 
@@ -4381,14 +4387,14 @@ namespace bgfx { namespace mtl
 					if (0 != vertexUniformBufferSize)
 					{
 						m_uniformBufferVertexOffset = BX_ALIGN_MASK(m_uniformBufferVertexOffset, currentPso->m_vshConstantBufferAlignmentMask);
-						rce.setVertexBuffer(m_uniformBuffer, m_uniformBufferVertexOffset, 0);
+						rce.setVertexBuffer(m_submitUniforms, m_uniformBufferVertexOffset, 0);
 					}
 
 					m_uniformBufferFragmentOffset = m_uniformBufferVertexOffset + vertexUniformBufferSize;
 					if (0 != fragmentUniformBufferSize)
 					{
 						m_uniformBufferFragmentOffset = BX_ALIGN_MASK(m_uniformBufferFragmentOffset, currentPso->m_fshConstantBufferAlignmentMask);
-						rce.setFragmentBuffer(m_uniformBuffer, m_uniformBufferFragmentOffset, 0);
+						rce.setFragmentBuffer(m_submitUniforms, m_uniformBufferFragmentOffset, 0);
 					}
 
 					UniformBuffer* vcb = currentPso->m_vshConstantBuffer;

@@ -2464,7 +2464,7 @@ VK_IMPORT_DEVICE
 			m_frameBuffers[_handle.idx].destroy();
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -2475,7 +2475,7 @@ VK_IMPORT_DEVICE
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -3835,11 +3835,10 @@ VK_IMPORT_DEVICE
 			vkUpdateDescriptorSets(m_device, wdsCount, wds, 0, NULL);
 		}
 
-		void commit(UniformBuffer& _uniformBuffer)
+		void commit(UniformBuffer& _uniformBuffer, uint32_t _begin = 0, uint32_t _end = UINT32_MAX)
 		{
-			_uniformBuffer.reset();
-
-			for (;;)
+			_uniformBuffer.reset(_begin);
+			while(_uniformBuffer.getPos() < _end)
 			{
 				uint32_t opcode = _uniformBuffer.read();
 
@@ -4712,6 +4711,7 @@ VK_DESTROY
 				else if (UniformType::Sampler == (~BGFX_UNIFORM_MASK & type) )
 				{
 					const UniformRegInfo* info = s_renderVK->m_uniformReg.find(name);
+					const UniformFreq::Enum freq = info->m_freq;
 					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					m_bindInfo[num].uniformHandle  = info->m_handle;
@@ -4724,17 +4724,18 @@ VK_DESTROY
 				else
 				{
 					const UniformRegInfo* info = s_renderVK->m_uniformReg.find(name);
+					const UniformFreq::Enum freq = info->m_freq;
 					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					if (NULL != info)
 					{
-						if (NULL == m_constantBuffer)
+						if (NULL == m_constantBuffer[freq])
 						{
-							m_constantBuffer = UniformBuffer::create(1024);
+							m_constantBuffer[freq] = UniformBuffer::create(1024);
 						}
 
 						kind = "user";
-						m_constantBuffer->writeUniformHandle( (UniformType::Enum)(type|fragmentBit), regIndex, info->m_handle, regCount);
+						m_constantBuffer[freq]->writeUniformHandle( (UniformType::Enum)(type|fragmentBit), regIndex, info->m_handle, regCount);
 					}
 				}
 
@@ -4750,9 +4751,12 @@ VK_DESTROY
 				BX_UNUSED(kind);
 			}
 
-			if (NULL != m_constantBuffer)
+			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				m_constantBuffer->finish();
+				if (NULL != m_constantBuffer[ii])
+				{
+					m_constantBuffer[ii]->finish();
+				}
 			}
 		}
 
@@ -5450,6 +5454,15 @@ VK_DESTROY
 
 	void TextureVK::destroy()
 	{
+		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+		{
+			if (NULL != m_constantBuffer[ii])
+			{
+				UniformBuffer::destroy(m_constantBuffer[ii]);
+				m_constantBuffer[ii] = NULL;
+			}
+		}
+
 		if (m_textureImage)
 		{
 			VkAllocationCallbacks* allocatorCb = s_renderVK->m_allocatorCb;
@@ -5620,6 +5633,15 @@ VK_DESTROY
 
 	void FrameBufferVK::destroy()
 	{
+		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+		{
+			if(NULL != m_constantBuffer[ii])
+			{
+				UniformBuffer::destroy(m_constantBuffer[ii]);
+				m_constantBuffer[ii] = NULL;
+			}
+		}
+
 		vkDestroy(m_framebuffer);
 	}
 
@@ -5842,6 +5864,9 @@ VK_DESTROY
 
 		bool beginRenderPass = false;
 
+		commit(*_render->m_frameUniforms);
+		_render->m_frameUniforms->reset();
+
 		if (0 == (_render->m_debug&BGFX_DEBUG_IFH) )
 		{
 //			m_batch.begin();
@@ -5955,7 +5980,15 @@ VK_DESTROY
 
 						prim = s_primInfo[Topology::Count]; // Force primitive type update.
 
-						submitBlit(bs, view);
+					submitBlit(bs, view);
+
+					if (UINT32_MAX != _render->m_view[view].m_uniformBegin)
+					{
+						commit(*_render->m_viewUniforms
+							, _render->m_view[view].m_uniformBegin
+							, _render->m_view[view].m_uniformEnd
+						);
+						_render->m_viewUniforms->reset();
 					}
 				}
 
@@ -5988,12 +6021,12 @@ VK_DESTROY
 					if (compute.m_uniformBegin < compute.m_uniformEnd
 					||  currentProgram.idx != key.m_program.idx)
 					{
-						rendererUpdateUniforms(this, _render->m_uniformBuffer[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
+						rendererUpdateUniforms(this, _render->m_submitUniforms[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
 
 						currentProgram = key.m_program;
 						ProgramVK& program = m_program[currentProgram.idx];
 
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
@@ -6007,7 +6040,10 @@ VK_DESTROY
 					if (constantsChanged
 					||  hasPredefined)
 					{
+						ProgramVK& program = m_program[currentProgram.idx];
+
 						viewState.setPredefined<4>(this, view, program, _render, compute);
+
 //						commitShaderConstants(key.m_program, gpuAddress);
 //						m_commandList->SetComputeRootConstantBufferView(Rdt::CBV, gpuAddress);
 					}
@@ -6154,7 +6190,7 @@ VK_DESTROY
 					primIndex = uint8_t(pt>>BGFX_STATE_PT_SHIFT);
 				}
 
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				if (0 != draw.m_streamMask)
 				{
@@ -6285,13 +6321,13 @@ VK_DESTROY
 						currentProgram = key.m_program;
 						ProgramVK& program = m_program[currentProgram.idx];
 
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
 						}
 
-						UniformBuffer* fcb = program.m_fsh->m_constantBuffer;
+						UniformBuffer* fcb = program.m_fsh->m_constantBuffer[UniformFreq::Submit];
 						if (NULL != fcb)
 						{
 							commit(*fcb);

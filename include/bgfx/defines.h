@@ -473,7 +473,7 @@
 #define BGFX_CAPS_VERTEX_ATTRIB_HALF        UINT64_C(0x0000000002000000) //!< Vertex attribute half-float is supported.
 #define BGFX_CAPS_VERTEX_ATTRIB_UINT10      UINT64_C(0x0000000004000000) //!< Vertex attribute 10_10_10_2 is supported.
 #define BGFX_CAPS_VERTEX_ID                 UINT64_C(0x0000000008000000) //!< Rendering with VertexID only is supported.
-#define BGFX_CAPS_GEOMETRY_SHADER           UINT64_C(0x0000000008000000) //!< Geometry shader is supported.
+#define BGFX_CAPS_GEOMETRY_SHADER           UINT64_C(0x0000000010000000) //!< Geometry shaders are supported.
 /// All texture compare modes are supported.
 #define BGFX_CAPS_TEXTURE_COMPARE_ALL (0 \
 	| BGFX_CAPS_TEXTURE_COMPARE_RESERVED \
@@ -594,6 +594,5 @@
 #define BGFX_STATE_BLEND_FUNC_RT_1E(_src, _dst, _equation) (BGFX_STATE_BLEND_FUNC_RT_xE(_src, _dst, _equation)<< 0)
 #define BGFX_STATE_BLEND_FUNC_RT_2E(_src, _dst, _equation) (BGFX_STATE_BLEND_FUNC_RT_xE(_src, _dst, _equation)<<11)
 #define BGFX_STATE_BLEND_FUNC_RT_3E(_src, _dst, _equation) (BGFX_STATE_BLEND_FUNC_RT_xE(_src, _dst, _equation)<<22)
-
 
 #endif // BGFX_DEFINES_H_HEADER_GUARD
