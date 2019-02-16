@@ -904,7 +904,7 @@ namespace bgfx
 
 		++m_numSubmitted;
 
-		UniformBuffer* uniformBuffer = m_frame->m_uniformBuffer[m_uniformIdx];
+		UniformBuffer* uniformBuffer = m_frame->m_submitUniforms[m_uniformIdx];
 		m_uniformEnd = uniformBuffer->getPos();
 
 		m_key.m_program = kInvalidHandle == _program.idx
@@ -992,7 +992,7 @@ namespace bgfx
 
 		++m_numSubmitted;
 
-		UniformBuffer* uniformBuffer = m_frame->m_uniformBuffer[m_uniformIdx];
+		UniformBuffer* uniformBuffer = m_frame->m_submitUniforms[m_uniformIdx];
 		m_uniformEnd = uniformBuffer->getPos();
 
 		m_compute.m_startMatrix = m_draw.m_startMatrix;
@@ -2720,12 +2720,15 @@ namespace bgfx
 					uint16_t num;
 					_cmdbuf.read(num);
 
+					UniformFreq::Enum freq;
+					_cmdbuf.read(freq);
+
 					uint8_t len;
 					_cmdbuf.read(len);
 
 					const char* name = (const char*)_cmdbuf.skip(len);
 
-					m_renderCtx->createUniform(handle, type, num, name);
+					m_renderCtx->createUniform(handle, type, num, name, freq);
 				}
 				break;
 
@@ -4124,9 +4127,9 @@ namespace bgfx
 		s_ctx->destroyFrameBuffer(_handle);
 	}
 
-	UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num)
+	UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num, UniformFreq::Enum _freq)
 	{
-		return s_ctx->createUniform(_name, _type, _num);
+		return s_ctx->createUniform(_name, _type, _num, _freq);
 	}
 
 	void getUniformInfo(UniformHandle _handle, UniformInfo& _info)
@@ -4255,6 +4258,18 @@ namespace bgfx
 	{
 		BX_CHECK(checkView(_id), "Invalid view id: %d", _id);
 		s_ctx->setViewOrder(_id, _num, _order);
+	}
+
+	void setViewUniform(ViewId _id, UniformHandle _handle, const void* _value, uint16_t _num)
+	{
+		BX_CHECK(checkView(_id), "Invalid view id: %d", _id);
+
+		BGFX_CHECK_HANDLE("setUniform", s_ctx->m_uniformHandle, _handle);
+		const Context::UniformRef& uniform = s_ctx->m_uniformRef[_handle.idx];
+		BX_CHECK(isValid(_handle) && 0 < uniform.m_refCount, "Setting invalid uniform (handle %3d)!", _handle.idx);
+		BX_CHECK(_num == UINT16_MAX || uniform.m_num >= _num, "Truncated uniform update. %d (max: %d)", _num, uniform.m_num);
+
+		s_ctx->setViewUniform(_id, uniform.m_type, _handle, _value, _num);
 	}
 
 	void resetView(ViewId _id)
@@ -5395,10 +5410,10 @@ BGFX_C_API void bgfx_destroy_frame_buffer(bgfx_frame_buffer_handle_t _handle)
 	bgfx::destroy(handle.cpp);
 }
 
-BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num)
+BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num, bgfx_uniform_freq_t _freq)
 {
 	union { bgfx_uniform_handle_t c; bgfx::UniformHandle cpp; } handle;
-	handle.cpp = bgfx::createUniform(_name, bgfx::UniformType::Enum(_type), _num);
+	handle.cpp = bgfx::createUniform(_name, bgfx::UniformType::Enum(_type), _num, bgfx::UniformFreq::Enum(_freq));
 	return handle.c;
 }
 

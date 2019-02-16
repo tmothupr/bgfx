@@ -1334,7 +1334,7 @@ namespace bgfx { namespace gl
 	{
 		ProgramGL()
 			: m_id(0)
-			, m_constantBuffer(NULL)
+			, m_constantBuffer{}
 			, m_numPredefined(0)
 		{
 		}
@@ -1378,7 +1378,7 @@ namespace bgfx { namespace gl
 		GLint m_sampler[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 		uint8_t m_numSamplers;
 
-		UniformBuffer* m_constantBuffer;
+		UniformBuffer* m_constantBuffer[UniformFreq::Count];
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint8_t m_numPredefined;
 	};

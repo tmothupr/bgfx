@@ -1870,7 +1870,7 @@ namespace bgfx { namespace d3d11
 			}
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -1881,7 +1881,7 @@ namespace bgfx { namespace d3d11
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -3952,17 +3952,18 @@ namespace bgfx { namespace d3d11
 				else if (0 == (BGFX_UNIFORM_SAMPLERBIT & type) )
 				{
 					const UniformRegInfo* info = s_renderD3D11->m_uniformReg.find(name);
+					const UniformFreq::Enum freq = info->m_freq;
 					BX_WARN(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					if (NULL != info)
 					{
-						if (NULL == m_constantBuffer)
+						if (NULL == m_constantBuffer[freq])
 						{
-							m_constantBuffer = UniformBuffer::create(1024);
+							m_constantBuffer[freq] = UniformBuffer::create(1024);
 						}
 
 						kind = "user";
-						m_constantBuffer->writeUniformHandle( (UniformType::Enum)((type&~BGFX_UNIFORM_MASK)|fragmentBit), regIndex, info->m_handle, regCount);
+						m_constantBuffer[freq]->writeUniformHandle( (UniformType::Enum)((type&~BGFX_UNIFORM_MASK)|fragmentBit), regIndex, info->m_handle, regCount);
 					}
 				}
 				else
@@ -3981,9 +3982,12 @@ namespace bgfx { namespace d3d11
 				BX_UNUSED(kind);
 			}
 
-			if (NULL != m_constantBuffer)
+			for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				m_constantBuffer->finish();
+				if(NULL != m_constantBuffer[ii])
+				{
+					m_constantBuffer[ii]->finish();
+				}
 			}
 		}
 
@@ -5494,7 +5498,7 @@ namespace bgfx { namespace d3d11
 
 					bool programChanged = false;
 					bool constantsChanged = compute.m_uniformBegin < compute.m_uniformEnd;
-					rendererUpdateUniforms(this, _render->m_uniformBuffer[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
+					rendererUpdateUniforms(this, _render->m_submitUniforms[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
 
 					if (key.m_program != programIdx)
 					{
@@ -5516,7 +5520,7 @@ namespace bgfx { namespace d3d11
 
 						if (constantsChanged)
 						{
-							UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+							UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
 							if (NULL != vcb)
 							{
 								commit(*vcb);
@@ -5794,7 +5798,7 @@ namespace bgfx { namespace d3d11
 
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				if (key.m_program != programIdx)
 				{
@@ -5851,7 +5855,7 @@ namespace bgfx { namespace d3d11
 
 					if (constantsChanged)
 					{
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
@@ -5859,7 +5863,7 @@ namespace bgfx { namespace d3d11
 						
 						if (NULL != program.m_gsh)
 						{
-							UniformBuffer* gcb = program.m_gsh->m_constantBuffer;
+							UniformBuffer* gcb = program.m_gsh->m_constantBuffer[UniformFreq::Submit];
 							if (NULL != gcb)
 							{
 								commit(*gcb);
@@ -5868,7 +5872,7 @@ namespace bgfx { namespace d3d11
 
 						if (NULL != program.m_fsh)
 						{
-							UniformBuffer* fcb = program.m_fsh->m_constantBuffer;
+							UniformBuffer* fcb = program.m_fsh->m_constantBuffer[UniformFreq::Submit];
 							if (NULL != fcb)
 							{
 								commit(*fcb);

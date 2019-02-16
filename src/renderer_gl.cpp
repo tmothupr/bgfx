@@ -10,6 +10,8 @@
 #	include <bx/timer.h>
 #	include <bx/uint32_t.h>
 
+#include <cstdio>
+
 namespace bgfx { namespace gl
 {
 	static char s_viewName[BGFX_CONFIG_MAX_VIEWS][BGFX_CONFIG_MAX_VIEW_NAME];
@@ -2909,7 +2911,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			}
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -2920,7 +2922,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -3587,6 +3589,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			_uniformBuffer.reset();
 
+			size_t count = 0;
+
 			for (;;)
 			{
 				uint32_t opcode = _uniformBuffer.read();
@@ -3615,6 +3619,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				}
 
 				uint32_t loc = _uniformBuffer.read();
+
+				//const char* t = (type == UniformType::Vec4) ? "vec4" : (type == UniformType::Mat4 ? "mat4" : "other");
+				//printf("uploading uniform loc %i %s num %i index %i\n", int(loc), t, int(num), int(count));
+
+				count++;
 
 #define CASE_IMPLEMENT_UNIFORM(_uniform, _glsuffix, _dxsuffix, _type) \
 		case UniformType::_uniform: \
@@ -4167,11 +4176,15 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::destroy()
 	{
-		if (NULL != m_constantBuffer)
+		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			UniformBuffer::destroy(m_constantBuffer);
-			m_constantBuffer = NULL;
+			if(NULL != m_constantBuffer[ii])
+			{
+				UniformBuffer::destroy(m_constantBuffer[ii]);
+				m_constantBuffer[ii] = NULL;
+			}
 		}
+
 		m_numPredefined = 0;
 
 		if (0 != m_id)
@@ -4388,18 +4401,19 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			else
 			{
 				const UniformRegInfo* info = s_renderGL->m_uniformReg.find(name);
+				const UniformFreq::Enum freq = info->m_freq;
 				BX_WARN(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 				if (NULL != info)
 				{
-					if (NULL == m_constantBuffer)
+					if (NULL == m_constantBuffer[freq])
 					{
-						m_constantBuffer = UniformBuffer::create(1024);
+						m_constantBuffer[freq] = UniformBuffer::create(1024);
 					}
 
 					UniformType::Enum type = convertGlType(gltype);
-					m_constantBuffer->writeUniformHandle(type, 0, info->m_handle, uint16_t(num) );
-					m_constantBuffer->write(loc);
+					m_constantBuffer[freq]->writeUniformHandle(type, 0, info->m_handle, uint16_t(num) );
+					m_constantBuffer[freq]->write(loc);
 					BX_TRACE("store %s %d", name, info->m_handle);
 				}
 			}
@@ -4415,9 +4429,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			BX_UNUSED(offset);
 		}
 
-		if (NULL != m_constantBuffer)
+		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			m_constantBuffer->finish();
+			if(NULL != m_constantBuffer[ii])
+			{
+				m_constantBuffer[ii]->finish();
+			}
 		}
 
 		if (piqSupported)
@@ -6515,14 +6532,28 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					view = key.m_view;
 					programIdx = kInvalidHandle;
 
-					if (_render->m_view[view].m_fbh.idx != fbh.idx)
+					View& v = _render->m_view[view];
+
+					if (v.m_fbh.idx != fbh.idx)
 					{
-						fbh = _render->m_view[view].m_fbh;
+						fbh = v.m_fbh;
 						resolutionHeight = _render->m_resolution.height;
 						resolutionHeight = setFrameBuffer(fbh, resolutionHeight, discardFlags);
 					}
 
-					viewRestart = ( (BGFX_VIEW_STEREO == (_render->m_view[view].m_flags & BGFX_VIEW_STEREO) ) );
+					if(kInvalidHandle != programIdx)
+					{
+						ProgramGL& program = m_program[programIdx];
+
+						rendererUpdateUniforms(this, _render->m_viewUniforms[view], 0, 0);
+						
+						if(NULL != program.m_constantBuffer[UniformFreq::View])
+						{
+							commit(*program.m_constantBuffer[UniformFreq::View]);
+						}
+					}
+
+					viewRestart = ( (BGFX_VIEW_STEREO == (v.m_flags & BGFX_VIEW_STEREO) ) );
 					viewRestart &= hmdEnabled;
 					if (viewRestart)
 					{
@@ -6547,7 +6578,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 					profiler.begin(view);
 
-					viewState.m_rect = _render->m_view[view].m_rect;
+					viewState.m_rect = v.m_rect;
 					if (viewRestart)
 					{
 						if (BX_ENABLED(BGFX_CONFIG_DEBUG_PIX) )
@@ -6572,7 +6603,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						}
 					}
 
-					const Rect& scissorRect = _render->m_view[view].m_scissor;
+					const Rect& scissorRect = v.m_scissor;
 					viewHasScissor  = !scissorRect.isZero();
 					viewScissorRect = viewHasScissor ? scissorRect : viewState.m_rect;
 
@@ -6582,7 +6613,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						, viewState.m_rect.m_height
 						) );
 
-					Clear& clear = _render->m_view[view].m_clear;
+					Clear& clear = v.m_clear;
 					discardFlags = clear.m_flags & BGFX_CLEAR_DISCARD_MASK;
 
 					if (BGFX_CLEAR_NONE != (clear.m_flags & BGFX_CLEAR_MASK) )
@@ -6676,12 +6707,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						if (0 != barrier)
 						{
 							bool constantsChanged = compute.m_uniformBegin < compute.m_uniformEnd;
-							rendererUpdateUniforms(this, _render->m_uniformBuffer[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
+							rendererUpdateUniforms(this, _render->m_submitUniforms[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
 
 							if (constantsChanged
-							&&  NULL != program.m_constantBuffer)
+							&&  NULL != program.m_constantBuffer[UniformFreq::Submit])
 							{
-								commit(*program.m_constantBuffer);
+								commit(*program.m_constantBuffer[UniformFreq::Submit]);
 							}
 
 							viewState.setPredefined<1>(this, view, eye, program, _render, compute);
@@ -7118,7 +7149,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
 				bool bindAttribs = false;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				if (key.m_program != programIdx)
 				{
@@ -7139,9 +7170,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					ProgramGL& program = m_program[programIdx];
 
 					if (constantsChanged
-					&&  NULL != program.m_constantBuffer)
+					&&  NULL != program.m_constantBuffer[UniformFreq::Submit])
 					{
-						commit(*program.m_constantBuffer);
+						commit(*program.m_constantBuffer[UniformFreq::Submit]);
 					}
 
 					viewState.setPredefined<1>(this, view, eye, program, _render, draw);
