@@ -2795,7 +2795,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				const TextureGL& texture = m_textures[_handle.idx];
 				const bool compressed    = bimg::isCompressed(bimg::TextureFormat::Enum(texture.m_textureFormat) );
 
-				if(!compressed)
+				if (!compressed)
 				{
 					Attachment attachment[1];
 					attachment[0].handle = _handle;
@@ -4176,9 +4176,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::destroy()
 	{
-		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			if(NULL != m_constantBuffer[ii])
+			if (NULL != m_constantBuffer[ii])
 			{
 				UniformBuffer::destroy(m_constantBuffer[ii]);
 				m_constantBuffer[ii] = NULL;
@@ -4429,9 +4429,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			BX_UNUSED(offset);
 		}
 
-		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			if(NULL != m_constantBuffer[ii])
+			if (NULL != m_constantBuffer[ii])
 			{
 				m_constantBuffer[ii]->finish();
 			}
@@ -4558,9 +4558,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::unbindAttributes()
 	{
-		for(uint32_t ii = 0, iiEnd = m_usedCount; ii < iiEnd; ++ii)
+		for (uint32_t ii = 0, iiEnd = m_usedCount; ii < iiEnd; ++ii)
 		{
-			if(Attrib::Count == m_unboundUsedAttrib[ii])
+			if (Attrib::Count == m_unboundUsedAttrib[ii])
 			{
 				Attrib::Enum attr = Attrib::Enum(m_used[ii]);
 				GLint loc = m_attributes[attr];
@@ -4584,7 +4584,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::unbindInstanceData() const
 	{
-		for(uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
+		for (uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
 		{
 			GLint loc = m_instanceData[ii];
 			GL_CHECK(glDisableVertexAttribArray(loc));
@@ -5489,7 +5489,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						}
 						else
 						{
-							if(s_extension[Extension::EXT_shader_texture_lod].m_supported)
+							if (s_extension[Extension::EXT_shader_texture_lod].m_supported)
 							{
 								writeString(&writer
 								, "#extension GL_EXT_shader_texture_lod : enable\n"
@@ -5988,12 +5988,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							attachment = GL_DEPTH_ATTACHMENT;
 						}
 					}
-					else if(renderTarget)
+					else if (renderTarget)
 					{
 						buffers[colorIdx] = attachment;
 						++colorIdx;
 					}
-					else if(computeWrite)
+					else if (computeWrite)
 					{
 						m_numCompute++;
 					}
@@ -6229,14 +6229,14 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void FrameBufferGL::set()
 	{
-		for(uint32_t ii = 0; ii < m_numTh; ++ii)
+		for (uint32_t ii = 0; ii < m_numTh; ++ii)
 		{
 			TextureHandle handle = m_attachment[ii].handle;
-			if(isValid(handle))
+			if (isValid(handle))
 			{
 				const TextureGL& texture = s_renderGL->m_textures[handle.idx];
 
-				if(0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE))
+				if (0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE))
 				{
 					GL_CHECK(glBindImageTexture(ii
 						, texture.m_id
@@ -6541,13 +6541,13 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						resolutionHeight = setFrameBuffer(fbh, resolutionHeight, discardFlags);
 					}
 
-					if(kInvalidHandle != programIdx)
+					if (kInvalidHandle != programIdx)
 					{
 						ProgramGL& program = m_program[programIdx];
 
 						rendererUpdateUniforms(this, _render->m_viewUniforms[view], 0, 0);
 						
-						if(NULL != program.m_constantBuffer[UniformFreq::View])
+						if (NULL != program.m_constantBuffer[UniformFreq::View])
 						{
 							commit(*program.m_constantBuffer[UniformFreq::View]);
 						}
@@ -6758,7 +6758,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								&&  Binding::Image == bind.m_type)
 								{
 									TextureGL& texture = m_textures[bind.m_idx];
-									if(Access::ReadWrite == bind.m_un.m_compute.m_access
+									if (Access::ReadWrite == bind.m_un.m_compute.m_access
 									|| Access::Write     == bind.m_un.m_compute.m_access)
 									{
 										texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
@@ -7298,7 +7298,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 							if (bindAttribs || diffStartVertex)
 							{
-								if(kInvalidHandle != boundProgramIdx)
+								if (kInvalidHandle != boundProgramIdx)
 								{
 									ProgramGL& boundProgram = m_program[boundProgramIdx];
 									boundProgram.unbindAttributes();
@@ -7481,7 +7481,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							m_occlusionQuery.end();
 						}
 
-						if(isValid(draw.m_instanceDataBuffer))
+						if (isValid(draw.m_instanceDataBuffer))
 						{
 							program.unbindInstanceData();
 						}
@@ -7494,7 +7494,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				}
 			}
 
-			if(kInvalidHandle != boundProgramIdx)
+			if (kInvalidHandle != boundProgramIdx)
 			{
 				ProgramGL& boundProgram = m_program[boundProgramIdx];
 				boundProgram.unbindAttributes();

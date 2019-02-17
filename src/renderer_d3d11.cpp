@@ -2057,13 +2057,13 @@ namespace bgfx { namespace d3d11
 			deviceCtx->VSSetShader(program.m_vsh->m_vertexShader, NULL, 0);
 			deviceCtx->VSSetConstantBuffers(0, 1, &program.m_vsh->m_buffer);
 
-			if(NULL != program.m_gsh)
+			if (NULL != program.m_gsh)
 			{
 				deviceCtx->GSSetShader(program.m_gsh->m_geometryShader, NULL, 0);
 				deviceCtx->GSSetConstantBuffers(0, 1, &program.m_gsh->m_buffer);
 			}
 
-			if(NULL != program.m_fsh)
+			if (NULL != program.m_fsh)
 			{
 				deviceCtx->PSSetShader(program.m_fsh->m_pixelShader, NULL, 0);
 				deviceCtx->PSSetConstantBuffers(0, 1, &program.m_fsh->m_buffer);
@@ -2465,9 +2465,9 @@ namespace bgfx { namespace d3d11
 				m_vsChanges = 0;
 			}
 
-			if(0 < m_gsChanges)
+			if (0 < m_gsChanges)
 			{
-				if(NULL != m_currentProgram->m_gsh->m_buffer)
+				if (NULL != m_currentProgram->m_gsh->m_buffer)
 				{
 					m_deviceCtx->UpdateSubresource(m_currentProgram->m_gsh->m_buffer, 0, 0, m_gsScratch, 0, 0);
 				}
@@ -3982,9 +3982,9 @@ namespace bgfx { namespace d3d11
 				BX_UNUSED(kind);
 			}
 
-			for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				if(NULL != m_constantBuffer[ii])
+				if (NULL != m_constantBuffer[ii])
 				{
 					m_constantBuffer[ii]->finish();
 				}
@@ -4800,7 +4800,7 @@ namespace bgfx { namespace d3d11
 							break;
 						}
 					}
-					else if(renderTarget)
+					else if (renderTarget)
 					{
 						D3D11_RENDER_TARGET_VIEW_DESC desc;
 						desc.Format = texture.getSrvFormat();
@@ -4873,7 +4873,7 @@ namespace bgfx { namespace d3d11
 						DX_CHECK(s_renderD3D11->m_device->CreateShaderResourceView(texture.m_ptr, NULL, &m_srv[m_num]) );
 						m_num++;
 					}
-					else if(computeWrite)
+					else if (computeWrite)
 					{
 						m_uav[m_num + m_numUav] = texture.m_uav;
 						//s_renderD3D11->getCachedUav(texture, m_attachment[ii].mip);
@@ -5627,7 +5627,7 @@ namespace bgfx { namespace d3d11
 						&&  Binding::Image == bind.m_type)
 						{
 							TextureD3D11& texture = m_textures[bind.m_idx];
-							if(Access::ReadWrite == bind.m_un.m_compute.m_access
+							if (Access::ReadWrite == bind.m_un.m_compute.m_access
 							|| Access::Write     == bind.m_un.m_compute.m_access)
 							{
 								texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);

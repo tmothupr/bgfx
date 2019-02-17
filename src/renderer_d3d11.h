@@ -132,9 +132,9 @@ namespace bgfx { namespace d3d11
 
 		void destroy()
 		{
-			for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				if(NULL != m_constantBuffer)
+				if (NULL != m_constantBuffer)
 				{
 					UniformBuffer::destroy(m_constantBuffer[ii]);
 					m_constantBuffer[ii] = NULL;

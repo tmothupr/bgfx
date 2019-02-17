@@ -4435,9 +4435,9 @@ namespace bgfx { namespace d3d12
 				BX_UNUSED(kind);
 			}
 
-			for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 			{
-				if(NULL != m_constantBuffer[ii])
+				if (NULL != m_constantBuffer[ii])
 				{
 					m_constantBuffer[ii]->finish();
 				}
