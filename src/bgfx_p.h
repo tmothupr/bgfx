@@ -1716,6 +1716,7 @@ namespace bgfx
 	struct ProgramRef
 	{
 		ShaderHandle m_vsh;
+		ShaderHandle m_gsh;
 		ShaderHandle m_fsh;
 		int16_t      m_refCount;
 	};
@@ -1983,14 +1984,6 @@ namespace bgfx
 			m_cmdPre.finish();
 			m_cmdPost.finish();
 
-			for (uint32_t ii = 0, num = BGFX_CONFIG_MAX_VIEWS; ii < num; ++ii)
-			{
-				if (NULL != m_viewUniforms[ii])
-				{
-					m_viewUniforms[ii]->finish();
-				}
-			}
-
 //			if (0 < m_numDropped)
 //			{
 //				BX_TRACE("Too many draw calls: %d, dropped %d (max: %d)"
@@ -2097,7 +2090,6 @@ namespace bgfx
 		float m_colorPalette[BGFX_CONFIG_MAX_COLOR_PALETTE][4];
 
 		View m_view[BGFX_CONFIG_MAX_VIEWS];
-		UniformBuffer* m_viewUniforms[BGFX_CONFIG_MAX_VIEWS];
 
 		int32_t m_occlusion[BGFX_CONFIG_MAX_OCCLUSION_QUERIES];
 
@@ -2498,7 +2490,7 @@ namespace bgfx
 			if (isValid(_sampler) )
 			{
 				uint32_t stage = _stage;
-				setUniform(UniformType::Int1, _sampler, &stage, 1);
+				setUniform(UniformType::Sampler, _sampler, &stage, 1);
 			}
 		}
 

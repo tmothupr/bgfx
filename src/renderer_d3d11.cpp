@@ -5627,8 +5627,8 @@ namespace bgfx { namespace d3d11
 						&&  Binding::Image == bind.m_type)
 						{
 							TextureD3D11& texture = m_textures[bind.m_idx];
-							if (Access::ReadWrite == bind.m_un.m_compute.m_access
-							|| Access::Write     == bind.m_un.m_compute.m_access)
+							if (Access::ReadWrite == bind.m_access
+							||  Access::Write     == bind.m_access)
 							{
 								texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
 							}
@@ -5924,16 +5924,16 @@ namespace bgfx { namespace d3d11
 									{
 										TextureD3D11& texture = m_textures[bind.m_idx];
 
-										if (Access::Read != bind.m_un.m_compute.m_access)
+										if (Access::Read != bind.m_access)
 										{
-											m_textureStage.m_uav[stage] = 0 == bind.m_un.m_compute.m_mip
+											m_textureStage.m_uav[stage] = 0 == bind.m_mip
 												? texture.m_uav
-												: s_renderD3D11->getCachedUav(texture.getHandle(), bind.m_un.m_compute.m_mip)
+												: s_renderD3D11->getCachedUav(texture.getHandle(), bind.m_mip)
 												;
 										}
 										else
 										{
-											texture.commit(stage, bind.m_un.m_draw.m_textureFlags, _render->m_colorPalette);
+											texture.commit(stage, bind.m_samplerFlags, _render->m_colorPalette);
 										}
 									}
 									break;

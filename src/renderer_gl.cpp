@@ -5872,15 +5872,17 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				char* temp = (char*)alloca(tempLen);
 				bx::StaticMemoryBlockWriter writer(temp, tempLen);
 
-				writeString(&writer, "#version 430\n");
-				writeString(&writer, "#define texture2DLod    textureLod\n");
-				writeString(&writer, "#define texture3DLod    textureLod\n");
-				writeString(&writer, "#define textureCubeLod  textureLod\n");
-				writeString(&writer, "#define texture2DGrad   textureGrad\n");
-				writeString(&writer, "#define texture3DGrad   textureGrad\n");
-				writeString(&writer, "#define textureCubeGrad textureGrad\n");
+				bx::write(&writer
+					, "#version 430\n"
+				      "#define texture2DLod    textureLod\n"
+				      "#define texture3DLod    textureLod\n"
+				      "#define textureCubeLod  textureLod\n"
+				      "#define texture2DGrad   textureGrad\n"
+				      "#define texture3DGrad   textureGrad\n"
+				      "#define textureCubeGrad textureGrad\n"
+					);
 
-				bx::write(&writer, code+bx::strLen("#version 430"), codeLen);
+				bx::write(&writer, code.getPtr()+bx::strLen("#version 430"), codeLen);
 				bx::write(&writer, '\0');
 
 				code = temp;
@@ -6752,8 +6754,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								&&  Binding::Image == bind.m_type)
 								{
 									TextureGL& texture = m_textures[bind.m_idx];
-									if (Access::ReadWrite == bind.m_un.m_compute.m_access
-									|| Access::Write     == bind.m_un.m_compute.m_access)
+									if (Access::ReadWrite == bind.m_access
+									||  Access::Write     == bind.m_access)
 									{
 										texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
 									}
