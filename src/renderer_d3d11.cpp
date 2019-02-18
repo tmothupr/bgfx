@@ -1181,6 +1181,9 @@ namespace bgfx { namespace d3d11
 						: 0)
 					| BGFX_CAPS_TEXTURE_2D_ARRAY
 					| BGFX_CAPS_TEXTURE_CUBE_ARRAY
+					| ((m_featureLevel >= D3D_FEATURE_LEVEL_11_1)
+						? BGFX_CAPS_FRAMEBUFFER_RW
+						: 0)
 					);
 
 				m_timerQuerySupport   = m_featureLevel >= D3D_FEATURE_LEVEL_10_0;
@@ -4633,12 +4636,10 @@ namespace bgfx { namespace d3d11
 		{
 			m_rtv[ii] = NULL;
 		}
-
-		for (uint32_t ii = 0; ii < BX_COUNTOF(m_uav); ++ii)
+		for(uint32_t ii = 0; ii < BX_COUNTOF(m_uav); ++ii)
 		{
 			m_uav[ii] = NULL;
 		}
-
 		m_dsv       = NULL;
 		m_swapChain = NULL;
 
@@ -4915,7 +4916,8 @@ namespace bgfx { namespace d3d11
 					}
 					else
 					{
-						BX_CHECK(false, "");
+						m_uav[m_num + m_numUav] = texture.m_uav;
+						m_numUav++;
 					}
 				}
 			}
