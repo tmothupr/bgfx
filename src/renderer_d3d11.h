@@ -366,7 +366,6 @@ namespace bgfx { namespace d3d11
 		ID3D11UnorderedAccessView* m_uav[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		ID3D11ShaderResourceView* m_srv[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		ID3D11DepthStencilView* m_dsv;
-		ID3D11UnorderedAccessView* m_uav[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS-1];
 		Dxgi::SwapChainI* m_swapChain;
 		void* m_nwh;
 		uint32_t m_width;
