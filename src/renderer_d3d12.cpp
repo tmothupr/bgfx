@@ -6135,7 +6135,7 @@ namespace bgfx { namespace d3d12
 					||  hasPredefined)
 					{
 						ProgramD3D12& program = m_program[currentProgram.idx];
-						viewState.setPredefined<4>(this, view, program, _render, compute);
+						viewState.setPredefined<4>(this, view, program, _render, compute, viewChanged);
 						commitShaderConstants(key.m_program, gpuAddress);
 						m_commandList->SetComputeRootConstantBufferView(Rdt::CBV, gpuAddress);
 					}
@@ -6498,8 +6498,9 @@ namespace bgfx { namespace d3d12
 						m_commandList->SetPipelineState(pso);
 					}
 
+					const bool programChanged = currentProgram.idx != key.m_program.idx;
 					if (submitConstants
-					||  currentProgram.idx != key.m_program.idx
+					||  programChanged
 					||  BGFX_STATE_ALPHA_REF_MASK & changedFlags)
 					{
 						currentProgram = key.m_program;
@@ -6553,7 +6554,7 @@ namespace bgfx { namespace d3d12
 						ProgramD3D12& program = m_program[currentProgram.idx];
 						uint32_t ref = (newFlags&BGFX_STATE_ALPHA_REF_MASK)>>BGFX_STATE_ALPHA_REF_SHIFT;
 						viewState.m_alphaRef = ref/255.0f;
-						viewState.setPredefined<4>(this, view, program, _render, draw);
+						viewState.setPredefined<4>(this, view, program, _render, draw, programChanged || viewChanged);
 						commitShaderConstants(key.m_program, gpuAddress);
 					}
 
