@@ -4,10 +4,9 @@
  */
 
 /*
- * References:
- *
- * Next Generation Post Processing in Call of Duty: Advanced Warfare
- * https://web.archive.org/web/20180920045230/http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+ * Reference(s):
+ * - Next Generation Post Processing in Call of Duty: Advanced Warfare
+ *   https://web.archive.org/web/20180920045230/http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
  */
 
 #include "common.h"
@@ -244,10 +243,10 @@ public:
 
 		m_ibh = bgfx::createIndexBuffer(bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices) ) );
 
-		s_albedo    = bgfx::createUniform("s_albedo",    bgfx::UniformType::Int1);
-		s_tex       = bgfx::createUniform("s_tex",       bgfx::UniformType::Int1);
-		s_depth     = bgfx::createUniform("s_depth",     bgfx::UniformType::Int1);
-		s_light     = bgfx::createUniform("s_light",     bgfx::UniformType::Int1);
+		s_albedo    = bgfx::createUniform("s_albedo",    bgfx::UniformType::Sampler);
+		s_tex       = bgfx::createUniform("s_tex",       bgfx::UniformType::Sampler);
+		s_depth     = bgfx::createUniform("s_depth",     bgfx::UniformType::Sampler);
+		s_light     = bgfx::createUniform("s_light",     bgfx::UniformType::Sampler);
 		u_pixelSize = bgfx::createUniform("u_pixelSize", bgfx::UniformType::Vec4);
 		u_intensity = bgfx::createUniform("u_intensity", bgfx::UniformType::Vec4);
 		u_color     = bgfx::createUniform("u_color",     bgfx::UniformType::Vec4);
@@ -284,8 +283,7 @@ public:
 
 		cameraCreate();
 
-		const float initialPos[3] = { 0.0f, 0.0f, -15.0f };
-		cameraSetPosition(initialPos);
+		cameraSetPosition({ 0.0f, 0.0f, -15.0f });
 		cameraSetVerticalAngle(0.0f);
 	}
 
@@ -493,7 +491,9 @@ public:
 				const uint32_t kNum = 9;
 				const int kNumColors = 5;
 				const float color[4*kNumColors] =
-				{   // Palette: http://www.colourlovers.com/palette/3647908/RGB_Ice_Cream
+				{   // Reference(s):
+					// - Palette
+					//   https://web.archive.org/web/20180219034657/http://www.colourlovers.com/palette/3647908/RGB_Ice_Cream
 					0.847f*0.2f, 0.365f*0.2f, 0.408f*0.2f, 1.0f,
 					0.976f*0.2f, 0.827f*0.2f, 0.533f*0.2f, 1.0f,
 					0.533f*0.2f, 0.867f*0.2f, 0.741f*0.2f, 1.0f,

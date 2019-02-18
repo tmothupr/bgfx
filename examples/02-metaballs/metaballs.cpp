@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -59,8 +59,9 @@ struct Grid
 	float m_normal[3];
 };
 
-// Triangulation tables taken from:
-// http://paulbourke.net/geometry/polygonise/
+// Reference(s):
+// - Polygonising a scalar field
+//   https://web.archive.org/web/20181127124338/http://paulbourke.net/geometry/polygonise/
 
 static const uint16_t s_edges[256] =
 {
@@ -579,8 +580,8 @@ public:
 			const double toMs = 1000.0/freq;
 			float time = (float)( (now - m_timeOffset)/double(bx::getHPFrequency() ) );
 
-			float at[3]  = { 0.0f, 0.0f,   0.0f };
-			float eye[3] = { 0.0f, 0.0f, -50.0f };
+			const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
+			const bx::Vec3 eye = { 0.0f, 0.0f, -50.0f };
 
 			// Set view and projection matrix for view 0.
 			{
@@ -665,14 +666,14 @@ public:
 						uint32_t xoffset = offset + xx;
 
 						Grid* grid = m_grid;
-						float normal[3] =
+						const bx::Vec3 normal =
 						{
 							grid[xoffset-1     ].m_val - grid[xoffset+1     ].m_val,
 							grid[xoffset-ypitch].m_val - grid[xoffset+ypitch].m_val,
 							grid[xoffset-zpitch].m_val - grid[xoffset+zpitch].m_val,
 						};
 
-						bx::vec3Norm(grid[xoffset].m_normal, normal);
+						bx::store(grid[xoffset].m_normal, bx::normalize(normal) );
 					}
 				}
 			}

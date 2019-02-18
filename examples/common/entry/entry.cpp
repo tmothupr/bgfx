@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -603,7 +603,7 @@ restart:
 		for (AppI* app = getFirstApp(); NULL != app; app = app->getNext() )
 		{
 			if (NULL == selected
-			&&  bx::strFindI(app->getName(), find) )
+			&&  !bx::strFindI(app->getName(), find).isEmpty() )
 			{
 				selected = app;
 			}

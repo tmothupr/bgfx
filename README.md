@@ -43,7 +43,7 @@ Supported compilers:
 
  * Clang 3.3 and above
  * GCC 5 and above
- * VS2015 and above
+ * VS2017 and above
 
 Languages:
 
@@ -53,8 +53,7 @@ Languages:
  * [Go language API bindings](https://github.com/james4k/go-bgfx)
  * [Haskell language API bindings](https://github.com/haskell-game/bgfx)
  * [Lightweight Java Game Library 3 bindings](https://github.com/LWJGL/lwjgl3)
- * [Lua language API bindings 1](https://github.com/excessive/lua-bgfx)
- * [Lua language API bindings 2](https://github.com/cloudwu/lua-bgfx)
+ * [Lua language API bindings](https://github.com/cloudwu/lua-bgfx)
  * [Nim language API bindings](https://github.com/Halsys/nim-bgfx)
  * [Python language API bindings](https://github.com/jnadro/pybgfx#pybgf)
  * [Rust language API bindings](https://github.com/rhoot/bgfx-rs)
@@ -65,6 +64,9 @@ Languages:
 
  - AppVeyor https://ci.appveyor.com/project/bkaradzic/bgfx
  - TravisCI https://travis-ci.org/bkaradzic/bgfx
+
+[Getting involved](https://bkaradzic.github.io/bgfx/overview.html#getting-involved)
+-----------------------------------------------------------------------------------
 
 [Examples](https://bkaradzic.github.io/bgfx/examples.html)
 ----------------------------------------------------------
@@ -315,6 +317,21 @@ target="_blank"><img src="http://img.youtube.com/vi/IUmxqAWdXvk/0.jpg"
 alt="Off The Road"
 width="640" height="480" border="0" /></a>
 
+## Coal Burnout
+
+https://beardsvibe.com/ - Multiplayer PVP rhythm game.
+
+![coal-burnout](https://beardsvibe.com/scr/0l.png)
+
+## My Talking Tom 2
+
+https://outfit7.com/apps/my-talking-tom-2/ - Many mini games for mobile devices.
+
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=I0U7EQKKDjw" 
+target="_blank"><img src="http://img.youtube.com/vi/I0U7EQKKDjw/0.jpg" 
+alt="My Talking Tom 2"
+width="640" height="480" border="0" /></a>
+
 [License (BSD 2-clause)](https://bkaradzic.github.io/bgfx/license.html)
 -----------------------------------------------------------------------
 
@@ -322,27 +339,25 @@ width="640" height="480" border="0" /></a>
 <img align="right" src="http://opensource.org/trademarks/opensource/OSI-Approved-License-100x137.png">
 </a>
 
-	Copyright 2010-2018 Branimir Karadzic. All rights reserved.
+	Copyright 2010-2019 Branimir Karadzic
 	
-	https://github.com/bkaradzic/bgfx
+	Redistribution and use in source and binary forms, with or without modification,
+	are permitted provided that the following conditions are met:
 	
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions are met:
+	   1. Redistributions of source code must retain the above copyright notice, this
+	      list of conditions and the following disclaimer.
 	
-	   1. Redistributions of source code must retain the above copyright notice,
-	      this list of conditions and the following disclaimer.
+	   2. Redistributions in binary form must reproduce the above copyright notice,
+	      this list of conditions and the following disclaimer in the documentation
+	      and/or other materials provided with the distribution.
 	
-	   2. Redistributions in binary form must reproduce the above copyright
-	      notice, this list of conditions and the following disclaimer in the
-	      documentation and/or other materials provided with the distribution.
-	
-	THIS SOFTWARE IS PROVIDED BY COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS OR
-	IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-	MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-	EVENT SHALL COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-	INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+	IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+	INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+	BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+	DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+	OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+	OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+	OF THE POSSIBILITY OF SUCH DAMAGE.

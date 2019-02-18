@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -155,9 +155,9 @@ public:
 		m_ibh = bgfx::createIndexBuffer(bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices) ) );
 
 		// Create texture sampler uniforms.
-		s_texColor  = bgfx::createUniform("s_texColor",  bgfx::UniformType::Int1);
-		s_texNormal = bgfx::createUniform("s_texNormal", bgfx::UniformType::Int1);
-		s_texDepth = bgfx::createUniform("s_texDepth",  bgfx::UniformType::Int1);
+		s_texColor  = bgfx::createUniform("s_texColor",  bgfx::UniformType::Sampler);
+		s_texNormal = bgfx::createUniform("s_texNormal", bgfx::UniformType::Sampler);
+		s_texDepth = bgfx::createUniform("s_texDepth",  bgfx::UniformType::Sampler);
 
 
 		u_light_pos = bgfx::createUniform("u_light_pos", bgfx::UniformType::Vec4);
@@ -225,8 +225,8 @@ public:
 
 			float time = (float)( (now-m_timeOffset)/freq);
 
-			float at[3]  = { 0.0f, 0.0f, 1.0f };
-			float eye[3] = { 0.0f, 0.0f, 0.0f };
+			const bx::Vec3 at  = { 0.0f, 0.0f, 1.0f };
+			const bx::Vec3 eye = { 0.0f, 0.0f, 0.0f };
 
 			// Set view and projection matrix for view 0.
 			{

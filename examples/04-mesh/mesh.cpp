@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -103,8 +103,8 @@ public:
 			float time = (float)( (bx::getHPCounter()-m_timeOffset)/double(bx::getHPFrequency() ) );
 			bgfx::setUniform(u_time, &time);
 
-			float at[3]  = { 0.0f, 1.0f,  0.0f };
-			float eye[3] = { 0.0f, 1.0f, -2.5f };
+			const bx::Vec3 at  = { 0.0f, 1.0f,  0.0f };
+			const bx::Vec3 eye = { 0.0f, 1.0f, -2.5f };
 
 			// Set view and projection matrix for view 0.
 			{

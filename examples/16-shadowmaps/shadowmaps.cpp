@@ -405,33 +405,33 @@ struct Uniforms
 		m_YOffset = 10.0f/512.0f;
 
 		u_params0          = bgfx::createUniform("u_params0",          bgfx::UniformType::Vec4);
-		u_params1          = bgfx::createUniform("u_params1",          bgfx::UniformType::Vec4);
-		u_params2          = bgfx::createUniform("u_params2",          bgfx::UniformType::Vec4);
+		u_params1          = bgfx::createUniform("u_params1",          bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_params2          = bgfx::createUniform("u_params2",          bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
 		u_color            = bgfx::createUniform("u_color",            bgfx::UniformType::Vec4);
-		u_smSamplingParams = bgfx::createUniform("u_smSamplingParams", bgfx::UniformType::Vec4);
-		u_csmFarDistances  = bgfx::createUniform("u_csmFarDistances",  bgfx::UniformType::Vec4);
+		u_smSamplingParams = bgfx::createUniform("u_smSamplingParams", bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_csmFarDistances  = bgfx::createUniform("u_csmFarDistances",  bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
 		u_lightMtx         = bgfx::createUniform("u_lightMtx",         bgfx::UniformType::Mat4);
 
-		u_tetraNormalGreen  = bgfx::createUniform("u_tetraNormalGreen",  bgfx::UniformType::Vec4);
-		u_tetraNormalYellow = bgfx::createUniform("u_tetraNormalYellow", bgfx::UniformType::Vec4);
-		u_tetraNormalBlue   = bgfx::createUniform("u_tetraNormalBlue",   bgfx::UniformType::Vec4);
-		u_tetraNormalRed    = bgfx::createUniform("u_tetraNormalRed",    bgfx::UniformType::Vec4);
+		u_tetraNormalGreen  = bgfx::createUniform("u_tetraNormalGreen",  bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_tetraNormalYellow = bgfx::createUniform("u_tetraNormalYellow", bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_tetraNormalBlue   = bgfx::createUniform("u_tetraNormalBlue",   bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_tetraNormalRed    = bgfx::createUniform("u_tetraNormalRed",    bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
 
 		u_shadowMapMtx0 = bgfx::createUniform("u_shadowMapMtx0", bgfx::UniformType::Mat4);
 		u_shadowMapMtx1 = bgfx::createUniform("u_shadowMapMtx1", bgfx::UniformType::Mat4);
 		u_shadowMapMtx2 = bgfx::createUniform("u_shadowMapMtx2", bgfx::UniformType::Mat4);
 		u_shadowMapMtx3 = bgfx::createUniform("u_shadowMapMtx3", bgfx::UniformType::Mat4);
 
-		u_lightPosition             = bgfx::createUniform("u_lightPosition",              bgfx::UniformType::Vec4);
-		u_lightAmbientPower         = bgfx::createUniform("u_lightAmbientPower",          bgfx::UniformType::Vec4);
-		u_lightDiffusePower         = bgfx::createUniform("u_lightDiffusePower",          bgfx::UniformType::Vec4);
-		u_lightSpecularPower        = bgfx::createUniform("u_lightSpecularPower",         bgfx::UniformType::Vec4);
-		u_lightSpotDirectionInner   = bgfx::createUniform("u_lightSpotDirectionInner",    bgfx::UniformType::Vec4);
-		u_lightAttenuationSpotOuter = bgfx::createUniform("u_lightAttenuationSpotOuter",  bgfx::UniformType::Vec4);
+		u_lightPosition             = bgfx::createUniform("u_lightPosition",              bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_lightAmbientPower         = bgfx::createUniform("u_lightAmbientPower",          bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_lightDiffusePower         = bgfx::createUniform("u_lightDiffusePower",          bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_lightSpecularPower        = bgfx::createUniform("u_lightSpecularPower",         bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_lightSpotDirectionInner   = bgfx::createUniform("u_lightSpotDirectionInner",    bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_lightAttenuationSpotOuter = bgfx::createUniform("u_lightAttenuationSpotOuter",  bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
 
-		u_materialKa = bgfx::createUniform("u_materialKa", bgfx::UniformType::Vec4);
-		u_materialKd = bgfx::createUniform("u_materialKd", bgfx::UniformType::Vec4);
-		u_materialKs = bgfx::createUniform("u_materialKs", bgfx::UniformType::Vec4);
+		u_materialKa = bgfx::createUniform("u_materialKa", bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_materialKd = bgfx::createUniform("u_materialKd", bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
+		u_materialKs = bgfx::createUniform("u_materialKs", bgfx::UniformType::Vec4, 1U, bgfx::UniformFreq::Frame);
 
 	}
 
@@ -451,30 +451,30 @@ struct Uniforms
 	// Call this once at initialization.
 	void submitConstUniforms()
 	{
-		bgfx::setUniform(u_tetraNormalGreen,  m_tetraNormalGreen);
-		bgfx::setUniform(u_tetraNormalYellow, m_tetraNormalYellow);
-		bgfx::setUniform(u_tetraNormalBlue,   m_tetraNormalBlue);
-		bgfx::setUniform(u_tetraNormalRed,    m_tetraNormalRed);
+		bgfx::setFrameUniform(u_tetraNormalGreen,  m_tetraNormalGreen);
+		bgfx::setFrameUniform(u_tetraNormalYellow, m_tetraNormalYellow);
+		bgfx::setFrameUniform(u_tetraNormalBlue,   m_tetraNormalBlue);
+		bgfx::setFrameUniform(u_tetraNormalRed,    m_tetraNormalRed);
 	}
 
 	// Call this once per frame.
 	void submitPerFrameUniforms()
 	{
-		bgfx::setUniform(u_params1, m_params1);
-		bgfx::setUniform(u_params2, m_params2);
-		bgfx::setUniform(u_smSamplingParams, m_paramsBlur);
-		bgfx::setUniform(u_csmFarDistances, m_csmFarDistances);
+		bgfx::setFrameUniform(u_params1, m_params1);
+		bgfx::setFrameUniform(u_params2, m_params2);
+		bgfx::setFrameUniform(u_smSamplingParams, m_paramsBlur);
+		bgfx::setFrameUniform(u_csmFarDistances, m_csmFarDistances);
 
-		bgfx::setUniform(u_materialKa, &m_materialPtr->m_ka);
-		bgfx::setUniform(u_materialKd, &m_materialPtr->m_kd);
-		bgfx::setUniform(u_materialKs, &m_materialPtr->m_ks);
+		bgfx::setFrameUniform(u_materialKa, &m_materialPtr->m_ka);
+		bgfx::setFrameUniform(u_materialKd, &m_materialPtr->m_kd);
+		bgfx::setFrameUniform(u_materialKs, &m_materialPtr->m_ks);
 
-		bgfx::setUniform(u_lightPosition,             &m_lightPtr->m_position_viewSpace);
-		bgfx::setUniform(u_lightAmbientPower,         &m_lightPtr->m_ambientPower);
-		bgfx::setUniform(u_lightDiffusePower,         &m_lightPtr->m_diffusePower);
-		bgfx::setUniform(u_lightSpecularPower,        &m_lightPtr->m_specularPower);
-		bgfx::setUniform(u_lightSpotDirectionInner,   &m_lightPtr->m_spotDirectionInner_viewSpace);
-		bgfx::setUniform(u_lightAttenuationSpotOuter, &m_lightPtr->m_attenuationSpotOuter);
+		bgfx::setFrameUniform(u_lightPosition,             &m_lightPtr->m_position_viewSpace);
+		bgfx::setFrameUniform(u_lightAmbientPower,         &m_lightPtr->m_ambientPower);
+		bgfx::setFrameUniform(u_lightDiffusePower,         &m_lightPtr->m_diffusePower);
+		bgfx::setFrameUniform(u_lightSpecularPower,        &m_lightPtr->m_specularPower);
+		bgfx::setFrameUniform(u_lightSpotDirectionInner,   &m_lightPtr->m_spotDirectionInner_viewSpace);
+		bgfx::setFrameUniform(u_lightAttenuationSpotOuter, &m_lightPtr->m_attenuationSpotOuter);
 	}
 
 	// Call this before each draw call.
@@ -1076,7 +1076,7 @@ void worldSpaceFrustumCorners(float* _corners24f
 	const float fh = _far  * _projHeight;
 
 	const uint8_t numCorners = 8;
-	const float corners[numCorners][3] =
+	const bx::Vec3 corners[numCorners] =
 	{
 		{ -nw,  nh, _near },
 		{  nw,  nh, _near },
@@ -1092,7 +1092,7 @@ void worldSpaceFrustumCorners(float* _corners24f
 	float (*out)[3] = (float(*)[3])_corners24f;
 	for (uint8_t ii = 0; ii < numCorners; ++ii)
 	{
-		bx::vec3MulMtx( (float*)&out[ii], (float*)&corners[ii], _invViewMtx);
+		bx::store(&out[ii], bx::mul(corners[ii], _invViewMtx) );
 	}
 }
 
@@ -1302,7 +1302,7 @@ public:
 		m_clearValues = ClearValues(0x00000000, 1.0f, 0);
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+		init.type = bgfx::RendererType::Direct3D12; // args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_viewState.m_width;
 		init.resolution.height = m_viewState.m_height;
@@ -1334,11 +1334,11 @@ public:
 
 		// Uniforms.
 		s_uniforms.init();
-		s_texColor = bgfx::createUniform("s_texColor",  bgfx::UniformType::Int1);
-		s_shadowMap[0] = bgfx::createUniform("s_shadowMap0", bgfx::UniformType::Int1);
-		s_shadowMap[1] = bgfx::createUniform("s_shadowMap1", bgfx::UniformType::Int1);
-		s_shadowMap[2] = bgfx::createUniform("s_shadowMap2", bgfx::UniformType::Int1);
-		s_shadowMap[3] = bgfx::createUniform("s_shadowMap3", bgfx::UniformType::Int1);
+		s_texColor = bgfx::createUniform("s_texColor",  bgfx::UniformType::Sampler);
+		s_shadowMap[0] = bgfx::createUniform("s_shadowMap0", bgfx::UniformType::Sampler);
+		s_shadowMap[1] = bgfx::createUniform("s_shadowMap1", bgfx::UniformType::Sampler);
+		s_shadowMap[2] = bgfx::createUniform("s_shadowMap2", bgfx::UniformType::Sampler);
+		s_shadowMap[3] = bgfx::createUniform("s_shadowMap3", bgfx::UniformType::Sampler);
 
 		// Programs.
 		s_programs.init();
@@ -1901,9 +1901,8 @@ public:
 		s_rtBlur = bgfx::createFrameBuffer(m_currentShadowMapSize, m_currentShadowMapSize, bgfx::TextureFormat::BGRA8);
 
 		// Setup camera.
-		float initialPos[3] = { 0.0f, 60.0f, -105.0f };
 		cameraCreate();
-		cameraSetPosition(initialPos);
+		cameraSetPosition({ 0.0f, 60.0f, -105.0f });
 		cameraSetVerticalAngle(-0.45f);
 
 		m_timeAccumulatorLight = 0.0f;
@@ -2312,6 +2311,45 @@ public:
 						 , 0.0f
 						 , caps->homogeneousDepth
 						 );
+			
+			// Update render target size.
+			uint16_t shadowMapSize = 1 << uint32_t(currentSmSettings->m_sizePwrTwo);
+			if (bLtChanged || m_currentShadowMapSize != shadowMapSize)
+			{
+				m_currentShadowMapSize = shadowMapSize;
+				s_uniforms.m_shadowMapTexelSize = 1.0f / currentShadowMapSizef;
+				
+				{
+					bgfx::destroy(s_rtShadowMap[0]);
+					
+					bgfx::TextureHandle fbtextures[] =
+					{
+						bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_RT),
+						bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::D24S8, BGFX_TEXTURE_RT),
+					};
+					s_rtShadowMap[0] = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
+				}
+				
+				if (LightType::DirectionalLight == m_settings.m_lightType)
+				{
+					for (uint8_t ii = 1; ii < ShadowMapRenderTargets::Count; ++ii)
+					{
+						{
+							bgfx::destroy(s_rtShadowMap[ii]);
+							
+							bgfx::TextureHandle fbtextures[] =
+							{
+								bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_RT),
+								bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::D24S8, BGFX_TEXTURE_RT),
+							};
+							s_rtShadowMap[ii] = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
+						}
+					}
+				}
+				
+				bgfx::destroy(s_rtBlur);
+				s_rtBlur = bgfx::createFrameBuffer(m_currentShadowMapSize, m_currentShadowMapSize, bgfx::TextureFormat::BGRA8);
+			}
 
 			if (LightType::SpotLight == m_settings.m_lightType)
 			{
@@ -2333,9 +2371,8 @@ public:
 					lightProj[ProjType::Horizontal][14] /= currentSmSettings->m_far;
 				}
 
-				float at[3];
-				bx::vec3Add(at, m_pointLight.m_position.m_v, m_pointLight.m_spotDirectionInner.m_v);
-				bx::mtxLookAt(lightView[TetrahedronFaces::Green], m_pointLight.m_position.m_v, at);
+				const bx::Vec3 at = bx::add(bx::load<bx::Vec3>(m_pointLight.m_position.m_v), bx::load<bx::Vec3>(m_pointLight.m_spotDirectionInner.m_v) );
+				bx::mtxLookAt(lightView[TetrahedronFaces::Green], bx::load<bx::Vec3>(m_pointLight.m_position.m_v), at);
 			}
 			else if (LightType::PointLight == m_settings.m_lightType)
 			{
@@ -2404,9 +2441,9 @@ public:
 
 					float tmp[3] =
 					{
-						-bx::vec3Dot(m_pointLight.m_position.m_v, &mtxTmp[0]),
-						-bx::vec3Dot(m_pointLight.m_position.m_v, &mtxTmp[4]),
-						-bx::vec3Dot(m_pointLight.m_position.m_v, &mtxTmp[8]),
+						-bx::dot(bx::load<bx::Vec3>(m_pointLight.m_position.m_v), bx::load<bx::Vec3>(&mtxTmp[0]) ),
+						-bx::dot(bx::load<bx::Vec3>(m_pointLight.m_position.m_v), bx::load<bx::Vec3>(&mtxTmp[4]) ),
+						-bx::dot(bx::load<bx::Vec3>(m_pointLight.m_position.m_v), bx::load<bx::Vec3>(&mtxTmp[8]) ),
 					};
 
 					bx::mtxTranspose(mtxYpr[ii], mtxTmp);
@@ -2421,13 +2458,13 @@ public:
 			else // LightType::DirectionalLight == settings.m_lightType
 			{
 				// Setup light view mtx.
-				float eye[3] =
+				const bx::Vec3 at = { 0.0f, 0.0f, 0.0f };
+				const bx::Vec3 eye =
 				{
-					-m_directionalLight.m_position.m_x
-					, -m_directionalLight.m_position.m_y
-					, -m_directionalLight.m_position.m_z
+					-m_directionalLight.m_position.m_x,
+					-m_directionalLight.m_position.m_y,
+					-m_directionalLight.m_position.m_z,
 				};
-				float at[3] = { 0.0f, 0.0f, 0.0f };
 				bx::mtxLookAt(lightView[0], eye, at);
 
 				// Compute camera inverse view mtx.
@@ -2455,16 +2492,16 @@ public:
 
 				float mtxProj[16];
 				bx::mtxOrtho(
-							 mtxProj
-							 , 1.0f
-							 , -1.0f
-							 , 1.0f
-							 , -1.0f
-							 , -currentSmSettings->m_far
-							 , currentSmSettings->m_far
-							 , 0.0f
-							 , caps->homogeneousDepth
-							 );
+					  mtxProj
+					, 1.0f
+					, -1.0f
+					, 1.0f
+					, -1.0f
+					, -currentSmSettings->m_far
+					, currentSmSettings->m_far
+					, 0.0f
+					, caps->homogeneousDepth
+					);
 
 				const uint8_t numCorners = 8;
 				float frustumCorners[maxNumSplits][numCorners][3];
@@ -2473,34 +2510,24 @@ public:
 					// Compute frustum corners for one split in world space.
 					worldSpaceFrustumCorners( (float*)frustumCorners[ii], splitSlices[nn], splitSlices[ff], projWidth, projHeight, mtxViewInv);
 
-					float min[3] = {  9000.0f,  9000.0f,  9000.0f };
-					float max[3] = { -9000.0f, -9000.0f, -9000.0f };
+					bx::Vec3 min = {  9000.0f,  9000.0f,  9000.0f };
+					bx::Vec3 max = { -9000.0f, -9000.0f, -9000.0f };
 
 					for (uint8_t jj = 0; jj < numCorners; ++jj)
 					{
 						// Transform to light space.
-						float lightSpaceFrustumCorner[3];
-						bx::vec3MulMtx(lightSpaceFrustumCorner, frustumCorners[ii][jj], lightView[0]);
+						const bx::Vec3 xyz = bx::mul(bx::load<bx::Vec3>(frustumCorners[ii][jj]), lightView[0]);
 
 						// Update bounding box.
-						min[0] = bx::min(min[0], lightSpaceFrustumCorner[0]);
-						max[0] = bx::max(max[0], lightSpaceFrustumCorner[0]);
-						min[1] = bx::min(min[1], lightSpaceFrustumCorner[1]);
-						max[1] = bx::max(max[1], lightSpaceFrustumCorner[1]);
-						min[2] = bx::min(min[2], lightSpaceFrustumCorner[2]);
-						max[2] = bx::max(max[2], lightSpaceFrustumCorner[2]);
+						min = bx::min(min, xyz);
+						max = bx::max(max, xyz);
 					}
 
-					float minproj[3];
-					float maxproj[3];
-					bx::vec3MulMtxH(minproj, min, mtxProj);
-					bx::vec3MulMtxH(maxproj, max, mtxProj);
+					const bx::Vec3 minproj = bx::mulH(min, mtxProj);
+					const bx::Vec3 maxproj = bx::mulH(max, mtxProj);
 
-					float offsetx, offsety;
-					float scalex, scaley;
-
-					scalex = 2.0f / (maxproj[0] - minproj[0]);
-					scaley = 2.0f / (maxproj[1] - minproj[1]);
+					float scalex = 2.0f / (maxproj.x - minproj.x);
+					float scaley = 2.0f / (maxproj.y - minproj.y);
 
 					if (m_settings.m_stabilize)
 					{
@@ -2509,8 +2536,8 @@ public:
 						scaley = quantizer / bx::ceil(quantizer / scaley);
 					}
 
-					offsetx = 0.5f * (maxproj[0] + minproj[0]) * scalex;
-					offsety = 0.5f * (maxproj[1] + minproj[1]) * scaley;
+					float offsetx = 0.5f * (maxproj.x + minproj.x) * scalex;
+					float offsety = 0.5f * (maxproj.y + minproj.y) * scaley;
 
 					if (m_settings.m_stabilize)
 					{
@@ -2535,6 +2562,7 @@ public:
 			for (uint8_t ii = 0; ii < RENDERVIEW_DRAWDEPTH_3_ID+1; ++ii)
 			{
 				bgfx::setViewFrameBuffer(ii, invalidRt);
+				bgfx::setViewRect(ii, 0, 0, m_viewState.m_width, m_viewState.m_height);
 			}
 
 			// Determine on-screen rectangle size where depth buffer will be drawn.
@@ -3171,44 +3199,6 @@ public:
 				}
 			}
 
-			// Update render target size.
-			uint16_t shadowMapSize = 1 << uint32_t(currentSmSettings->m_sizePwrTwo);
-			if (bLtChanged || m_currentShadowMapSize != shadowMapSize)
-			{
-				m_currentShadowMapSize = shadowMapSize;
-				s_uniforms.m_shadowMapTexelSize = 1.0f / currentShadowMapSizef;
-
-				{
-					bgfx::destroy(s_rtShadowMap[0]);
-
-					bgfx::TextureHandle fbtextures[] =
-					{
-						bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_RT),
-						bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::D24S8, BGFX_TEXTURE_RT),
-					};
-					s_rtShadowMap[0] = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
-				}
-
-				if (LightType::DirectionalLight == m_settings.m_lightType)
-				{
-					for (uint8_t ii = 1; ii < ShadowMapRenderTargets::Count; ++ii)
-					{
-						{
-							bgfx::destroy(s_rtShadowMap[ii]);
-
-							bgfx::TextureHandle fbtextures[] =
-							{
-								bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_RT),
-								bgfx::createTexture2D(m_currentShadowMapSize, m_currentShadowMapSize, false, 1, bgfx::TextureFormat::D24S8, BGFX_TEXTURE_RT),
-							};
-							s_rtShadowMap[ii] = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
-						}
-					}
-				}
-
-				bgfx::destroy(s_rtBlur);
-				s_rtBlur = bgfx::createFrameBuffer(m_currentShadowMapSize, m_currentShadowMapSize, bgfx::TextureFormat::BGRA8);
-			}
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.

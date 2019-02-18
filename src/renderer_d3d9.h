@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -24,6 +24,24 @@
 #include "renderer.h"
 #include "renderer_d3d.h"
 #include "nvapi.h"
+
+#define BGFX_D3D9_PROFILER_BEGIN(_view, _abgr)          \
+	BX_MACRO_BLOCK_BEGIN                                \
+		PIX_BEGINEVENT(_abgr, s_viewNameW[_view]);      \
+		BGFX_PROFILER_BEGIN(s_viewName[view], _abgr);   \
+	BX_MACRO_BLOCK_END
+
+#define BGFX_D3D9_PROFILER_BEGIN_LITERAL(_name, _abgr)  \
+	BX_MACRO_BLOCK_BEGIN                                \
+		PIX_BEGINEVENT(_abgr, L"" # _name);             \
+		BGFX_PROFILER_BEGIN_LITERAL("" # _name, _abgr); \
+	BX_MACRO_BLOCK_END
+
+#define BGFX_D3D9_PROFILER_END()                        \
+	BX_MACRO_BLOCK_BEGIN                                \
+		BGFX_PROFILER_END();                            \
+		PIX_ENDEVENT();                                 \
+	BX_MACRO_BLOCK_END
 
 namespace bgfx { namespace d3d9
 {
@@ -289,6 +307,8 @@ namespace bgfx { namespace d3d9
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count*2];
 		uint8_t m_numPredefined;
+
+		bool m_viewUniformsWasSet[BGFX_CONFIG_MAX_VIEWS];
 	};
 
 	struct TextureD3D9

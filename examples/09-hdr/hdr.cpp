@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -183,10 +183,10 @@ public:
 		m_meshProgram    = loadProgram("vs_hdr_mesh",    "fs_hdr_mesh");
 		m_tonemapProgram = loadProgram("vs_hdr_tonemap", "fs_hdr_tonemap");
 
-		s_texCube   = bgfx::createUniform("s_texCube",  bgfx::UniformType::Int1);
-		s_texColor  = bgfx::createUniform("s_texColor", bgfx::UniformType::Int1);
-		s_texLum    = bgfx::createUniform("s_texLum",   bgfx::UniformType::Int1);
-		s_texBlur   = bgfx::createUniform("s_texBlur",  bgfx::UniformType::Int1);
+		s_texCube   = bgfx::createUniform("s_texCube",  bgfx::UniformType::Sampler);
+		s_texColor  = bgfx::createUniform("s_texColor", bgfx::UniformType::Sampler);
+		s_texLum    = bgfx::createUniform("s_texLum",   bgfx::UniformType::Sampler);
+		s_texBlur   = bgfx::createUniform("s_texBlur",  bgfx::UniformType::Sampler);
 		u_mtx       = bgfx::createUniform("u_mtx",      bgfx::UniformType::Mat4);
 		u_tonemap   = bgfx::createUniform("u_tonemap",  bgfx::UniformType::Vec4);
 		u_offset    = bgfx::createUniform("u_offset",   bgfx::UniformType::Vec4, 16);
@@ -469,8 +469,8 @@ public:
 				bgfx::setViewTransform(ii, NULL, proj);
 			}
 
-			float at[3]  = { 0.0f, 1.0f, 0.0f };
-			float eye[3] = { 0.0f, 1.0f, -2.5f };
+			const bx::Vec3 at  = { 0.0f, 1.0f,  0.0f };
+			const bx::Vec3 eye = { 0.0f, 1.0f, -2.5f };
 
 			float mtx[16];
 			bx::mtxRotateXY(mtx
@@ -478,11 +478,10 @@ public:
 					, m_time
 					);
 
-			float temp[4];
-			bx::vec3MulMtx(temp, eye, mtx);
+			const bx::Vec3 tmp = bx::mul(eye, mtx);
 
 			float view[16];
-			bx::mtxLookAt(view, temp, at);
+			bx::mtxLookAt(view, tmp, at);
 			bx::mtxProj(proj, 60.0f, float(m_width)/float(m_height), 0.1f, 100.0f, caps->homogeneousDepth);
 
 			// Set view and projection matrix for view hdrMesh.
