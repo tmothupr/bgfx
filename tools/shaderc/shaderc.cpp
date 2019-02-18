@@ -145,6 +145,7 @@ namespace bgfx
 		NULL
 	};
 
+#ifdef SHADERC_STATIC
 	const char* s_uniformTypeName[] =
 	{
 		"int",  "int",
@@ -154,6 +155,7 @@ namespace bgfx
 		"mat4", "float4x4",
 	};
 	BX_STATIC_ASSERT(BX_COUNTOF(s_uniformTypeName) == UniformType::Count*2);
+#endif
 
 	static const char* s_allowedVertexShaderInputs[] =
 	{
@@ -276,6 +278,7 @@ namespace bgfx
 		return _glsl; // centroid, noperspective
 	}
 
+#ifdef SHADERC_STATIC
 	const char* getUniformTypeName(UniformType::Enum _enum)
 	{
 		uint32_t idx = _enum & ~(BGFX_UNIFORM_FRAGMENTBIT|BGFX_UNIFORM_SAMPLERBIT);
@@ -300,6 +303,7 @@ namespace bgfx
 
 		return UniformType::Count;
 	}
+#endif
 
 	int32_t writef(bx::WriterI* _writer, const char* _format, ...)
 	{
@@ -1511,8 +1515,9 @@ namespace bgfx
 		}
 		else if ('g' == _options.shaderType)
         {
-            char* entry = strstr(input, "void main()");
-            if (NULL == entry)
+			bx::StringView shader(input);
+			bx::StringView entry = bx::strFind(input, "void main()");
+            if (entry.isEmpty())
             {
                 fprintf(stderr, "Shader entry point 'void main()' is not found.\n");
             }
@@ -1558,13 +1563,13 @@ namespace bgfx
                 }
                 else
                 {
-					const char* brace = bx::strFind(entry, "{");
-					if(NULL != brace)
+					bx::StringView brace = bx::strFind(bx::StringView(entry.getPtr(), shader.getTerm()), "{");
+					if(!brace.isEmpty())
 					{
-						const char* end = bx::strmb(brace, '{', '}');
-						if(NULL != end)
+						bx::StringView block = bx::strFindBlock(bx::StringView(brace.getPtr(), shader.getTerm()), '{', '}');
+						if(!block.isEmpty())
 						{
-							strInsert(const_cast<char*>(end), "__RETURN__;\n");
+							strInsert(const_cast<char*>(block.getTerm() - 1), "__RETURN__;\n");
 						}
 					}
 
@@ -1621,7 +1626,8 @@ namespace bgfx
                     }
                     preprocessor.writef("};\n");
 
-					entry[4] = '_';
+					//entry[4] = '_';
+					*const_cast<char*>(entry.getPtr() + 4) = '_';
 
                     preprocessor.writef("\n#define void_main()");
                     preprocessor.writef(
@@ -2520,6 +2526,23 @@ namespace bgfx
 		return compiled;
 	}
 
+	char     _shaderErrorBuffer[UINT16_MAX];
+	uint16_t _shaderErrorBufferPos = 0;
+
+	void compilerError(const char *_format, ...)
+	{
+		va_list args;
+		va_start(args, _format);
+		_shaderErrorBufferPos += vsprintf(&_shaderErrorBuffer[_shaderErrorBufferPos], _format, args);
+		va_end(args);
+	}
+
+	void getShaderError(char* _outputText, uint16_t& _outputSize)
+	{
+		strcpy(_outputText, _shaderErrorBuffer);
+		_outputSize = _shaderErrorBufferPos;
+	}
+
 	int compileShader(int _argc, const char* _argv[])
 	{
 		bx::CommandLine cmdLine(_argc, _argv);
@@ -2766,7 +2789,9 @@ namespace bgfx
 
 } // namespace bgfx
 
+#ifdef SHADERC_STATIC
 int main(int _argc, const char* _argv[])
 {
 	return bgfx::compileShader(_argc, _argv);
 }
+#endif
