@@ -6711,7 +6711,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								commit(*program.m_constantBuffer[UniformFreq::Submit]);
 							}
 
-							viewState.setPredefined<1>(this, view, program, _render, compute);
+							viewState.setPredefined<1>(this, view, program, _render, compute, viewChanged);
 
 							if (isValid(compute.m_indirectBuffer) )
 							{
@@ -7189,7 +7189,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						commitConstants(UniformFreq::Submit);
 					}
 
-					viewState.setPredefined<1>(this, view, program, _render, draw);
+					viewState.setPredefined<1>(this, view, program, _render, draw, programChanged || viewChanged);
 
 					{
 						for (uint32_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)

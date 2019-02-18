@@ -3881,7 +3881,7 @@ namespace bgfx { namespace mtl
 							}
 						}
 
-						viewState.setPredefined<4>(this, view, *currentPso, _render, compute);
+						viewState.setPredefined<4>(this, view, *currentPso, _render, compute, programChanged || viewChanged);
 
 						m_uniformBufferVertexOffset += vertexUniformBufferSize;
 					}
@@ -4251,7 +4251,7 @@ namespace bgfx { namespace mtl
 						}
 					}
 
-					viewState.setPredefined<4>(this, view, *currentPso, _render, draw);
+					viewState.setPredefined<4>(this, view, *currentPso, _render, draw, programChanged || viewChanged);
 
 					m_uniformBufferFragmentOffset += fragmentUniformBufferSize;
 					m_uniformBufferVertexOffset    = m_uniformBufferFragmentOffset;

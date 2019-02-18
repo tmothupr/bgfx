@@ -5518,7 +5518,7 @@ namespace bgfx { namespace d3d11
 							}
 						}
 
-						viewState.setPredefined<4>(this, view, program, _render, compute);
+						viewState.setPredefined<4>(this, view, program, _render, compute, programChanged || viewChanged);
 
 						if (constantsChanged
 						||  program.m_numPredefined > 0)
@@ -5896,7 +5896,7 @@ namespace bgfx { namespace d3d11
 						commitConstants(UniformFreq::Submit);
 					}
 
-					viewState.setPredefined<4>(this, view, program, _render, draw);
+					viewState.setPredefined<4>(this, view, program, _render, draw, programChanged || viewChanged);
 
 					if (constantsChanged
 					||  program.m_numPredefined > 0)
