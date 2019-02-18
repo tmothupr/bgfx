@@ -2798,7 +2798,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				const TextureGL& texture = m_textures[_handle.idx];
 				const bool compressed    = bimg::isCompressed(bimg::TextureFormat::Enum(texture.m_textureFormat) );
 
-				if(!compressed)
+				if (!compressed)
 				{
 					Attachment attachment[1];
 					attachment[0].handle = _handle;
@@ -2914,7 +2914,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			}
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -2925,7 +2925,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -3831,7 +3831,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				updateUniform(m_clearQuadColor.idx, mrtClearColor[0], numMrt * sizeof(float) * 4);
 
-				commit(*program.m_constantBuffer);
+				commit(*program.m_constantBuffer[UniformFreq::Submit]);
 
 				GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP
 					, 0
@@ -4171,11 +4171,15 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::destroy()
 	{
-		if (NULL != m_constantBuffer)
+		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			UniformBuffer::destroy(m_constantBuffer);
-			m_constantBuffer = NULL;
+			if (NULL != m_constantBuffer[ii])
+			{
+				UniformBuffer::destroy(m_constantBuffer[ii]);
+				m_constantBuffer[ii] = NULL;
+			}
 		}
+
 		m_numPredefined = 0;
 
 		if (0 != m_id)
@@ -4387,18 +4391,19 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			else
 			{
 				const UniformRegInfo* info = s_renderGL->m_uniformReg.find(name);
+				const UniformFreq::Enum freq = info->m_freq;
 				BX_WARN(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 				if (NULL != info)
 				{
-					if (NULL == m_constantBuffer)
+					if (NULL == m_constantBuffer[freq])
 					{
-						m_constantBuffer = UniformBuffer::create(1024);
+						m_constantBuffer[freq] = UniformBuffer::create(1024);
 					}
 
 					UniformType::Enum type = convertGlType(gltype);
-					m_constantBuffer->writeUniformHandle(type, 0, info->m_handle, uint16_t(num) );
-					m_constantBuffer->write(loc);
+					m_constantBuffer[freq]->writeUniformHandle(type, 0, info->m_handle, uint16_t(num) );
+					m_constantBuffer[freq]->write(loc);
 					BX_TRACE("store %s %d", name, info->m_handle);
 				}
 			}
@@ -4414,9 +4419,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			BX_UNUSED(offset);
 		}
 
-		if (NULL != m_constantBuffer)
+		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
 		{
-			m_constantBuffer->finish();
+			if (NULL != m_constantBuffer[ii])
+			{
+				m_constantBuffer[ii]->finish();
+			}
 		}
 
 		if (piqSupported)
@@ -4540,9 +4548,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::unbindAttributes()
 	{
-		for(uint32_t ii = 0, iiEnd = m_usedCount; ii < iiEnd; ++ii)
+		for (uint32_t ii = 0, iiEnd = m_usedCount; ii < iiEnd; ++ii)
 		{
-			if(Attrib::Count == m_unboundUsedAttrib[ii])
+			if (Attrib::Count == m_unboundUsedAttrib[ii])
 			{
 				Attrib::Enum attr = Attrib::Enum(m_used[ii]);
 				GLint loc = m_attributes[attr];
@@ -4566,7 +4574,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void ProgramGL::unbindInstanceData() const
 	{
-		for(uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
+		for (uint32_t ii = 0; 0xffff != m_instanceData[ii]; ++ii)
 		{
 			GLint loc = m_instanceData[ii];
 			GL_CHECK(glDisableVertexAttribArray(loc));
@@ -5444,7 +5452,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						}
 						else
 						{
-							if(s_extension[Extension::EXT_shader_texture_lod].m_supported)
+							if (s_extension[Extension::EXT_shader_texture_lod].m_supported)
 							{
 								bx::write(&writer
 									, "#extension GL_EXT_shader_texture_lod : enable\n"
@@ -6386,6 +6394,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
 		ProgramHandle boundProgram   = BGFX_INVALID_HANDLE;
+		bool usedProgram[BGFX_CONFIG_MAX_PROGRAMS] = {};
 		SortKey key;
 		uint16_t view = UINT16_MAX;
 		FrameBufferHandle fbh = { BGFX_CONFIG_MAX_FRAME_BUFFERS };
@@ -6438,6 +6447,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			m_occlusionQuery.resolve(_render);
 		}
+
+		rendererUpdateUniforms(this, _render->m_frameUniforms, 0, UINT32_MAX);
+		_render->m_frameUniforms->reset();
 
 		if (0 == (_render->m_debug&BGFX_DEBUG_IFH) )
 		{
@@ -6512,6 +6524,16 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					GL_CHECK(glDisable(GL_BLEND) );
 
 					submitBlit(bs, view);
+
+					if (UINT32_MAX != _render->m_view[view].m_uniformBegin)
+					{
+						rendererUpdateUniforms(this
+							, _render->m_viewUniforms
+							, _render->m_view[view].m_uniformBegin
+							, _render->m_view[view].m_uniformEnd
+						);
+						_render->m_viewUniforms->reset();
+					}
 				}
 
 				if (isCompute)
@@ -6584,12 +6606,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						if (0 != barrier)
 						{
 							bool constantsChanged = compute.m_uniformBegin < compute.m_uniformEnd;
-							rendererUpdateUniforms(this, _render->m_uniformBuffer[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
+							rendererUpdateUniforms(this, _render->m_submitUniforms[compute.m_uniformIdx], compute.m_uniformBegin, compute.m_uniformEnd);
 
 							if (constantsChanged
-							&&  NULL != program.m_constantBuffer)
+							&&  NULL != program.m_constantBuffer[UniformFreq::Submit])
 							{
-								commit(*program.m_constantBuffer);
+								commit(*program.m_constantBuffer[UniformFreq::Submit]);
 							}
 
 							viewState.setPredefined<1>(this, view, program, _render, compute);
@@ -7008,7 +7030,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
 				bool bindAttribs = false;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				if (key.m_program.idx != currentProgram.idx)
 				{
@@ -7028,10 +7050,31 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				{
 					ProgramGL& program = m_program[currentProgram.idx];
 
-					if (constantsChanged
-					&&  NULL != program.m_constantBuffer)
+					auto commitConstants = [&](bgfx::UniformFreq::Enum freq)
 					{
-						commit(*program.m_constantBuffer);
+						UniformBuffer* cb = program.m_constantBuffer[freq];
+						if (NULL != cb)
+						{
+							commit(*cb);
+						}
+					};
+
+					if (!usedProgram[currentProgram.idx])
+					{
+						bx::memSet(program.m_viewUniformsWasSet, 0, sizeof(bool) * BGFX_CONFIG_MAX_VIEWS);
+						commitConstants(UniformFreq::Frame);
+						usedProgram[currentProgram.idx] = true;
+					}
+
+					if (!program.m_viewUniformsWasSet[view])
+					{
+						commitConstants(UniformFreq::View);
+						program.m_viewUniformsWasSet[view] = true;
+					}
+
+					if (constantsChanged)
+					{
+						commitConstants(UniformFreq::Submit);
 					}
 
 					viewState.setPredefined<1>(this, view, program, _render, draw);
@@ -7340,7 +7383,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							m_occlusionQuery.end();
 						}
 
-						if(isValid(draw.m_instanceDataBuffer))
+						if (isValid(draw.m_instanceDataBuffer))
 						{
 							program.unbindInstanceData();
 						}

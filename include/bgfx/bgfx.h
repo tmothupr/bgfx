@@ -270,6 +270,21 @@ namespace bgfx
 		};
 	};
 
+	/// Uniform frequency enum.
+	///
+	/// @attention C99 equivalent is `bgfx_uniform_freq_t`.
+	///
+	struct UniformFreq
+	{
+		enum Enum
+		{
+			Frame,
+			View,
+			Submit,
+			Count
+		};
+	};
+
 	/// Backbuffer ratio enum.
 	///
 	/// @attention C99 equivalent is `bgfx_backbuffer_ratio_t`.
@@ -3059,6 +3074,7 @@ namespace bgfx
 		  const char* _name
 		, UniformType::Enum _type
 		, uint16_t _num = 1
+		, UniformFreq::Enum _freq = UniformFreq::Submit
 		);
 
 	/// Retrieve uniform info.
@@ -3072,6 +3088,21 @@ namespace bgfx
 		  UniformHandle _handle
 		, UniformInfo& _info
 		);
+
+	/// Set shader uniform parameter for frame.
+	///
+	/// @param[in] _handle Uniform.
+	/// @param[in] _value Pointer to uniform data.
+	/// @param[in] _num Number of elements. Passing `UINT16_MAX` will
+	///   use the _num passed on uniform creation.
+	///
+	/// @attention C99 equivalent is `bgfx_set_view_order`.
+	///
+	void setFrameUniform(
+		UniformHandle _handle
+		, const void* _value
+		, uint16_t _num = 1
+	);
 
 	/// Destroy shader uniform parameter.
 	///
@@ -3342,6 +3373,23 @@ namespace bgfx
 		, uint16_t _num = UINT16_MAX
 		, const ViewId* _remap = NULL
 		);
+
+	/// Set shader uniform parameter for view.
+	///
+	/// @param[in] _id View id.
+	/// @param[in] _handle Uniform.
+	/// @param[in] _value Pointer to uniform data.
+	/// @param[in] _num Number of elements. Passing `UINT16_MAX` will
+	///   use the _num passed on uniform creation.
+	///
+	/// @attention C99 equivalent is `bgfx_set_view_order`.
+	///
+	void setViewUniform(
+		ViewId _id
+		, UniformHandle _handle
+		, const void* _value
+		, uint16_t _num = 1
+	);
 
 	/// Reset all view settings to default.
 	///

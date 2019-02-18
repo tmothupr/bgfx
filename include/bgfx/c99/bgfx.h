@@ -223,6 +223,16 @@ typedef enum bgfx_uniform_type
 
 } bgfx_uniform_type_t;
 
+typedef enum bgfx_uniform_freq
+{
+    BGFX_UNIFORM_FREQ_FRAME,
+    BGFX_UNIFORM_FREQ_VIEW,
+    BGFX_UNIFORM_FREQ_SUBMIT,
+
+    BGFX_UNIFORM_FREQ_COUNT
+
+} bgfx_uniform_freq_t;
+
 typedef enum bgfx_backbuffer_ratio
 {
     BGFX_BACKBUFFER_RATIO_EQUAL,
@@ -905,7 +915,7 @@ BGFX_C_API bgfx_texture_handle_t bgfx_get_texture(bgfx_frame_buffer_handle_t _ha
 BGFX_C_API void bgfx_destroy_frame_buffer(bgfx_frame_buffer_handle_t _handle);
 
 /**/
-BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num);
+BGFX_C_API bgfx_uniform_handle_t bgfx_create_uniform(const char* _name, bgfx_uniform_type_t _type, uint16_t _num, bgfx_uniform_freq_t _freq);
 
 /**/
 BGFX_C_API void bgfx_destroy_uniform(bgfx_uniform_handle_t _handle);

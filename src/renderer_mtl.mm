@@ -933,7 +933,7 @@ namespace bgfx { namespace mtl
 			void* data = BX_ALLOC(g_allocator, size);
 			bx::memSet(data, 0, size);
 			m_uniforms[_handle.idx] = data;
-			m_uniformReg.add(_handle, _name);
+			m_uniformReg.add(_handle, _name, _freq);
 		}
 
 		void destroyUniform(UniformHandle _handle) override
@@ -1336,7 +1336,7 @@ namespace bgfx { namespace mtl
 				? m_uniformBufferFragmentOffset
 				: m_uniformBufferVertexOffset
 				;
-			uint8_t* dst = (uint8_t*)m_uniformBuffer.contents();
+			uint8_t* dst = (uint8_t*)m_submitUniforms.contents();
 			bx::memCopy(&dst[offset + _loc], _val, _numRegs*16);
 		}
 
@@ -2240,7 +2240,7 @@ namespace bgfx { namespace mtl
 		bool m_macOS11Runtime;
 		bool m_hasPixelFormatDepth32Float_Stencil8;
 
-		Buffer   m_uniformBuffer;
+		Buffer   m_submitUniforms;
 		Buffer   m_uniformBuffers[MTL_MAX_FRAMES_IN_FLIGHT];
 		uint32_t m_uniformBufferVertexOffset;
 		uint32_t m_uniformBufferFragmentOffset;
@@ -2972,7 +2972,7 @@ namespace bgfx { namespace mtl
 				{
 					NSWindow* nsWindow = (NSWindow*)_nwh;
 					CALayer* layer = nsWindow.contentView.layer;
-					if(NULL != layer && [layer isKindOfClass:NSClassFromString(@"CAMetalLayer")])
+					if (NULL != layer && [layer isKindOfClass:NSClassFromString(@"CAMetalLayer")])
 					{
 						m_metalLayer = (CAMetalLayer*)layer;
 					}
@@ -3549,7 +3549,7 @@ namespace bgfx { namespace mtl
 			MTL_RELEASE(m_screenshotTarget);
 		}
 
-		m_uniformBuffer = m_uniformBuffers[m_bufferIndex];
+		m_submitUniforms = m_uniformBuffers[m_bufferIndex];
 		m_bufferIndex = (m_bufferIndex + 1) % MTL_MAX_FRAMES_IN_FLIGHT;
 		m_uniformBufferVertexOffset = 0;
 		m_uniformBufferFragmentOffset = 0;
@@ -4117,7 +4117,7 @@ namespace bgfx { namespace mtl
 
 				bool programChanged = false;
 				bool constantsChanged = draw.m_uniformBegin < draw.m_uniformEnd;
-				rendererUpdateUniforms(this, _render->m_uniformBuffer[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
+				rendererUpdateUniforms(this, _render->m_submitUniforms[draw.m_uniformIdx], draw.m_uniformBegin, draw.m_uniformEnd);
 
 				bool vertexStreamChanged = hasVertexStreamChanged(currentState, draw);
 
