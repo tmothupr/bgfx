@@ -245,8 +245,6 @@ namespace bgfx { namespace d3d11
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count*2];
 		uint8_t m_numPredefined;
-
-		bool m_viewUniformsWasSet[BGFX_CONFIG_MAX_VIEWS];
 	};
 
 	struct IntelDirectAccessResourceDescriptor

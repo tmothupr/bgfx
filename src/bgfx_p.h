@@ -1897,8 +1897,8 @@ namespace bgfx
 	BX_ALIGN_DECL_CACHE_LINE(struct) Frame
 	{
 		Frame()
-			: m_viewUniforms(NULL)
-			, m_frameUniforms(NULL)
+			: m_frameUniforms(NULL)
+			, m_viewUniforms(NULL)
 			, m_waitSubmit(0)
 			, m_waitRender(0)
 			, m_capture(false)

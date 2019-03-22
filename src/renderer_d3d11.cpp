@@ -5346,7 +5346,6 @@ namespace bgfx { namespace d3d11
 		setDebugWireframe(wireframe);
 
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
-		bool usedProgram[BGFX_CONFIG_MAX_PROGRAMS] = {};
 		SortKey key;
 		uint16_t view = UINT16_MAX;
 		FrameBufferHandle fbh = { BGFX_CONFIG_MAX_FRAME_BUFFERS };
@@ -5861,7 +5860,7 @@ namespace bgfx { namespace d3d11
 						
 						if (NULL != program.m_gsh)
 						{
-							UniformBuffer* gcb = program.m_gsh->m_constantBuffer[UniformFreq::Submit];
+							UniformBuffer* gcb = program.m_gsh->m_constantBuffer[freq];
 							if (NULL != gcb)
 							{
 								commit(*gcb);
@@ -5878,19 +5877,15 @@ namespace bgfx { namespace d3d11
 						}
 					};
 
-					if (!usedProgram[currentProgram.idx])
+					// data is stored globally in xxScratch, so we must update that each type the program changes
+					if (programChanged)
 					{
-						bx::memSet(program.m_viewUniformsWasSet, 0, sizeof(bool) * BGFX_CONFIG_MAX_VIEWS);
 						commitConstants(UniformFreq::Frame);
-						usedProgram[currentProgram.idx] = true;
-						constantsChanged = true;
 					}
 
-					if (!program.m_viewUniformsWasSet[view])
+					if (programChanged)
 					{
 						commitConstants(UniformFreq::View);
-						program.m_viewUniformsWasSet[view] = true;
-						constantsChanged = true;
 					}
 
 					if (constantsChanged)
@@ -5898,9 +5893,10 @@ namespace bgfx { namespace d3d11
 						commitConstants(UniformFreq::Submit);
 					}
 
-					viewState.setPredefined<4>(this, view, program, _render, draw, programChanged || viewChanged);
+					viewState.setPredefined<4>(this, view, program, _render, draw, true);// programChanged || viewChanged);
 
 					if (constantsChanged
+					||  programChanged
 					||  program.m_numPredefined > 0)
 					{
 						commitShaderConstants();
