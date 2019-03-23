@@ -126,6 +126,10 @@ typedef uint64_t GLuint64;
 #		include "glcontext_egl.h"
 #	endif // BGFX_USE_EGL
 
+#	if BGFX_USE_WEBGL
+#		include "glcontext_webgl.h"
+#	endif // BGFX_USE_WEBGL
+
 #	if BX_PLATFORM_EMSCRIPTEN
 #		include <emscripten/emscripten.h>
 #	endif // BX_PLATFORM_EMSCRIPTEN
