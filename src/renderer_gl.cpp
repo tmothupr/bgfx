@@ -1172,11 +1172,17 @@ namespace bgfx { namespace gl
 		}
 	}
 
+	void flushGlError()
+	{
+		for(GLenum err = glGetError(); err != 0; err = glGetError());
+	}
+
 	GLint glGet(GLenum _pname)
 	{
 		GLint result = 0;
 		glGetIntegerv(_pname, &result);
-		GLenum err = getGlError();
+		GLenum err = glGetError();
+		flushGlError();
 		BX_WARN(0 == err, "glGetIntegerv(0x%04x, ...) failed with GL error: 0x%04x.", _pname, err);
 		return 0 == err ? result : 0;
 	}
@@ -2160,6 +2166,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						s_textureFormat[TextureFormat::R8].m_fmt         = GL_LUMINANCE;
 					}
 				}
+
 
 				for (uint32_t ii = BX_ENABLED(BX_PLATFORM_IOS) ? TextureFormat::Unknown : 0 // skip test on iOS!
 					; ii < TextureFormat::Count
@@ -6577,7 +6584,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
 		ProgramHandle boundProgram   = BGFX_INVALID_HANDLE;
-		bool usedProgram[BGFX_CONFIG_MAX_PROGRAMS] = {};
 		SortKey key;
 		uint16_t view = UINT16_MAX;
 		FrameBufferHandle fbh = { BGFX_CONFIG_MAX_FRAME_BUFFERS };
@@ -6691,9 +6697,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					}
 
 					setViewType(view, "  ");
-					BGFX_GL_PROFILER_BEGIN(view, kColorView);
+					//BGFX_GL_PROFILER_BEGIN(view, kColorView);
 
-					profiler.begin(view);
+					//profiler.begin(view);
 
 					viewState.m_rect = _render->m_view[view].m_rect;
 
@@ -6741,8 +6747,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						wasCompute = true;
 
 						setViewType(view, "C");
-						BGFX_GL_PROFILER_END();
-						BGFX_GL_PROFILER_BEGIN(view, kColorCompute);
+						//BGFX_GL_PROFILER_END();
+						//BGFX_GL_PROFILER_BEGIN(view, kColorCompute);
 					}
 
 					if (computeSupported)
@@ -6910,8 +6916,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					wasCompute = false;
 
 					setViewType(view, " ");
-					BGFX_GL_PROFILER_END();
-					BGFX_GL_PROFILER_BEGIN(view, kColorDraw);
+					//BGFX_GL_PROFILER_END();
+					//BGFX_GL_PROFILER_BEGIN(view, kColorDraw);
 				}
 
 				const RenderDraw& draw = renderItem.draw;
@@ -7118,6 +7124,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						{
 							float pointSize = (float)(bx::uint32_max(1, (newFlags&BGFX_STATE_POINT_SIZE_MASK)>>BGFX_STATE_POINT_SIZE_SHIFT) );
 							GL_CHECK(glPointSize(pointSize) );
+							//GL_CHECK(glEnable(GL_VERTEX_PROGRAM_POINT_SIZE) );
 						}
 
 						if (BGFX_STATE_MSAA & changedFlags)
@@ -7314,17 +7321,14 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						}
 					};
 
-					if (!usedProgram[currentProgram.idx])
+					if (programChanged)
 					{
-						bx::memSet(program.m_viewUniformsWasSet, 0, sizeof(bool) * BGFX_CONFIG_MAX_VIEWS);
 						commitConstants(UniformFreq::Frame);
-						usedProgram[currentProgram.idx] = true;
 					}
 
-					if (!program.m_viewUniformsWasSet[view])
+					if (programChanged)
 					{
 						commitConstants(UniformFreq::View);
-						program.m_viewUniformsWasSet[view] = true;
 					}
 
 					if (constantsChanged)
@@ -7667,8 +7671,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			if (wasCompute)
 			{
 				setViewType(view, "C");
-				BGFX_GL_PROFILER_END();
-				BGFX_GL_PROFILER_BEGIN(view, kColorCompute);
+				//BGFX_GL_PROFILER_END();
+				//BGFX_GL_PROFILER_BEGIN(view, kColorCompute);
 			}
 
 			submitBlit(bs, BGFX_CONFIG_MAX_VIEWS);
@@ -7691,11 +7695,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				capture();
 				captureElapsed += bx::getHPCounter();
 
-				profiler.end();
+				//profiler.end();
 			}
 		}
 
-		BGFX_GL_PROFILER_END();
+		//BGFX_GL_PROFILER_END();
 
 		m_glctx.makeCurrent(NULL);
 		int64_t timeEnd = bx::getHPCounter();
@@ -7742,7 +7746,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		if (_render->m_debug & (BGFX_DEBUG_IFH|BGFX_DEBUG_STATS) )
 		{
-			BGFX_GL_PROFILER_BEGIN_LITERAL("debugstats", kColorFrame);
+			//BGFX_GL_PROFILER_BEGIN_LITERAL("debugstats", kColorFrame);
 
 			m_needPresent = true;
 			TextVideoMem& tvm = m_textVideoMem;
@@ -7913,15 +7917,15 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 			blit(this, _textVideoMemBlitter, tvm);
 
-			BGFX_GL_PROFILER_END();
+			//BGFX_GL_PROFILER_END();
 		}
 		else if (_render->m_debug & BGFX_DEBUG_TEXT)
 		{
-			BGFX_GL_PROFILER_BEGIN_LITERAL("debugtext", kColorFrame);
+			//BGFX_GL_PROFILER_BEGIN_LITERAL("debugtext", kColorFrame);
 
 			blit(this, _textVideoMemBlitter, _render->m_textVideoMem);
 
-			BGFX_GL_PROFILER_END();
+			//BGFX_GL_PROFILER_END();
 		}
 	}
 } } // namespace bgfx

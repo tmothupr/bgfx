@@ -20,6 +20,8 @@
 			|| BX_PLATFORM_EMSCRIPTEN                     \
 			) )
 
+#define BGFX_USE_WEBGL (BGFX_CONFIG_RENDERER_OPENGLES && BX_PLATFORM_EMSCRIPTEN)
+
 #define BGFX_USE_WGL (BGFX_CONFIG_RENDERER_OPENGL && BX_PLATFORM_WINDOWS)
 #define BGFX_USE_GLX (BGFX_CONFIG_RENDERER_OPENGL && (0 \
 			|| BX_PLATFORM_BSD                          \
@@ -131,6 +133,10 @@ typedef uint64_t GLuint64;
 #	if BGFX_USE_HTML5
 #		include "glcontext_html5.h"
 #	endif // BGFX_USE_EGL
+
+#	if BGFX_USE_WEBGL
+#		include "glcontext_webgl.h"
+#	endif // BGFX_USE_WEBGL
 
 #	if BX_PLATFORM_EMSCRIPTEN
 #		include <emscripten/emscripten.h>
@@ -1427,8 +1433,6 @@ namespace bgfx { namespace gl
 		UniformBuffer* m_constantBuffer[UniformFreq::Count];
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint8_t m_numPredefined;
-
-		bool m_viewUniformsWasSet[BGFX_CONFIG_MAX_VIEWS];
 	};
 
 	struct TimerQueryGL
