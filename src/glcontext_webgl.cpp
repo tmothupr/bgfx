@@ -20,7 +20,7 @@ namespace bgfx { namespace gl
 		SwapChainGL(const char* _target, EmscriptenWebGLContextAttributes _config)
 			//: m_nwh(_nwh)
 			: m_target(_target)
-			, m_display(_display)
+			, m_context(0)
 		{
 			m_context = emscripten_webgl_create_context(_target, &_config);
 			//BGFX_FATAL(m_context == 0, Fatal::UnableToInitialize, "Failed to create surface.");
@@ -42,7 +42,7 @@ namespace bgfx { namespace gl
 
 		void makeCurrent()
 		{
-			emscripten_webgl_make_context_current(m_window);
+			emscripten_webgl_make_context_current(m_context);
 		}
 
 		void swapBuffers()
@@ -59,6 +59,7 @@ namespace bgfx { namespace gl
 	{
 		if (NULL == g_platformData.context)
 		{
+			EmscriptenWebGLContextAttributes attrs;
 			emscripten_webgl_init_context_attributes(&attrs);
 			attrs.depth = 1;
 			attrs.stencil = 1;
@@ -107,7 +108,7 @@ namespace bgfx { namespace gl
 
 		import();
 
-		g_internalData.context = m_context;
+		g_internalData.context = (void*)m_context;
 	}
 
 	void GlContext::destroy()
@@ -121,9 +122,9 @@ namespace bgfx { namespace gl
 
 	void GlContext::resize(uint32_t _width, uint32_t _height, uint32_t _flags)
 	{
-		emscripten_set_canvas_size(_width, _height);
+		emscripten_set_canvas_element_size("#canvas", _width, _height);
 
-		if (NULL != m_display)
+		if (0 != m_context)
 		{
 			//bool vsync = !!(_flags&BGFX_RESET_VSYNC);
 			//eglSwapInterval(m_display, vsync ? 1 : 0);
@@ -152,9 +153,9 @@ namespace bgfx { namespace gl
 
 		if (NULL == _swapChain)
 		{
-			if (NULL != m_display)
+			if(0 != m_context)
 			{
-				eglSwapBuffers(m_display, m_surface);
+				//eglSwapBuffers(m_display, m_surface);
 			}
 		}
 		else
@@ -173,7 +174,7 @@ namespace bgfx { namespace gl
 			{
 				if (0 != m_context)
 				{
-					emscripten_webgl_make_context_current(m_window);
+					emscripten_webgl_make_context_current(m_context);
 				}
 			}
 			else
@@ -190,7 +191,7 @@ namespace bgfx { namespace gl
 					{ \
 						if (NULL == _func) \
 						{ \
-							_func = (_proto)eglGetProcAddress(#_import); \
+							_func = (_proto)emscripten_webgl_get_proc_address(#_import); \
 							BX_TRACE("\t%p " #_func " (" #_import ")", _func); \
 							BGFX_FATAL(_optional || NULL != _func, Fatal::UnableToInitialize, "Failed to create OpenGLES context. eglGetProcAddress(\"%s\")", #_import); \
 						} \

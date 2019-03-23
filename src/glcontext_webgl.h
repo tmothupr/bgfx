@@ -19,9 +19,8 @@ namespace bgfx { namespace gl
 	{
 		GlContext()
 			: m_current(NULL)
-			, m_context(NULL)
-			, m_display(NULL)
-			, m_surface(NULL)
+			, m_config()
+			, m_context(0)
 		{
 		}
 
