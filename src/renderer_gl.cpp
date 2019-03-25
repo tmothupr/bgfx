@@ -2143,7 +2143,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					if (TextureFormat::Unknown != ii
 					&&  TextureFormat::UnknownDepth != ii)
 					{
-						s_textureFormat[ii].m_supported = isTextureFormatValid(TextureFormat::Enum(ii));
+						s_textureFormat[ii].m_supported = isTextureFormatValid(TextureFormat::Enum(ii) );
 					}
 				}
 
