@@ -23,7 +23,7 @@ namespace bgfx { namespace gl
 			, m_context(0)
 		{
 			m_context = emscripten_webgl_create_context(_target, &_config);
-			//BGFX_FATAL(m_context == 0, Fatal::UnableToInitialize, "Failed to create surface.");
+			//BGFX_FATAL(m_context != 0, Fatal::UnableToInitialize, "Failed to create surface.");
 			//BX_CHECK(NULL != m_context, "Create swap chain failed: %x", eglGetError());
 
 			makeCurrent();
@@ -82,7 +82,7 @@ namespace bgfx { namespace gl
 				BX_TRACE("Failed to create WebGL context with version %i.", ii);
 			}
 
-			BGFX_FATAL(m_context == 0, Fatal::UnableToInitialize, "Failed to create context.");
+			BGFX_FATAL(m_context != 0, Fatal::UnableToInitialize, "Failed to create context.");
 
 			m_config = attrs;
 
@@ -102,7 +102,7 @@ namespace bgfx { namespace gl
 
 			EMSCRIPTEN_RESULT success = emscripten_webgl_make_context_current(m_context);
 
-			BGFX_FATAL(success != EMSCRIPTEN_RESULT_SUCCESS, Fatal::UnableToInitialize, "Failed to set context.");
+			BGFX_FATAL(success == EMSCRIPTEN_RESULT_SUCCESS, Fatal::UnableToInitialize, "Failed to set context.");
 			m_current = NULL;
 		}
 
