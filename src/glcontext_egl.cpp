@@ -376,8 +376,8 @@ EGL_IMPORT
 			bool vsync = !!(_flags&BGFX_RESET_VSYNC);
 			eglSwapInterval(m_display, vsync ? 1 : 0);
 		}
-	}
 #	endif // !BX_PLATFORM_EMSCRIPTEN
+	}
 
 	uint64_t GlContext::getCaps() const
 	{

@@ -72,8 +72,8 @@ namespace bgfx { namespace gl
 			{
 				attrs.majorVersion = ii;
 
-				m_context = emscripten_webgl_create_context(0, &attrs);
-				//m_context = emscripten_webgl_create_context("#canvas", &attrs);
+				//m_context = emscripten_webgl_create_context(0, &attrs);
+				m_context = emscripten_webgl_create_context("#canvas", &attrs);
 				if (0 != m_context)
 				{
 					break;
@@ -153,7 +153,7 @@ namespace bgfx { namespace gl
 
 		if (NULL == _swapChain)
 		{
-			if(0 != m_context)
+			if (0 != m_context)
 			{
 				//eglSwapBuffers(m_display, m_surface);
 			}
