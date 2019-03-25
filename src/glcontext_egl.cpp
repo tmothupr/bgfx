@@ -299,7 +299,11 @@ EGL_IMPORT
 #	endif // BX_PLATFORM_RPI
 				{
 					bx::write(&writer, EGLint(EGL_CONTEXT_CLIENT_VERSION) );
+#	if BGFX_RENDERER_OPENGLES >= 30
+					bx::write(&writer, 3);
+#   else
 					bx::write(&writer, 2);
+#	endif
 				}
 
 				bx::write(&writer, EGLint(EGL_NONE) );
