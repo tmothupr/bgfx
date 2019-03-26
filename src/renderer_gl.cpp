@@ -2772,9 +2772,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			m_program[_handle.idx].destroy();
 		}
 
-		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip) override
+		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips) override
 		{
-			m_textures[_handle.idx].create(_mem, _flags, _skip);
+			m_textures[_handle.idx].create(_mem, _flags, _skip, _genMips);
 			return NULL;
 		}
 
@@ -2886,10 +2886,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			tc.m_format    = TextureFormat::Enum(texture.m_requestedFormat);
 			tc.m_cubeMap   = false;
 			tc.m_mem       = NULL;
+			tc.m_genMips   = false;
 			bx::write(&writer, tc);
 
 			texture.destroy();
-			texture.create(mem, texture.m_flags, 0);
+			texture.create(mem, texture.m_flags, 0, false);
 
 			release(mem);
 		}
@@ -4778,7 +4779,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		return true;
 	}
 
-	void TextureGL::create(const Memory* _mem, uint64_t _flags, uint8_t _skip)
+	void TextureGL::create(const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips)
 	{
 		bimg::ImageContainer imageContainer;
 
@@ -4793,11 +4794,13 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				, uint16_t(imageContainer.m_height>>startLod)
 				, uint16_t(imageContainer.m_depth >>startLod)
 				, imageContainer.m_cubeMap
-				, 1 < imageContainer.m_numMips
+				, 1 < imageContainer.m_numMips && !_genMips
 				, imageContainer.m_numLayers
 				, imageContainer.m_format
 				);
 			ti.numMips = bx::min<uint8_t>(imageContainer.m_numMips-startLod, ti.numMips);
+
+			const uint8_t numMips = _genMips ? imageContainer.m_numMips : ti.numMips;
 
 			m_requestedFormat  = uint8_t(imageContainer.m_format);
 			m_textureFormat    = uint8_t(getViableTextureFormat(imageContainer) );
@@ -4834,7 +4837,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				, ti.width
 				, ti.height
 				, ti.depth
-				, ti.numMips
+				, numMips
 				, _flags
 				) )
 			{
@@ -5011,6 +5014,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		}
 
 		GL_CHECK(glBindTexture(m_target, 0) );
+
+		if(_genMips)
+			this->resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
 	}
 
 	void TextureGL::destroy()
@@ -5282,9 +5288,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 	void TextureGL::resolve(uint8_t _resolve) const
 	{
-		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
-		if (renderTarget
-		&&  1 < m_numMips
+		if (1 < m_numMips
 		&&  0 != (_resolve & BGFX_RESOLVE_AUTO_GEN_MIPS) )
 		{
 			GL_CHECK(glBindTexture(m_target, m_id) );

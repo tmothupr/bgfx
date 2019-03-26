@@ -1761,9 +1761,9 @@ namespace bgfx { namespace d3d11
 			m_program[_handle.idx].destroy();
 		}
 
-		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip) override
+		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips) override
 		{
-			return m_textures[_handle.idx].create(_mem, _flags, _skip);
+			return m_textures[_handle.idx].create(_mem, _flags, _skip, _genMips);
 		}
 
 		void updateTextureBegin(TextureHandle /*_handle*/, uint8_t /*_side*/, uint8_t /*_mip*/) override
@@ -1827,10 +1827,11 @@ namespace bgfx { namespace d3d11
 			tc.m_format    = TextureFormat::Enum(texture.m_requestedFormat);
 			tc.m_cubeMap   = false;
 			tc.m_mem       = NULL;
+			tc.m_genMips   = false;
 			bx::write(&writer, tc);
 
 			texture.destroy();
-			texture.create(mem, texture.m_flags, 0);
+			texture.create(mem, texture.m_flags, 0, false);
 
 			release(mem);
 		}
@@ -4145,7 +4146,7 @@ namespace bgfx { namespace d3d11
 		}
 	}
 
-	void* TextureD3D11::create(const Memory* _mem, uint64_t _flags, uint8_t _skip)
+	void* TextureD3D11::create(const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips)
 	{
 		void* directAccessPtr = NULL;
 
@@ -4163,7 +4164,7 @@ namespace bgfx { namespace d3d11
 				, uint16_t(imageContainer.m_height>>startLod)
 				, uint16_t(imageContainer.m_depth >>startLod)
 				, imageContainer.m_cubeMap
-				, 1 < imageContainer.m_numMips
+				, 1 < imageContainer.m_numMips && !_genMips
 				, imageContainer.m_numLayers
 				, imageContainer.m_format
 				);
@@ -4193,7 +4194,9 @@ namespace bgfx { namespace d3d11
 				m_type = Texture2D;
 			}
 
-			m_numMips = ti.numMips;
+			m_numMips = _genMips
+				? imageContainer.m_numMips
+				: ti.numMips;
 
 			const uint16_t numSides = ti.numLayers * (imageContainer.m_cubeMap ? 6 : 1);
 			const uint32_t numSrd   = numSides * ti.numMips;
@@ -4321,12 +4324,12 @@ namespace bgfx { namespace d3d11
 						desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 						desc.Usage = D3D11_USAGE_DEFAULT;
 					}
-					else if (renderTarget)
+					else if (renderTarget || _genMips)
 					{
 						desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 						desc.Usage = D3D11_USAGE_DEFAULT;
 						desc.MiscFlags |= 0
-							| (1 < ti.numMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)
+							| (1 < m_numMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)
 							;
 					}
 
@@ -4419,12 +4422,12 @@ namespace bgfx { namespace d3d11
 					desc.CPUAccessFlags = 0;
 					desc.MiscFlags      = 0;
 
-					if (renderTarget)
+					if (renderTarget || _genMips)
 					{
 						desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 						desc.Usage = D3D11_USAGE_DEFAULT;
 						desc.MiscFlags |= 0
-							| (1 < ti.numMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)
+							| (1 < m_numMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)
 							;
 					}
 
@@ -4480,6 +4483,9 @@ namespace bgfx { namespace d3d11
 				}
 			}
 		}
+
+		if(_genMips)
+			this->resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
 
 		return directAccessPtr;
 	}
@@ -4602,9 +4608,7 @@ namespace bgfx { namespace d3d11
 			deviceCtx->ResolveSubresource(m_texture2d, 0, m_rt, 0, s_textureFormat[m_textureFormat].m_fmt);
 		}
 
-		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
-		if (renderTarget
-		&&  1 < m_numMips
+		if (1 < m_numMips
 		&&  0 != (_resolve & BGFX_RESOLVE_AUTO_GEN_MIPS) )
 		{
 			deviceCtx->GenerateMips(m_srv);

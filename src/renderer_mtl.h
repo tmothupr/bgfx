@@ -951,7 +951,7 @@ namespace bgfx { namespace mtl
 			}
 		}
 
-		void create(const Memory* _mem, uint64_t _flags, uint8_t _skip);
+		void create(const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips);
 
 		void destroy()
 		{

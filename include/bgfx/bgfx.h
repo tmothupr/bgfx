@@ -2675,6 +2675,7 @@ namespace bgfx
 	TextureHandle createTexture(
 		  const Memory* _mem
 		, uint64_t _flags = BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE
+		, bool _genMips = false
 		, uint8_t _skip = 0
 		, TextureInfo* _info = NULL
 		);
@@ -2708,6 +2709,7 @@ namespace bgfx
 		, TextureFormat::Enum _format
 		, uint64_t _flags = BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE
 		, const Memory* _mem = NULL
+		, bool _genMips = false
 		);
 
 	/// Create frame buffer with size based on backbuffer ratio. Frame buffer will maintain ratio

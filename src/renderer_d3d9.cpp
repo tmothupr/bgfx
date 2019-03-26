@@ -1071,9 +1071,9 @@ namespace bgfx { namespace d3d9
 			m_program[_handle.idx].destroy();
 		}
 
-		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip) override
+		void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips) override
 		{
-			m_textures[_handle.idx].create(_mem, _flags, _skip);
+			m_textures[_handle.idx].create(_mem, _flags, _skip, _genMips);
 			return NULL;
 		}
 
@@ -1147,10 +1147,11 @@ namespace bgfx { namespace d3d9
 			tc.m_format    = TextureFormat::Enum(texture.m_requestedFormat);
 			tc.m_cubeMap   = false;
 			tc.m_mem       = NULL;
+			tc.m_genMips   = false;
 			bx::write(&writer, tc);
 
 			texture.destroy(true);
-			texture.create(mem, texture.m_flags, 0);
+			texture.create(mem, texture.m_flags, 0, false);
 
 			release(mem);
 		}
@@ -2910,7 +2911,7 @@ namespace bgfx { namespace d3d9
 		return surface;
 	}
 
-	void TextureD3D9::create(const Memory* _mem, uint64_t _flags, uint8_t _skip)
+	void TextureD3D9::create(const Memory* _mem, uint64_t _flags, uint8_t _skip, bool _genMips)
 	{
 		bimg::ImageContainer imageContainer;
 
