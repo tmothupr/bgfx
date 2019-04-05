@@ -3098,6 +3098,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			cmdbuf.write(_handle);
 		}
 
+		//BGFX_API_FUNC(VertexDeclHandle findVertexDecl(const VertexDecl& _decl) )
 		VertexLayoutHandle findVertexLayout(const VertexLayout& _layout)
 		{
 			VertexLayoutHandle layoutHandle = m_vertexLayoutRef.find(_layout.m_hash);

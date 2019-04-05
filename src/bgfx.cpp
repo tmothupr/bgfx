@@ -3603,9 +3603,9 @@ namespace bgfx
 		BGFX_ENCODER(setVertexBuffer(_stream, _handle, _startVertex, _numVertices, _layoutHandle) );
 	}
 
-	void Encoder::setVertexBuffer(uint8_t _stream, VertexBufferHandle _handle)
+	void Encoder::setVertexBuffer(uint8_t _stream, VertexBufferHandle _handle, VertexDeclHandle _decl)
 	{
-		setVertexBuffer(_stream, _handle, 0, UINT32_MAX);
+		setVertexBuffer(_stream, _handle, 0, UINT32_MAX, _decl);
 	}
 
 	void Encoder::setVertexBuffer(
@@ -3982,6 +3982,12 @@ namespace bgfx
 	{
 		s_ctx->destroyVertexLayout(_handle);
 	}
+
+	//VertexDeclHandle findVertexDecl(const VertexDecl& _decl)
+	//{
+	//	BX_CHECK(isValid(_decl), "Invalid VertexDecl.");
+	//	return s_ctx->findVertexDecl(_decl);
+	//}
 
 	VertexBufferHandle createVertexBuffer(const Memory* _mem, const VertexLayout& _layout, uint16_t _flags)
 	{
@@ -4912,7 +4918,7 @@ namespace bgfx
 
 	void setVertexBuffer(uint8_t _stream, VertexBufferHandle _handle)
 	{
-		setVertexBuffer(_stream, _handle, 0, UINT32_MAX);
+		setVertexBuffer(_stream, _handle, 0, UINT32_MAX, BGFX_INVALID_HANDLE);
 	}
 
 	void setVertexBuffer(
