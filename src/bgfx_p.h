@@ -1460,7 +1460,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 	struct UniformRegInfo
 	{
 		UniformHandle m_handle;
-		UniformFreq::Enum m_freq;
+		UniformSet::Enum m_freq;
 	};
 
 	class UniformRegistry
@@ -1485,7 +1485,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			return NULL;
 		}
 
-		const UniformRegInfo& add(UniformHandle _handle, const char* _name, UniformFreq::Enum _freq)
+		const UniformRegInfo& add(UniformHandle _handle, const char* _name, UniformSet::Enum _freq)
 		{
 			BX_CHECK(isValid(_handle), "Uniform handle is invalid (name: %s)!", _name);
 			const uint32_t key = bx::hash<bx::HashMurmur2A>(_name);
@@ -1566,6 +1566,10 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		{
 			m_uniformBegin = 0;
 			m_uniformEnd   = 0;
+			m_uniformGroup[0] = UINT16_MAX;
+			m_uniformGroup[1] = UINT16_MAX;
+			m_uniformGroup[2] = UINT16_MAX;
+			m_uniformGroup[3] = UINT16_MAX;
 			m_stateFlags   = BGFX_STATE_DEFAULT;
 			m_stencil      = packStencil(BGFX_STENCIL_DEFAULT, BGFX_STENCIL_DEFAULT);
 			m_rgba         = 0;
@@ -1605,6 +1609,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		uint32_t m_rgba;
 		uint32_t m_uniformBegin;
 		uint32_t m_uniformEnd;
+		uint16_t m_uniformGroup[4];
 		uint32_t m_startMatrix;
 		uint32_t m_startIndex;
 		uint32_t m_numIndices;
@@ -1740,7 +1745,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		String            m_name;
 		UniformType::Enum m_type;
 		uint16_t          m_num;
-		UniformFreq::Enum m_freq;
+		UniformSet::Enum m_freq;
 		int16_t           m_refCount;
 	};
 
@@ -2297,6 +2302,11 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			UniformBuffer::update(&m_frame->m_submitUniforms[m_uniformIdx]);
 			UniformBuffer* uniformBuffer = m_frame->m_submitUniforms[m_uniformIdx];
 			uniformBuffer->writeUniform(_type, _handle.idx, _value, _num);
+		}
+
+		void setGroup(uint8_t _set, uint16_t _group)
+		{
+			m_draw.m_uniformGroup[_set] = _group;
 		}
 
 		void setState(uint64_t _state, uint32_t _rgba)
@@ -2870,7 +2880,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		virtual void createFrameBuffer(FrameBufferHandle _handle, uint8_t _num, const Attachment* _attachment) = 0;
 		virtual void createFrameBuffer(FrameBufferHandle _handle, void* _nwh, uint32_t _width, uint32_t _height, TextureFormat::Enum _format, TextureFormat::Enum _depthFormat) = 0;
 		virtual void destroyFrameBuffer(FrameBufferHandle _handle) = 0;
-		virtual void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) = 0;
+		virtual void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformSet::Enum _freq) = 0;
 		virtual void destroyUniform(UniformHandle _handle) = 0;
 		virtual void requestScreenShot(FrameBufferHandle _handle, const char* _filePath) = 0;
 		virtual void updateViewName(ViewId _id, const char* _name) = 0;
@@ -3912,7 +3922,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 				PredefinedUniform::Enum predefined = nameToPredefinedUniformEnum(name);
 				if (PredefinedUniform::Count == predefined && UniformType::End != UniformType::Enum(type))
 				{
-					uniforms[sr.m_num] = createUniform(name, UniformType::Enum(type), regCount, UniformFreq::Submit);
+					uniforms[sr.m_num] = createUniform(name, UniformType::Enum(type), regCount, UniformSet::Submit);
 					sr.m_num++;
 				}
 			}
@@ -4647,7 +4657,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			}
 		}
 
-		BGFX_API_FUNC(UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num, UniformFreq::Enum _freq) )
+		BGFX_API_FUNC(UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num, UniformSet::Enum _freq) )
 		{
 			BGFX_MUTEX_SCOPE(m_resourceApiLock);
 

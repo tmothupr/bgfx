@@ -244,7 +244,7 @@ namespace bgfx { namespace d3d12
 
 		void destroy()
 		{
-			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 			{
 				if (NULL != m_constantBuffer[ii])
 				{
@@ -264,7 +264,7 @@ namespace bgfx { namespace d3d12
 		}
 
 		const Memory* m_code;
-		UniformBuffer* m_constantBuffer[UniformFreq::Count];
+		UniformBuffer* m_constantBuffer[UniformSet::Count];
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint16_t m_attrMask[Attrib::Count];
@@ -311,8 +311,6 @@ namespace bgfx { namespace d3d12
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count * 2];
 		uint8_t m_numPredefined;
-
-		bool m_viewUniformsWasSet[BGFX_CONFIG_MAX_VIEWS];
 	};
 
 	struct TextureD3D12

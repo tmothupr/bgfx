@@ -150,7 +150,7 @@ namespace bgfx { namespace d3d11
 
 		void destroy()
 		{
-			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 			{
 				if (NULL != m_constantBuffer)
 				{
@@ -186,7 +186,7 @@ namespace bgfx { namespace d3d11
 		};
 		const Memory* m_code;
 		ID3D11Buffer* m_buffer;
-		UniformBuffer* m_constantBuffer[UniformFreq::Count];
+		UniformBuffer* m_constantBuffer[UniformSet::Count];
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint16_t m_attrMask[Attrib::Count];

@@ -275,12 +275,15 @@ namespace bgfx
 	///
 	/// @attention C99 equivalent is `bgfx_uniform_freq_t`.
 	///
-	struct UniformFreq
+	struct UniformSet
 	{
 		enum Enum
 		{
 			Frame,
 			View,
+			Group,
+			//User0,
+			//User1,
 			Submit,
 			Count
 		};
@@ -1049,6 +1052,11 @@ namespace bgfx
 			  uint64_t _state
 			, uint32_t _rgba = 0
 			);
+
+		void setGroup(
+			  uint8_t _set
+			, uint16_t _group
+		);
 
 		/// Set condition for rendering.
 		///
@@ -3176,7 +3184,7 @@ namespace bgfx
 		  const char* _name
 		, UniformType::Enum _type
 		, uint16_t _num = 1
-		, UniformFreq::Enum _freq = UniformFreq::Submit
+		, UniformSet::Enum _freq = UniformSet::Submit
 		);
 
 	/// Retrieve uniform info.
@@ -3562,6 +3570,11 @@ namespace bgfx
 		  uint64_t _state
 		, uint32_t _rgba = 0
 		);
+
+	void setUniformGroup(
+		  uint8_t _set
+		, uint16_t _group
+	);
 
 	/// Set condition for rendering.
 	///

@@ -1234,6 +1234,8 @@ namespace bgfx
 		m_draw.m_uniformBegin = m_uniformBegin;
 		m_draw.m_uniformEnd   = m_uniformEnd;
 
+		m_draw.m_uniformGroup[UniformSet::View] = _id;
+
 		if (UINT8_MAX != m_draw.m_streamMask)
 		{
 			uint32_t numVertices = UINT32_MAX;
@@ -3138,7 +3140,7 @@ namespace bgfx
 					uint16_t num;
 					_cmdbuf.read(num);
 
-					UniformFreq::Enum freq;
+					UniformSet::Enum freq;
 					_cmdbuf.read(freq);
 
 					uint8_t len;
@@ -3508,6 +3510,11 @@ namespace bgfx
 	{
 		BX_CHECK(0 == (_state&BGFX_STATE_RESERVED_MASK), "Do not set state reserved flags!");
 		BGFX_ENCODER(setState(_state, _rgba) );
+	}
+
+	void Encoder::setGroup(uint8_t _set, uint16_t _group)
+	{
+		BGFX_ENCODER(setGroup(_set, _group));
 	}
 
 	void Encoder::setCondition(OcclusionQueryHandle _handle, bool _visible)
@@ -4648,7 +4655,7 @@ namespace bgfx
 		s_ctx->destroyFrameBuffer(_handle);
 	}
 
-	UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num, UniformFreq::Enum _freq)
+	UniformHandle createUniform(const char* _name, UniformType::Enum _type, uint16_t _num, UniformSet::Enum _freq)
 	{
 		return s_ctx->createUniform(_name, _type, _num, _freq);
 	}
@@ -4664,7 +4671,7 @@ namespace bgfx
 		const UniformRef& uniform = s_ctx->m_uniformRef[_handle.idx];
 		BX_CHECK(isValid(_handle) && 0 < uniform.m_refCount, "Setting invalid uniform (handle %3d)!", _handle.idx);
 		BX_CHECK(_num == UINT16_MAX || uniform.m_num >= _num, "Truncated uniform update. %d (max: %d)", _num, uniform.m_num);
-		BX_CHECK(uniform.m_freq == bgfx::UniformFreq::Frame, "Uniform was not declared as per-view");
+		BX_CHECK(uniform.m_freq == bgfx::UniformSet::Frame, "Uniform was not declared as per-view");
 
 		s_ctx->setFrameUniform(uniform.m_type, _handle, _value, _num);
 	}
@@ -4800,7 +4807,7 @@ namespace bgfx
 		const Context::UniformRef& uniform = s_ctx->m_uniformRef[_handle.idx];
 		BX_CHECK(isValid(_handle) && 0 < uniform.m_refCount, "Setting invalid uniform (handle %3d)!", _handle.idx);
 		BX_CHECK(_num == UINT16_MAX || uniform.m_num >= _num, "Truncated uniform update. %d (max: %d)", _num, uniform.m_num);
-		BX_CHECK(uniform.m_freq == bgfx::UniformFreq::View, "Uniform was not declared as per-view");
+		BX_CHECK(uniform.m_freq == bgfx::UniformSet::View, "Uniform was not declared as per-view");
 
 		s_ctx->setViewUniform(_id, uniform.m_type, _handle, _value, _num);
 	}
@@ -4821,6 +4828,12 @@ namespace bgfx
 	{
 		BGFX_CHECK_API_THREAD();
 		s_ctx->m_encoder0->setState(_state, _rgba);
+	}
+
+	void setGroup(uint8_t _set, uint16_t _group)
+	{
+		BGFX_CHECK_API_THREAD();
+		s_ctx->m_encoder0->setGroup(_set, _group);
 	}
 
 	void setCondition(OcclusionQueryHandle _handle, bool _visible)

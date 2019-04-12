@@ -2464,7 +2464,7 @@ VK_IMPORT_DEVICE
 			m_frameBuffers[_handle.idx].destroy();
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformSet::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -4724,11 +4724,11 @@ VK_DESTROY
 				else
 				{
 					const UniformRegInfo* info = s_renderVK->m_uniformReg.find(name);
-					const UniformFreq::Enum freq = info->m_freq;
 					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					if (NULL != info)
 					{
+						const UniformSet::Enum freq = info->m_freq;
 						if (NULL == m_constantBuffer[freq])
 						{
 							m_constantBuffer[freq] = UniformBuffer::create(1024);
@@ -4751,7 +4751,7 @@ VK_DESTROY
 				BX_UNUSED(kind);
 			}
 
-			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 			{
 				if (NULL != m_constantBuffer[ii])
 				{
@@ -5454,7 +5454,7 @@ VK_DESTROY
 
 	void TextureVK::destroy()
 	{
-		for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+		for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 		{
 			if (NULL != m_constantBuffer[ii])
 			{
@@ -6026,7 +6026,7 @@ VK_DESTROY
 						currentProgram = key.m_program;
 						ProgramVK& program = m_program[currentProgram.idx];
 
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformSet::Submit];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
@@ -6323,13 +6323,13 @@ VK_DESTROY
 						currentProgram = key.m_program;
 						ProgramVK& program = m_program[currentProgram.idx];
 
-						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformFreq::Submit];
+						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformSet::Submit];
 						if (NULL != vcb)
 						{
 							commit(*vcb);
 						}
 
-						UniformBuffer* fcb = program.m_fsh->m_constantBuffer[UniformFreq::Submit];
+						UniformBuffer* fcb = program.m_fsh->m_constantBuffer[UniformSet::Submit];
 						if (NULL != fcb)
 						{
 							commit(*fcb);

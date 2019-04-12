@@ -1207,7 +1207,7 @@ namespace bgfx { namespace d3d9
 			}
 		}
 
-		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformFreq::Enum _freq) override
+		void createUniform(UniformHandle _handle, UniformType::Enum _type, uint16_t _num, const char* _name, UniformSet::Enum _freq) override
 		{
 			if (NULL != m_uniforms[_handle.idx])
 			{
@@ -2464,11 +2464,11 @@ namespace bgfx { namespace d3d9
 				else if (0 == (BGFX_UNIFORM_SAMPLERBIT & type) )
 				{
 					const UniformRegInfo* info = s_renderD3D9->m_uniformReg.find(name);
-					const UniformFreq::Enum freq = info->m_freq;
 					BX_WARN(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					if (NULL != info)
 					{
+						const UniformSet::Enum freq = info->m_freq;
 						if (NULL == m_constantBuffer[freq])
 						{
 							m_constantBuffer[freq] = UniformBuffer::create(1024);
@@ -2494,7 +2494,7 @@ namespace bgfx { namespace d3d9
 				BX_UNUSED(kind);
 			}
 
-			for (uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
+			for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 			{
 				if (NULL != m_constantBuffer[ii])
 				{
@@ -4172,7 +4172,7 @@ namespace bgfx { namespace d3d9
 				{
 					ProgramD3D9& program = m_program[currentProgram.idx];
 
-					auto commitConstants = [&](bgfx::UniformFreq::Enum freq)
+					auto commitConstants = [&](bgfx::UniformSet::Enum freq)
 					{
 						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[freq];
 						if (NULL != vcb)
@@ -4193,21 +4193,21 @@ namespace bgfx { namespace d3d9
 					if (!usedProgram[currentProgram.idx])
 					{
 						bx::memSet(program.m_viewUniformsWasSet, 0, sizeof(bool) * BGFX_CONFIG_MAX_VIEWS);
-						commitConstants(UniformFreq::Frame);
+						commitConstants(UniformSet::Frame);
 						usedProgram[currentProgram.idx] = true;
 						constantsChanged = true;
 					}
 
 					if (!program.m_viewUniformsWasSet[view])
 					{
-						commitConstants(UniformFreq::View);
+						commitConstants(UniformSet::View);
 						program.m_viewUniformsWasSet[view] = true;
 						constantsChanged = true;
 					}
 
 					if (constantsChanged)
 					{
-						commitConstants(UniformFreq::Submit);
+						commitConstants(UniformSet::Submit);
 					}
 
 					viewState.setPredefined<1>(this, view, program, _render, draw, programChanged || viewChanged);
