@@ -1199,16 +1199,28 @@ namespace bgfx { namespace gl
 			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0) );
 		}
 
-		void update(uint32_t _offset, uint32_t _size, void* _data, bool _discard = false)
+		void transient(uint32_t _size, void* _data)
 		{
 			BX_CHECK(0 != m_id, "Updating invalid index buffer.");
 
-			if (_discard)
-			{
-				// orphan buffer...
-				destroy();
-				create(m_size, NULL, m_flags);
-			}
+			this->destroy();
+
+			//m_size = _size;
+
+			GL_CHECK(glGenBuffers(1, &m_id));
+			BX_CHECK(0 != m_id, "Failed to generate buffer id.");
+			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id));
+			GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER
+				, _size
+				, _data
+				, GL_DYNAMIC_DRAW
+			));
+			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+		}
+
+		void update(uint32_t _offset, uint32_t _size, void* _data)
+		{
+			BX_CHECK(0 != m_id, "Updating invalid index buffer.");
 
 			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id) );
 			GL_CHECK(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER
@@ -1247,16 +1259,28 @@ namespace bgfx { namespace gl
 			GL_CHECK(glBindBuffer(m_target, 0) );
 		}
 
-		void update(uint32_t _offset, uint32_t _size, void* _data, bool _discard = false)
+		void transient(uint32_t _size, void* _data)
 		{
 			BX_CHECK(0 != m_id, "Updating invalid vertex buffer.");
 
-			if (_discard)
-			{
-				// orphan buffer...
-				destroy();
-				create(m_size, NULL, m_layoutHandle, 0);
-			}
+			this->destroy();
+
+			//m_target = GL_ARRAY_BUFFER;
+
+			GL_CHECK(glGenBuffers(1, &m_id));
+			BX_CHECK(0 != m_id, "Failed to generate buffer id.");
+			GL_CHECK(glBindBuffer(m_target, m_id));
+			GL_CHECK(glBufferData(m_target
+				, _size
+				, _data
+				, GL_DYNAMIC_DRAW
+			));
+			GL_CHECK(glBindBuffer(m_target, 0));
+		}
+
+		void update(uint32_t _offset, uint32_t _size, void* _data)
+		{
+			BX_CHECK(0 != m_id, "Updating invalid vertex buffer.");
 
 			GL_CHECK(glBindBuffer(m_target, m_id) );
 			GL_CHECK(glBufferSubData(m_target
