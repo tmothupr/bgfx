@@ -392,32 +392,24 @@ VK_DESTROY
 	struct ShaderVK
 	{
 		ShaderVK()
-			: m_code(NULL)
-			, m_module(VK_NULL_HANDLE)
-			, m_constantBuffer{}
-			, m_hash(0)
-			, m_numUniforms(0)
-			, m_numPredefined(0)
-			, m_uniformBinding(0)
-			, m_numBindings(0)
 		{
 		}
 
 		void create(const Memory* _mem);
 		void destroy();
 
-		const Memory* m_code;
-		VkShaderModule m_module;
-		UniformBuffer* m_constantBuffer[UniformSet::Count];
+		const Memory* m_code = NULL;
+		VkShaderModule m_module = VK_NULL_HANDLE;
+		UniformBuffer* m_constantBuffer[UniformSet::Count] = {};
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint16_t m_attrMask[Attrib::Count];
 		uint8_t m_attrRemap[Attrib::Count];
 
-		uint32_t m_hash;
-		uint16_t m_numUniforms;
+		uint32_t m_hash = 0;
+		uint16_t m_numUniforms = 0;
 		uint16_t m_size;
-		uint8_t m_numPredefined;
+		uint8_t m_numPredefined = 0;
 		uint8_t m_numAttrs;
 
 		struct BindType
@@ -440,32 +432,28 @@ VK_DESTROY
 		};
 
 		BindInfo m_bindInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-		uint32_t m_uniformBinding;
-		uint16_t m_numBindings;
+		uint32_t m_uniformBinding = 0;
+		uint16_t m_numBindings = 0;
 		VkDescriptorSetLayoutBinding m_bindings[32];
 	};
 
 	struct ProgramVK
 	{
 		ProgramVK()
-			: m_vsh(NULL)
-			, m_fsh(NULL)
-			, m_descriptorSetLayoutHash(0)
-			, m_pipelineLayout(VK_NULL_HANDLE)
 		{
 		}
 
 		void create(const ShaderVK* _vsh, const ShaderVK* _fsh);
 		void destroy();
 
-		const ShaderVK* m_vsh;
-		const ShaderVK* m_fsh;
+		const ShaderVK* m_vsh = NULL;
+		const ShaderVK* m_fsh = NULL;
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count * 2];
 		uint8_t m_numPredefined;
 
-		uint32_t m_descriptorSetLayoutHash;
-		VkPipelineLayout m_pipelineLayout;
+		uint32_t m_descriptorSetLayoutHash = 0;
+		VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 	};
 
 	struct TextureVK

@@ -1302,14 +1302,6 @@ namespace bgfx { namespace gl
 	struct TextureGL
 	{
 		TextureGL()
-			: m_id(0)
-			, m_rbo(0)
-			, m_target(GL_TEXTURE_2D)
-			, m_fmt(GL_ZERO)
-			, m_type(GL_ZERO)
-			, m_flags(0)
-			, m_currentSamplerHash(UINT32_MAX)
-			, m_numMips(0)
 		{
 		}
 
@@ -1341,18 +1333,18 @@ namespace bgfx { namespace gl
 				;
 		}
 
-		GLuint m_id;
-		GLuint m_rbo;
-		GLenum m_target;
-		GLenum m_fmt;
-		GLenum m_type;
-		uint64_t m_flags;
-		uint32_t m_currentSamplerHash;
+		GLuint m_id = 0;
+		GLuint m_rbo = 0;
+		GLenum m_target = GL_TEXTURE_2D;
+		GLenum m_fmt = GL_ZERO;
+		GLenum m_type = GL_ZERO;
+		uint64_t m_flags = 0;
+		uint32_t m_currentSamplerHash = UINT32_MAX;
 		uint32_t m_width;
 		uint32_t m_height;
 		uint32_t m_depth;
 		uint32_t m_numLayers;
-		uint8_t m_numMips;
+		uint8_t m_numMips = 0;
 		uint8_t m_requestedFormat;
 		uint8_t m_textureFormat;
 	};
@@ -1360,28 +1352,20 @@ namespace bgfx { namespace gl
 	struct ShaderGL
 	{
 		ShaderGL()
-			: m_id(0)
-			, m_type(0)
-			, m_hash(0)
 		{
 		}
 
 		void create(const Memory* _mem);
 		void destroy();
 
-		GLuint m_id;
-		GLenum m_type;
-		uint32_t m_hash;
+		GLuint m_id = 0;
+		GLenum m_type = 0;
+		uint32_t m_hash = 0;
 	};
 
 	struct FrameBufferGL
 	{
 		FrameBufferGL()
-			: m_swapChain(NULL)
-			, m_denseIdx(UINT16_MAX)
-			, m_num(0)
-			, m_numCompute(0)
-			, m_needPresent(false)
 		{
 			bx::memSet(m_fbo, 0, sizeof(m_fbo) );
 		}
@@ -1394,24 +1378,21 @@ namespace bgfx { namespace gl
 		void discard(uint16_t _flags);
 		void set();
 
-		SwapChainGL* m_swapChain;
+		SwapChainGL* m_swapChain = NULL;
 		GLuint m_fbo[2];
 		uint32_t m_width;
 		uint32_t m_height;
-		uint16_t m_denseIdx;
-		uint8_t  m_num;
+		uint16_t m_denseIdx = UINT16_MAX;
+		uint8_t  m_num = 0;
 		uint8_t  m_numTh;
-		uint8_t  m_numCompute;
-		bool     m_needPresent;
+		uint8_t  m_numCompute = 0;
+		bool     m_needPresent = false;
 		Attachment m_attachment[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS];
 	};
 
 	struct ProgramGL
 	{
 		ProgramGL()
-			: m_id(0)
-			, m_constantBuffer{}
-			, m_numPredefined(0)
 		{
 		}
 
@@ -1443,7 +1424,7 @@ namespace bgfx { namespace gl
 
 		void unbindAttributes();
 
-		GLuint m_id;
+		GLuint m_id = 0;
 
 		uint8_t m_unboundUsedAttrib[Attrib::Count]; // For tracking unbound used attributes between begin()/end().
 		uint8_t m_usedCount;
@@ -1454,9 +1435,9 @@ namespace bgfx { namespace gl
 		GLint m_sampler[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 		uint8_t m_numSamplers;
 
-		UniformBuffer* m_constantBuffer[UniformSet::Count];
+		UniformBuffer* m_constantBuffer[UniformSet::Count] = {};
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
-		uint8_t m_numPredefined;
+		uint8_t m_numPredefined = 0;
 	};
 
 	struct TimerQueryGL
@@ -1629,14 +1610,12 @@ namespace bgfx { namespace gl
 	public:
 		LineReader(const void* _str)
 			: m_str( (const char*)_str)
-			, m_pos(0)
 			, m_size(bx::strLen( (const char*)_str) )
 		{
 		}
 
 		LineReader(const bx::StringView& _str)
 			: m_str(_str.getPtr() )
-			, m_pos(0)
 			, m_size(_str.getLength() )
 		{
 		}
@@ -1666,7 +1645,7 @@ namespace bgfx { namespace gl
 		}
 
 		const char* m_str;
-		uint32_t m_pos;
+		uint32_t m_pos = 0;
 		uint32_t m_size;
 	};
 
