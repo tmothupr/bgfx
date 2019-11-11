@@ -7,6 +7,8 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
+#define IMGUI
+
 namespace
 {
 
@@ -100,7 +102,8 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+		init.type     = bgfx::RendererType::WebGPU;
+		//init.type     = args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
@@ -121,6 +124,7 @@ public:
 		// Get renderer capabilities info.
 		const bgfx::Caps* caps = bgfx::getCaps();
 		m_instancingSupported = 0 != (caps->supported & BGFX_CAPS_INSTANCING);
+		m_instancingSupported = false;
 
 		// Create vertex stream declaration.
 		PosNormalTangentTexcoordVertex::init();
@@ -153,19 +157,25 @@ public:
 		m_program = loadProgram(m_instancingSupported ? "vs_bump_instanced" : "vs_bump", "fs_bump");
 
 		// Load diffuse texture.
-		m_textureColor = loadTexture("textures/fieldstone-rgba.dds");
+		//m_textureColor = loadTexture("textures/fieldstone-rgba.dds");
+		m_textureColor = loadTexture("textures/fieldstone-rgba.png");
 
 		// Load normal texture.
-		m_textureNormal = loadTexture("textures/fieldstone-n.dds");
+		//m_textureNormal = loadTexture("textures/fieldstone-n.dds");
+		m_textureNormal = loadTexture("textures/fieldstone-n.png");
 
 		m_timeOffset = bx::getHPCounter();
 
+#ifdef IMGUI
 		imguiCreate();
+#endif
 	}
 
 	virtual int shutdown() override
 	{
+#ifdef IMGUI
 		imguiDestroy();
+#endif
 
 		// Cleanup.
 		bgfx::destroy(m_ibh);
@@ -188,6 +198,7 @@ public:
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
+#ifdef IMGUI
 			imguiBeginFrame(m_mouseState.m_mx
 				,  m_mouseState.m_my
 				, (m_mouseState.m_buttons[entry::MouseButton::Left  ] ? IMGUI_MBUT_LEFT   : 0)
@@ -201,6 +212,7 @@ public:
 			showExampleDialog(this);
 
 			imguiEndFrame();
+#endif
 
 			// Set view 0 default viewport.
 			bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );

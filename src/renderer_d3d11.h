@@ -168,9 +168,11 @@ namespace bgfx { namespace d3d11
 			ID3D11VertexShader*  m_vertexShader;
 			ID3D11DeviceChild*   m_ptr = NULL;
 		};
+
 		const Memory* m_code = NULL;
 		ID3D11Buffer* m_buffer = NULL;
-		UniformBuffer* m_constantBuffer = NULL;
+
+		UniformBuffer* m_constantBuffer[UniformSet::Count] = {};
 
 		PredefinedUniform m_predefined[PredefinedUniform::Count];
 		uint16_t m_attrMask[Attrib::Count];

@@ -164,6 +164,18 @@ function bgfxProjectBase(_kind, _defines)
 		path.join(BGFX_DIR, "src/renderer_nvn.h"),
 	})
 
+    if _OPTIONS["webgpu"] then
+        includedirs {
+            path.join(DAWN_DIR, "src"),
+            path.join(DAWN_DIR, "src/include"),
+            path.join(DAWN_DIR, "out/Default/gen"),
+        }
+        
+        defines {
+            "BGFX_CONFIG_RENDERER_WEBGPU=1",
+        }
+    end
+    
 	if _OPTIONS["with-amalgamated"] then
 		excludes {
 			path.join(BGFX_DIR, "src/bgfx.cpp"),

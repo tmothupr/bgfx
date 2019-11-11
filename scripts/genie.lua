@@ -4,6 +4,11 @@
 --
 
 newoption {
+	trigger = "webgpu",
+	description = "Enable webgpu experimental renderer.",
+}
+
+newoption {
 	trigger = "with-amalgamated",
 	description = "Enable amalgamated build.",
 }
@@ -105,6 +110,8 @@ MODULE_DIR = path.getabsolute("../")
 BGFX_DIR   = path.getabsolute("..")
 BX_DIR     = os.getenv("BX_DIR")
 BIMG_DIR   = os.getenv("BIMG_DIR")
+DAWN_DIR   = os.getenv("DAWN_DIR")
+print(DAWN_DIR)
 
 local BGFX_BUILD_DIR = path.join(BGFX_DIR, ".build")
 local BGFX_THIRD_PARTY_DIR = path.join(BGFX_DIR, "3rdparty")
@@ -182,6 +189,17 @@ function exampleProjectDefaults()
 		"bx",
 	}
 
+    if _OPTIONS["webgpu"] then
+        libdirs {
+            path.join(DAWN_DIR, "out/Default"),
+        }
+        
+        links {
+            "libdawn",
+            "libdawn_native",
+        }
+    end
+    
 	if _OPTIONS["with-sdl"] then
 		defines { "ENTRY_CONFIG_USE_SDL=1" }
 		links   { "SDL2" }

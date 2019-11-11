@@ -481,6 +481,10 @@ namespace bgfx
 
 	ShaderHandle createEmbeddedShader(const EmbeddedShader* _es, RendererType::Enum _type, const char* _name)
 	{
+		if(RendererType::Enum::WebGPU == _type)
+			_type = RendererType::Enum::Vulkan;
+			//_type = RendererType::Enum::Direct3D12;
+
 		for (const EmbeddedShader* es = _es; NULL != es->name; ++es)
 		{
 			if (0 == bx::strCmp(_name, es->name) )
@@ -2454,6 +2458,7 @@ namespace bgfx
 	BGFX_RENDERER_CONTEXT(nvn);
 	BGFX_RENDERER_CONTEXT(gl);
 	BGFX_RENDERER_CONTEXT(vk);
+	BGFX_RENDERER_CONTEXT(wgpu);
 
 #undef BGFX_RENDERER_CONTEXT
 
@@ -2481,6 +2486,7 @@ namespace bgfx
 		{ gl::rendererCreate,    gl::rendererDestroy,    BGFX_RENDERER_OPENGL_NAME,     !!BGFX_CONFIG_RENDERER_OPENGLES   }, // OpenGLES
 		{ gl::rendererCreate,    gl::rendererDestroy,    BGFX_RENDERER_OPENGL_NAME,     !!BGFX_CONFIG_RENDERER_OPENGL     }, // OpenGL
 		{ vk::rendererCreate,    vk::rendererDestroy,    BGFX_RENDERER_VULKAN_NAME,     !!BGFX_CONFIG_RENDERER_VULKAN     }, // Vulkan
+		{ wgpu::rendererCreate,  wgpu::rendererDestroy,  BGFX_RENDERER_WEBGPU_NAME,     !!BGFX_CONFIG_RENDERER_WEBGPU     }, // WebGPU
 	};
 	BX_STATIC_ASSERT(BX_COUNTOF(s_rendererCreator) == RendererType::Count);
 
@@ -2893,6 +2899,8 @@ namespace bgfx
 
 					const Memory* mem;
 					_cmdbuf.read(mem);
+
+					BX_TRACE("Create shader %s", s_ctx->m_shaderRef[handle.idx].m_name.getPtr());
 
 					m_renderCtx->createShader(handle, mem);
 

@@ -495,7 +495,7 @@ namespace bgfx { namespace spirv
 		return true;
 	}
 
-#define DBG(...) // bx::debugPrintf(__VA_ARGS__)
+#define DBG(...) bx::debugPrintf(__VA_ARGS__)
 
 	void disassemble(bx::WriterI* _writer, bx::ReaderSeekerI* _reader, bx::Error* _err)
 	{
@@ -706,6 +706,10 @@ namespace bgfx { namespace spirv
 		shader->setShiftBinding(glslang::EResSsbo, bindingOffset + 16);
 		shader->setShiftBinding(glslang::EResImage, bindingOffset + 32);
 
+		// bindings 0 and 1 are reserved for vertex/fragment uniform buffers, so we shift all samplers by 2
+		//shader->setShiftBinding(glslang::TResourceType::EResSampler, 2);
+		//shader->setShiftBinding(glslang::TResourceType::EResTexture, 2);
+
 		const char* shaderStrings[] = { _code.c_str() };
 		shader->setStrings(
 			  shaderStrings
@@ -779,6 +783,7 @@ namespace bgfx { namespace spirv
 				{
 					// first time through, we just find unused uniforms and get rid of them
 					std::string output;
+					std::vector<std::string> uniforms;
 					bx::Error err;
 					LineReader reader(_code.c_str() );
 					while (err.isOk() )
@@ -789,16 +794,23 @@ namespace bgfx { namespace spirv
 						{
 							std::string strLine(str, len);
 
+							bool moved = false;
+
 							size_t index = strLine.find("uniform ");
 							if (index != std::string::npos)
 							{
 								bool found = false;
+								bool sampler = false;
+								std::string name = "";
+
+								// add to samplers
 
 								for (uint32_t ii = 0; ii < BX_COUNTOF(s_samplerTypes); ++ii)
 								{
 									if (!bx::findIdentifierMatch(strLine.c_str(), s_samplerTypes[ii]).isEmpty())
 									{
 										found = true;
+										sampler = true;
 										break;
 									}
 								}
@@ -815,6 +827,7 @@ namespace bgfx { namespace spirv
 										if (!bx::findIdentifierMatch(strLine.c_str(), program->getUniformName(ii)).isEmpty())
 										{
 											found = true;
+											name = program->getUniformName(ii);
 											break;
 										}
 									}
@@ -822,14 +835,44 @@ namespace bgfx { namespace spirv
 
 								if (!found)
 								{
-									strLine = strLine.replace(index, 7 /* uniform */, "static");
+									strLine.replace(index, 7 /* uniform */, "static");
 								}
+								else if(!sampler)
+								{
+									uniforms.push_back(strLine);
+									moved = true;
+								}
+								
 							}
 
-							output += strLine;
+							if(!moved)
+								output += strLine;
 						}
 					}
 
+					std::string uniformBlock;
+
+					if('v' == _options.shaderType)
+					{
+						uniformBlock += "[[vk::binding(0, 0)]]\n";
+					}
+					else if('f' == _options.shaderType)
+					{
+						uniformBlock += "[[vk::binding(1, 0)]]\n";
+					}
+
+					uniformBlock += "cbuffer UniformBlock\n";
+					uniformBlock += "{\n";
+					for(const std::string& uniform : uniforms)
+					{
+						uniformBlock += uniform.substr(7 /* uniform */);
+					}
+
+					uniformBlock += "};\n";
+
+					output = uniformBlock + output;
+
+					//std::cout << "[debug] fixed source: " << std::endl << output << std::endl;
 					// recompile with the unused uniforms converted to statics
 					return compile(_options, _version, output.c_str(), _writer, false);
 				}
@@ -1034,6 +1077,68 @@ namespace bgfx { namespace spirv
 					spirv_cross::CompilerReflection refl(spirv);
 					spirv_cross::ShaderResources resourcesrefl = refl.get_shader_resources();
 
+					for(auto &resource : resourcesrefl.stage_inputs)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationLocation))
+						{
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationLocation);
+							std::cout << "[debug] stage input - location " << name << ": " << location << std::endl;
+						}
+					}
+
+					//for(auto &resource : resourcesrefl.storage_buffers)
+					//{
+					//	std::string name = refl.get_name(resource.id);
+					//	if(refl.has_decoration(resource.id, spv::DecorationBinding))
+					//	{
+					//		uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+					//		std::cout << "[debug] storage buffer - binding " << name << ": " << location << std::endl;
+					//	}
+					//}
+
+					for(auto &resource : resourcesrefl.separate_images)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationBinding))
+						{
+							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+							std::cout << "[debug] texture - " << name << " set = " << set << " binding  = " << location << std::endl;
+						}
+					}
+
+					for(auto &resource : resourcesrefl.separate_samplers)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationBinding))
+						{
+							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+							std::cout << "[debug] sampler - " << name << " set = " << set << " binding  = " << location << std::endl;
+						}
+					}
+
+					for(auto &resource : resourcesrefl.uniform_buffers)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationBinding))
+						{
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+							std::cout << "[debug] uniform buffer - binding " << name << ": " << location << std::endl;
+						}
+					}
+
+					for(auto &resource : resourcesrefl.stage_outputs)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationLocation))
+						{
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationLocation);
+							std::cout << "[debug] stage output - location " << name << ": " << location << std::endl;
+						}
+					}
+
 					// Loop through the separate_images, and extract the uniform names:
 					for (auto &resource : resourcesrefl.separate_images)
 					{
@@ -1045,8 +1150,11 @@ namespace bgfx { namespace spirv
 
 							Uniform un;
 							un.name = uniform_name;
-							un.type = UniformType::Sampler;
+							un.type = UniformType::Enum(BGFX_UNIFORM_SAMPLERBIT | UniformType::Sampler);
 
+							const uint32_t binding = refl.get_decoration(resource.id, spv::DecorationBinding);
+
+//<<<<<<< HEAD
 							uint32_t texture_binding_index = refl.get_decoration(resource.id, spv::Decoration::DecorationBinding);
 							uint32_t sampler_binding_index = 0;
 							std::string sampler_name;
@@ -1068,6 +1176,11 @@ namespace bgfx { namespace spirv
 							un.num = stageMap[sampler_name];	// want to write stage index
 							un.regIndex = texture_binding_index;	// for sampled image binding index
 							un.regCount = sampler_binding_index;	// for sampler binding index
+//=======
+//							un.num = 1;			// needed?
+//							un.regIndex = uint16_t(binding);
+//							un.regCount = 0;	// needed?
+//>>>>>>> a8d05cf8f... WebGPU first draft (does not compile)
 
 							uniforms.push_back(un);
 						}

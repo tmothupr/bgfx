@@ -7,6 +7,24 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
+#include "bgfx/embedded_shader.h"
+
+#define IMGUI
+//#define EMBEDDED
+
+#ifdef EMBEDDED
+#include "vs_cubes.bin.h"
+#include "fs_cubes.bin.h"
+
+static const bgfx::EmbeddedShader s_embeddedShaders[] =
+{
+	BGFX_EMBEDDED_SHADER(vs_cubes),
+	BGFX_EMBEDDED_SHADER(fs_cubes),
+
+	BGFX_EMBEDDED_SHADER_END()
+};
+#endif
+
 namespace
 {
 
@@ -145,11 +163,13 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+		init.type     = bgfx::RendererType::WebGPU;
+		//init.type     = args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
 		init.resolution.reset  = m_reset;
+		init.debug = true;
 		bgfx::init(init);
 
 		// Enable debug text.
@@ -204,16 +224,26 @@ public:
 			);
 
 		// Create program from shaders.
+#ifdef EMBEDDED
+		bgfx::ShaderHandle vsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "vs_cubes");
+		bgfx::ShaderHandle fsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "fs_cubes");
+		m_program = bgfx::createProgram(vsh, fsh, true /* destroy shaders when program is destroyed */);
+#else
 		m_program = loadProgram("vs_cubes", "fs_cubes");
+#endif
 
 		m_timeOffset = bx::getHPCounter();
 
+#ifdef IMGUI
 		imguiCreate();
+#endif
 	}
 
 	virtual int shutdown() override
 	{
+#ifdef IMGUI
 		imguiDestroy();
+#endif
 
 		// Cleanup.
 		for (uint32_t ii = 0; ii < BX_COUNTOF(m_ibh); ++ii)
@@ -234,6 +264,7 @@ public:
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
+#ifdef IMGUI
 			imguiBeginFrame(m_mouseState.m_mx
 				,  m_mouseState.m_my
 				, (m_mouseState.m_buttons[entry::MouseButton::Left  ] ? IMGUI_MBUT_LEFT   : 0)
@@ -270,6 +301,7 @@ public:
 			ImGui::End();
 
 			imguiEndFrame();
+#endif
 
 			float time = (float)( (bx::getHPCounter()-m_timeOffset)/double(bx::getHPFrequency() ) );
 
@@ -334,7 +366,11 @@ public:
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
-			bgfx::frame();
+			const uint32_t capture_freq = 60;
+			static bool capture = false;
+			uint32_t frame = bgfx::frame(capture);
+			//capture = frame % capture_freq == 0;
+			BX_UNUSED(frame);
 
 			return true;
 		}

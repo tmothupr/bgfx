@@ -7,6 +7,8 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
+ //#define IMGUI
+
 namespace
 {
 
@@ -113,15 +115,17 @@ public:
 
 		m_width  = _width;
 		m_height = _height;
-		m_debug  = BGFX_DEBUG_NONE;
+		m_debug  = BGFX_DEBUG_NONE; // BGFX_DEBUG_STATS
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+		init.type     = bgfx::RendererType::WebGPU;
+		//init.type     = args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
 		init.resolution.reset  = m_reset;
+		//init.debug = true;
 		bgfx::init(init);
 
 		// Enable debug text.
@@ -146,12 +150,16 @@ public:
 
 		m_timeOffset = bx::getHPCounter();
 
+#ifdef IMGUI
 		imguiCreate();
+#endif
 	}
 
 	int shutdown() override
 	{
+#ifdef IMGUI
 		imguiDestroy();
+#endif
 
 		// Cleanup.
 		bgfx::destroy(m_program);
@@ -169,6 +177,7 @@ public:
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
+#ifdef IMGUI
 			imguiBeginFrame(m_mouseState.m_mx
 				,  m_mouseState.m_my
 				, (m_mouseState.m_buttons[entry::MouseButton::Left  ] ? IMGUI_MBUT_LEFT   : 0)
@@ -182,6 +191,8 @@ public:
 			showExampleDialog(this);
 
 			imguiEndFrame();
+#endif
+
 			// Set view 0 default viewport.
 			bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );
 
@@ -241,7 +252,12 @@ public:
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
-			bgfx::frame();
+			//bgfx::frame();
+
+			const uint32_t capture_freq = 60;
+			static bool capture = false;
+			uint32_t frame = bgfx::frame(capture);
+			capture = frame % capture_freq == 0;
 
 			return true;
 		}
