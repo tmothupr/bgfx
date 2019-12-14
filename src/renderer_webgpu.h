@@ -126,9 +126,9 @@ namespace bgfx {
 			{
 			}
 
-			void create(uint32_t _size, void* _data, VertexDeclHandle _declHandle, uint16_t _flags);
+			void create(uint32_t _size, void* _data, VertexLayoutHandle _declHandle, uint16_t _flags);
 
-			VertexDeclHandle m_decl;
+			VertexLayoutHandle m_decl;
 		};
 
 		struct SamplerInfo

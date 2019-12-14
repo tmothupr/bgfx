@@ -833,18 +833,18 @@ namespace bgfx { namespace wgpu
 			m_indexBuffers[_handle.idx].destroy();
 		}
 
-		void createVertexDecl(VertexDeclHandle _handle, const VertexDecl& _decl) override
+		void createVertexDecl(VertexLayoutHandle _handle, const VertexLayout& _decl) override
 		{
-			VertexDecl& decl = m_vertexDecls[_handle.idx];
-			bx::memCopy(&decl, &_decl, sizeof(VertexDecl) );
+			VertexLayout& decl = m_vertexDecls[_handle.idx];
+			bx::memCopy(&decl, &_decl, sizeof(VertexLayout) );
 			dump(decl);
 		}
 
-		void destroyVertexDecl(VertexDeclHandle /*_handle*/) override
+		void destroyVertexDecl(VertexLayoutHandle /*_handle*/) override
 		{
 		}
 
-		void createVertexBuffer(VertexBufferHandle _handle, const Memory* _mem, VertexDeclHandle _declHandle, uint16_t _flags) override
+		void createVertexBuffer(VertexBufferHandle _handle, const Memory* _mem, VertexLayoutHandle _declHandle, uint16_t _flags) override
 		{
 			m_vertexBuffers[_handle.idx].create(_mem->size, _mem->data, _declHandle, _flags);
 		}
@@ -871,7 +871,7 @@ namespace bgfx { namespace wgpu
 
 		void createDynamicVertexBuffer(VertexBufferHandle _handle, uint32_t _size, uint16_t _flags) override
 		{
-			VertexDeclHandle decl = BGFX_INVALID_HANDLE;
+			VertexLayoutHandle decl = BGFX_INVALID_HANDLE;
 			m_vertexBuffers[_handle.idx].create(_size, NULL, decl, _flags);
 		}
 
@@ -1524,7 +1524,7 @@ namespace bgfx { namespace wgpu
 				numMrt = bx::uint32_max(1, fb.m_num);
 			}
 
-			const VertexDecl* decl = &_clearQuad.m_decl;
+			const VertexLayout* decl = &_clearQuad.m_decl;
 			const PipelineStateWgpu* pso = getPipelineState(
 				  state
 				, stencil
@@ -1749,7 +1749,7 @@ namespace bgfx { namespace wgpu
 			, uint32_t _rgba
 			, FrameBufferHandle _fbh
 			, uint8_t _numStreams
-			, const VertexDecl** _vertexDecls
+			, const VertexLayout** _vertexDecls
 			, bool _index32
 			, ProgramHandle _program
 			, uint8_t _numInstanceData
@@ -1940,7 +1940,7 @@ namespace bgfx { namespace wgpu
 				PrimInfo prim = s_primInfo[primIndex];
 				rpd.primitiveTopology = prim.m_type;
 
-				auto fillVertexDecl = [](const ShaderWgpu* _vsh, InputStateDescriptor& _vertexInputState, const VertexDecl& _decl)
+				auto fillVertexDecl = [](const ShaderWgpu* _vsh, InputStateDescriptor& _vertexInputState, const VertexLayout& _decl)
 				{
 					webgpu::VertexInputDescriptor*    inputBinding = _vertexInputState.inputs;
 					webgpu::VertexAttributeDescriptor* inputAttrib = _vertexInputState.attributes;
@@ -1999,7 +1999,7 @@ namespace bgfx { namespace wgpu
 				uint8_t stream = 0;
 				//for (; stream < _numStreams; ++stream)
 				{
-					const VertexDecl& vertexDecl = *_vertexDecls[stream];
+					const VertexLayout& vertexDecl = *_vertexDecls[stream];
 					fillVertexDecl(program.m_vsh, input, vertexDecl);
 
 					//input.inputs[stream+1].stride   = vertexDecl.getStride();
@@ -2042,13 +2042,13 @@ namespace bgfx { namespace wgpu
 			, uint64_t _stencil
 			, uint32_t _rgba
 			, FrameBufferHandle _fbh
-			, VertexDeclHandle _declHandle
+			, VertexLayoutHandle _declHandle
 			, bool _index32
 			, ProgramHandle _program
 			, uint16_t _numInstanceData
 			)
 		{
-			const VertexDecl* decl = &m_vertexDecls[_declHandle.idx];
+			const VertexLayout* decl = &m_vertexDecls[_declHandle.idx];
 			return getPipelineState(
 				  _state
 				, _stencil
@@ -2282,7 +2282,7 @@ namespace bgfx { namespace wgpu
 		TextureWgpu      m_textures[BGFX_CONFIG_MAX_TEXTURES];
 		FrameBufferWgpu  m_mainFrameBuffer;
 		FrameBufferWgpu  m_frameBuffers[BGFX_CONFIG_MAX_FRAME_BUFFERS];
-		VertexDecl       m_vertexDecls[BGFX_CONFIG_MAX_VERTEX_DECLS];
+		VertexLayout       m_vertexDecls[BGFX_CONFIG_MAX_VERTEX_DECLS];
 		UniformRegistry  m_uniformReg;
 		void*            m_uniforms[BGFX_CONFIG_MAX_UNIFORMS];
 
@@ -2680,7 +2680,7 @@ namespace bgfx { namespace wgpu
 		}
 	}
 
-	void VertexBufferWgpu::create(uint32_t _size, void* _data, VertexDeclHandle _declHandle, uint16_t _flags)
+	void VertexBufferWgpu::create(uint32_t _size, void* _data, VertexLayoutHandle _declHandle, uint16_t _flags)
 	{
 		m_decl = _declHandle;
 		uint16_t stride = isValid(_declHandle)
@@ -4116,7 +4116,7 @@ namespace bgfx { namespace wgpu
 					currentState.m_instanceDataOffset     = draw.m_instanceDataOffset;
 					currentState.m_instanceDataStride     = draw.m_instanceDataStride;
 
-					const VertexDecl* decls[BGFX_CONFIG_MAX_VERTEX_STREAMS];
+					const VertexLayout* decls[BGFX_CONFIG_MAX_VERTEX_STREAMS];
 
 					uint32_t numVertices = draw.m_numVertices;
 					uint8_t  numStreams  = 0;
@@ -4138,7 +4138,7 @@ namespace bgfx { namespace wgpu
 						const uint16_t decl = isValid(draw.m_stream[idx].m_decl)
 							? draw.m_stream[idx].m_decl.idx
 							: vb.m_decl.idx;
-						const VertexDecl& vertexDecl = m_vertexDecls[decl];
+						const VertexLayout& vertexDecl = m_vertexDecls[decl];
 						const uint32_t stride = vertexDecl.m_stride;
 
 						decls[numStreams] = &vertexDecl;
@@ -4300,7 +4300,7 @@ namespace bgfx { namespace wgpu
 					{
 						const VertexBufferWgpu& vb = m_vertexBuffers[currentState.m_stream[0].m_handle.idx];
 						uint16_t decl = !isValid(vb.m_decl) ? draw.m_stream[0].m_decl.idx : vb.m_decl.idx;
-						const VertexDecl& vertexDecl = m_vertexDecls[decl];
+						const VertexLayout& vertexDecl = m_vertexDecls[decl];
 						numVertices = vb.m_size/vertexDecl.m_stride;
 					}
 
