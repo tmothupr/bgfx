@@ -1172,11 +1172,6 @@ namespace bgfx { namespace gl
 		}
 	}
 
-	void flushGlError()
-	{
-		for(GLenum err = glGetError(); err != 0; err = glGetError());
-	}
-
 	GLint glGet(GLenum _pname)
 	{
 		GLint result = 0;
@@ -6661,11 +6656,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					{
 						ProgramGL& program = m_program[currentProgram.idx];
 
-						rendererUpdateUniforms(this, _render->m_viewUniforms[view], 0, 0);
+						rendererUpdateUniforms(this, &_render->m_viewUniforms[view], 0, 0);
 
-						if (NULL != program.m_constantBuffer[UniformFreq::View])
+						if (NULL != program.m_constantBuffer[UniformSet::View])
 						{
-							commit(*program.m_constantBuffer[UniformFreq::View]);
+							commit(*program.m_constantBuffer[UniformSet::View]);
 						}
 					}
 

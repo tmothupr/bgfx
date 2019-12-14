@@ -2595,7 +2595,7 @@ VK_IMPORT_DEVICE
 			uint8_t flags = predefined.m_type;
 			setShaderUniform(flags, predefined.m_loc, proj, 4);
 
-			UniformBuffer* vcb = program.m_vsh->m_constantBuffer;
+			UniformBuffer* vcb; // = program.m_vsh->m_constantBuffer;
 			if (NULL != vcb)
 			{
 				commit(*vcb);
@@ -4705,7 +4705,7 @@ VK_DESTROY
 				else if (UniformType::Sampler == (~BGFX_UNIFORM_MASK & type) )
 				{
 					const UniformRegInfo* info = s_renderVK->m_uniformReg.find(name);
-					const UniformFreq::Enum freq = info->m_freq;
+					const UniformSet::Enum freq = info->m_freq;
 					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
 					m_bindInfo[num].uniformHandle  = info->m_handle;
@@ -4864,10 +4864,13 @@ VK_DESTROY
 
 	void ShaderVK::destroy()
 	{
-		if (NULL != m_constantBuffer)
+		for(uint32_t ii = 0; ii < UniformSet::Count; ++ii)
 		{
-			UniformBuffer::destroy(m_constantBuffer);
-			m_constantBuffer = NULL;
+			if(NULL != m_constantBuffer[ii])
+			{
+				UniformBuffer::destroy(m_constantBuffer[ii]);
+				m_constantBuffer[ii] = NULL;
+			}
 		}
 
 		m_numPredefined = 0;
@@ -5448,15 +5451,6 @@ VK_DESTROY
 
 	void TextureVK::destroy()
 	{
-		for (uint32_t ii = 0; ii < UniformSet::Count; ++ii)
-		{
-			if (NULL != m_constantBuffer[ii])
-			{
-				UniformBuffer::destroy(m_constantBuffer[ii]);
-				m_constantBuffer[ii] = NULL;
-			}
-		}
-
 		if (m_textureImage)
 		{
 			VkAllocationCallbacks* allocatorCb = s_renderVK->m_allocatorCb;
@@ -5627,15 +5621,6 @@ VK_DESTROY
 
 	void FrameBufferVK::destroy()
 	{
-		for(uint32_t ii = 0; ii < UniformFreq::Count; ++ii)
-		{
-			if(NULL != m_constantBuffer[ii])
-			{
-				UniformBuffer::destroy(m_constantBuffer[ii]);
-				m_constantBuffer[ii] = NULL;
-			}
-		}
-
 		vkDestroy(m_framebuffer);
 	}
 
@@ -5973,6 +5958,7 @@ VK_DESTROY
 						}
 
 						prim = s_primInfo[Topology::Count]; // Force primitive type update.
+					}
 
 					submitBlit(bs, view);
 
@@ -6034,8 +6020,6 @@ VK_DESTROY
 					if (constantsChanged
 					||  hasPredefined)
 					{
-						ProgramVK& program = m_program[currentProgram.idx];
-
 						viewState.setPredefined<4>(this, view, program, _render, compute, viewChanged);
 
 //						commitShaderConstants(key.m_program, gpuAddress);
@@ -6336,11 +6320,10 @@ VK_DESTROY
 					ProgramVK& program = m_program[currentProgram.idx];
 					if (hasPredefined)
 					{
-						ProgramVK& program = m_program[currentProgram.idx];
 						uint32_t ref = (newFlags&BGFX_STATE_ALPHA_REF_MASK)>>BGFX_STATE_ALPHA_REF_SHIFT;
 						viewState.m_alphaRef = ref/255.0f;
 						viewState.setPredefined<4>(this, view, program, _render, draw, programChanged || viewChanged);
-						commitShaderUniforms(m_commandBuffer, key.m_program); //, gpuAddress);
+						//commitShaderUniforms(m_commandBuffer, key.m_program); //, gpuAddress);
 					}
 
 					if (currentBindHash != bindHash

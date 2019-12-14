@@ -1967,7 +1967,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 
 			for (uint32_t ii = 0, num = BGFX_CONFIG_MAX_VIEWS; ii < num; ++ii)
 			{
-				UniformBuffer::destroy(m_viewUniforms[ii]);
+				//UniformBuffer::destroy(m_viewUniforms[ii]);
 			}
 
 			BX_FREE(g_allocator, m_submitUniforms);
@@ -3079,7 +3079,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			cmdbuf.write(_handle);
 		}
 
-		//BGFX_API_FUNC(VertexDeclHandle findVertexDecl(const VertexDecl& _decl) )
+		//BGFX_API_FUNC(VertexLayoutHandle findVertexDecl(const VertexLayout& _decl) )
 		VertexLayoutHandle findVertexLayout(const VertexLayout& _layout)
 		{
 			VertexLayoutHandle layoutHandle = m_vertexLayoutRef.find(_layout.m_hash);

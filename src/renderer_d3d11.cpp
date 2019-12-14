@@ -2511,6 +2511,8 @@ namespace bgfx { namespace d3d11
 
 			if (!isValid(_fbh) )
 			{
+				const uint32_t maxTextureSamplers = g_caps.limits.maxTextureSamplers;
+
 				m_currentColor        = m_backBufferColor;
 				m_currentDepthStencil = m_backBufferDepthStencil;
 

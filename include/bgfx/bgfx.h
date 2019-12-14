@@ -2244,7 +2244,7 @@ namespace bgfx
 	///
 	void destroy(VertexLayoutHandle _handle);
 
-	//VertexDeclHandle findVertexDecl(const VertexDecl& _decl);
+	//VertexLayoutHandle findVertexDecl(const VertexLayout& _decl);
 
 	/// Create static vertex buffer.
 	///

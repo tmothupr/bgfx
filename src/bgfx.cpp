@@ -3614,9 +3614,9 @@ namespace bgfx
 		BGFX_ENCODER(setVertexBuffer(_stream, _handle, _startVertex, _numVertices, _layoutHandle) );
 	}
 
-	void Encoder::setVertexBuffer(uint8_t _stream, VertexBufferHandle _handle, VertexDeclHandle _decl)
+	void Encoder::setVertexBuffer(uint8_t _stream, VertexBufferHandle _handle, VertexLayoutHandle _layoutHandle)
 	{
-		setVertexBuffer(_stream, _handle, 0, UINT32_MAX, _decl);
+		setVertexBuffer(_stream, _handle, 0, UINT32_MAX, _layoutHandle);
 	}
 
 	void Encoder::setVertexBuffer(
@@ -3994,9 +3994,9 @@ namespace bgfx
 		s_ctx->destroyVertexLayout(_handle);
 	}
 
-	//VertexDeclHandle findVertexDecl(const VertexDecl& _decl)
+	//VertexLayoutHandle findVertexDecl(const VertexLayout& _decl)
 	//{
-	//	BX_CHECK(isValid(_decl), "Invalid VertexDecl.");
+	//	BX_CHECK(isValid(_decl), "Invalid VertexLayout.");
 	//	return s_ctx->findVertexDecl(_decl);
 	//}
 
@@ -4808,7 +4808,7 @@ namespace bgfx
 		BX_CHECK(checkView(_id), "Invalid view id: %d", _id);
 
 		BGFX_CHECK_HANDLE("setUniform", s_ctx->m_uniformHandle, _handle);
-		const Context::UniformRef& uniform = s_ctx->m_uniformRef[_handle.idx];
+		const UniformRef& uniform = s_ctx->m_uniformRef[_handle.idx];
 		BX_CHECK(isValid(_handle) && 0 < uniform.m_refCount, "Setting invalid uniform (handle %3d)!", _handle.idx);
 		BX_CHECK(_num == UINT16_MAX || uniform.m_num >= _num, "Truncated uniform update. %d (max: %d)", _num, uniform.m_num);
 		BX_CHECK(uniform.m_freq == bgfx::UniformSet::View, "Uniform was not declared as per-view");
