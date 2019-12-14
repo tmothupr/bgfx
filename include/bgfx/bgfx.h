@@ -1243,7 +1243,7 @@ namespace bgfx
 		void setVertexBuffer(
 			  uint8_t _stream
 			, VertexBufferHandle _handle
-			, VertexDeclHandle _decl = BGFX_INVALID_HANDLE
+			, VertexLayoutHandle _layoutHandle = BGFX_INVALID_HANDLE
 			);
 
 		/// Set vertex buffer for draw primitive.
