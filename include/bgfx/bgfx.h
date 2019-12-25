@@ -1550,6 +1550,26 @@ namespace bgfx
 			, TextureFormat::Enum _format = TextureFormat::Count
 			);
 
+		/// Set compute image from texture.
+		///
+		/// @param[in] _stage Texture unit.
+		/// @param[in] _sampler Image uniform.
+		/// @param[in] _handle Texture handle.
+		/// @param[in] _mip Mip level.
+		/// @param[in] _access Texture access. See `Access::Enum`.
+		/// @param[in] _format Texture format. See: `TextureFormat::Enum`.
+		///
+		/// @attention C99 equivalent is `bgfx_set_image`.
+		///
+		void setImage(
+			  uint8_t _stage
+			, UniformHandle _uniform
+			, TextureHandle _handle
+			, uint8_t _mip
+			, Access::Enum _access
+			, TextureFormat::Enum _format = TextureFormat::Count
+			);
+
 		/// Dispatch compute.
 		///
 		/// @param[in] _id View id.
@@ -2535,6 +2555,25 @@ namespace bgfx
 	/// @attention C99 equivalent is `bgfx_destroy_shader`.
 	///
 	void destroy(ShaderHandle _handle);
+	
+	/// Create program with vertex geometry and fragment shaders.
+	///
+	/// @param[in] _vsh Vertex shader.
+	/// @param[in] _gsh Geometry shader.
+	/// @param[in] _fsh Fragment shader.
+	/// @param[in] _destroyShaders If true, shaders will be destroyed when
+	///   program is destroyed.
+	/// @returns Program handle if vertex shader output and fragment shader
+	///   input are matching, otherwise returns invalid program handle.
+	///
+	/// @attention C99 equivalent is `bgfx_create_program`.
+	///
+	ProgramHandle createProgram(
+		  ShaderHandle _vsh
+		, ShaderHandle _gsh
+		, ShaderHandle _fsh
+		, bool _destroyShaders = false
+		);
 
 	/// Create program with vertex and fragment shaders.
 	///

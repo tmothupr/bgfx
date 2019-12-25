@@ -337,7 +337,7 @@ namespace bgfx
 	inline bool isShaderBin(uint32_t _magic)
 	{
 		return BX_MAKEFOURCC(0, 'S', 'H', 0) == (_magic & BX_MAKEFOURCC(0, 0xff, 0xff, 0) )
-			&& (isShaderType(_magic, 'C') || isShaderType(_magic, 'F') || isShaderType(_magic, 'V') )
+			&& (isShaderType(_magic, 'C') || isShaderType(_magic, 'F') || isShaderType(_magic, 'G') || isShaderType(_magic, 'V') )
 			;
 	}
 
@@ -1326,7 +1326,8 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 
 #define BGFX_UNIFORM_FRAGMENTBIT UINT8_C(0x10)
 #define BGFX_UNIFORM_SAMPLERBIT  UINT8_C(0x20)
-#define BGFX_UNIFORM_MASK (BGFX_UNIFORM_FRAGMENTBIT|BGFX_UNIFORM_SAMPLERBIT)
+#define BGFX_UNIFORM_GEOMETRYBIT UINT8_C(0x40)
+#define BGFX_UNIFORM_MASK (BGFX_UNIFORM_FRAGMENTBIT|BGFX_UNIFORM_SAMPLERBIT|BGFX_UNIFORM_GEOMETRYBIT)
 
 	class UniformBuffer
 	{
@@ -1727,6 +1728,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 	struct ProgramRef
 	{
 		ShaderHandle m_vsh;
+		ShaderHandle m_gsh;
 		ShaderHandle m_fsh;
 		int16_t      m_refCount;
 	};
@@ -1837,6 +1839,18 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		{
 			m_fbh = _handle;
 		}
+
+		//void setImage(uint8_t _stage, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format)
+		//{
+		//	Binding& bind = m_bind.m_bind[_stage];
+		//	bind.m_idx = _handle.idx;
+		//	bind.m_type = uint8_t(Binding::Image);
+		//	bind.m_format = uint8_t(_format);
+		//	bind.m_access = uint8_t(_access);
+		//	bind.m_mip = _mip;
+		//
+		//	m_has_bind = true;
+		//}
 
 		void setTransform(const void* _view, const void* _proj)
 		{
@@ -2477,6 +2491,17 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 			bind.m_access = uint8_t(_access);
 			bind.m_mip    = _mip;
 		}
+		
+		void setImage(uint8_t _stage, UniformHandle _sampler, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format)
+		{
+			setImage(_stage, _handle, _mip, _access, _format);
+
+			if (isValid(_sampler) )
+			{
+				uint32_t stage = _stage;
+				setUniform(UniformType::Int1, _sampler, &stage, 1);
+			}
+		}
 
 		void discard()
 		{
@@ -2782,7 +2807,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		virtual void destroyDynamicVertexBuffer(VertexBufferHandle _handle) = 0;
 		virtual void createShader(ShaderHandle _handle, const Memory* _mem) = 0;
 		virtual void destroyShader(ShaderHandle _handle) = 0;
-		virtual void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _fsh) = 0;
+		virtual void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh) = 0;
 		virtual void destroyProgram(ProgramHandle _handle) = 0;
 		virtual void* createTexture(TextureHandle _handle, const Memory* _mem, uint64_t _flags, uint8_t _skip) = 0;
 		virtual void updateTextureBegin(TextureHandle _handle, uint8_t _side, uint8_t _mip) = 0;
@@ -3749,7 +3774,8 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 
 			if ( (isShaderType(magic, 'C') && isShaderVerLess(magic, 3) )
 			||   (isShaderType(magic, 'F') && isShaderVerLess(magic, 5) )
-			||   (isShaderType(magic, 'V') && isShaderVerLess(magic, 5) ) )
+			||   (isShaderType(magic, 'V') && isShaderVerLess(magic, 5) )
+			||   (isShaderType(magic, 'G') && isShaderVerLess(magic, 6) ) )
 			{
 				BX_TRACE("Unsupported shader binary version.");
 				release(_mem);
@@ -3960,6 +3986,78 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 				m_shaderHashMap.removeByHandle(_handle.idx);
 			}
 		}
+		
+		BGFX_API_FUNC(ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh, bool _destroyShaders) )
+		{
+			BGFX_MUTEX_SCOPE(m_resourceApiLock);
+
+			if (!isValid(_vsh)
+			||  !isValid(_fsh) )
+			{
+				BX_TRACE("Vertex/fragment shader is invalid (vsh %d, fsh %d).", _vsh.idx, _fsh.idx);
+				return BGFX_INVALID_HANDLE;
+			}
+
+			ProgramHandle handle = { m_programHashMap.find(uint32_t(_fsh.idx<<16)|_vsh.idx) };
+			if (isValid(handle) )
+			{
+				ProgramRef& pr = m_programRef[handle.idx];
+				++pr.m_refCount;
+				shaderIncRef(pr.m_vsh);
+				shaderIncRef(pr.m_fsh);
+			}
+			else
+			{
+				const ShaderRef& vsr = m_shaderRef[_vsh.idx];
+				const ShaderRef& gsr = m_shaderRef[_gsh.idx];
+				const ShaderRef& fsr = m_shaderRef[_fsh.idx];
+				if (vsr.m_hashOut != gsr.m_hashIn)
+				{
+					BX_TRACE("Vertex shader output doesn't match geometry shader input.");
+					return BGFX_INVALID_HANDLE;
+				}
+
+				if(gsr.m_hashOut != fsr.m_hashIn)
+				{
+					BX_TRACE("Geometry shader output doesn't match fragment shader input.");
+					return BGFX_INVALID_HANDLE;
+				}
+
+				handle.idx = m_programHandle.alloc();
+
+				BX_WARN(isValid(handle), "Failed to allocate program handle.");
+				if (isValid(handle) )
+				{
+					shaderIncRef(_vsh);
+					shaderIncRef(_gsh);
+					shaderIncRef(_fsh);
+					ProgramRef& pr = m_programRef[handle.idx];
+					pr.m_vsh = _vsh;
+					pr.m_gsh = _gsh;
+					pr.m_fsh = _fsh;
+					pr.m_refCount = 1;
+
+					const uint32_t key = uint32_t(_fsh.idx<<16)|_vsh.idx;
+					bool ok = m_programHashMap.insert(key, handle.idx);
+					BX_CHECK(ok, "Program already exists (key: %x, handle: %3d)!", key, handle.idx); BX_UNUSED(ok);
+
+					CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::CreateProgram);
+					cmdbuf.write(handle);
+					cmdbuf.write(_vsh);
+					cmdbuf.write(_gsh);
+					cmdbuf.write(_fsh);
+				}
+			}
+
+			if (_destroyShaders)
+			{
+				shaderTakeOwnership(_vsh);
+				shaderTakeOwnership(_gsh);
+				shaderTakeOwnership(_fsh);
+			}
+
+			return handle;
+		}
 
 		BGFX_API_FUNC(ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _fsh, bool _destroyShaders) )
 		{
@@ -3999,6 +4097,8 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 					shaderIncRef(_fsh);
 					ProgramRef& pr = m_programRef[handle.idx];
 					pr.m_vsh = _vsh;
+					ShaderHandle gsh = BGFX_INVALID_HANDLE;
+					pr.m_gsh = gsh;
 					pr.m_fsh = _fsh;
 					pr.m_refCount = 1;
 
@@ -4009,6 +4109,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 					CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::CreateProgram);
 					cmdbuf.write(handle);
 					cmdbuf.write(_vsh);
+					cmdbuf.write(gsh);
 					cmdbuf.write(_fsh);
 				}
 			}
@@ -4050,6 +4151,8 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 					shaderIncRef(_vsh);
 					ProgramRef& pr = m_programRef[handle.idx];
 					pr.m_vsh = _vsh;
+					ShaderHandle gsh = BGFX_INVALID_HANDLE;
+					pr.m_gsh = gsh;
 					ShaderHandle fsh = BGFX_INVALID_HANDLE;
 					pr.m_fsh = fsh;
 					pr.m_refCount = 1;
@@ -4061,6 +4164,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 					CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::CreateProgram);
 					cmdbuf.write(handle);
 					cmdbuf.write(_vsh);
+					cmdbuf.write(gsh);
 					cmdbuf.write(fsh);
 				}
 			}
@@ -4739,7 +4843,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 		{
 			m_view[_id].setTransform(_view, _proj);
 		}
-
+		
 		BGFX_API_FUNC(void resetView(ViewId _id) )
 		{
 			m_view[_id].reset();

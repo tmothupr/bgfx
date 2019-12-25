@@ -1704,6 +1704,10 @@ namespace bgfx
 		{
 			return "Fragment";
 		}
+		else if (isShaderType(_magic, 'G'))
+		{
+			return "Geometry";
+		}
 		else if (isShaderType(_magic, 'V') )
 		{
 			return "Vertex";
@@ -2914,10 +2918,13 @@ namespace bgfx
 					ShaderHandle vsh;
 					_cmdbuf.read(vsh);
 
+					ShaderHandle gsh;
+					_cmdbuf.read(gsh);
+
 					ShaderHandle fsh;
 					_cmdbuf.read(fsh);
 
-					m_renderCtx->createProgram(handle, vsh, fsh);
+					m_renderCtx->createProgram(handle, vsh, gsh, fsh);
 				}
 				break;
 
@@ -3763,6 +3770,21 @@ namespace bgfx
 			);
 		BGFX_ENCODER(setImage(_stage, _handle, _mip, _access, _format) );
 	}
+	
+	void Encoder::setImage(uint8_t _stage, UniformHandle _sampler, TextureHandle _handle, uint8_t _mip, Access::Enum _access, TextureFormat::Enum _format)
+	{
+		BGFX_CHECK_HANDLE("setTexture/UniformHandle", s_ctx->m_uniformHandle, _sampler);
+		BX_CHECK(_stage < g_caps.limits.maxComputeBindings, "Invalid stage %d (max %d).", _stage, g_caps.limits.maxComputeBindings);
+		BGFX_CHECK_HANDLE_INVALID_OK("setImage/TextureHandle", s_ctx->m_textureHandle, _handle);
+		_format = TextureFormat::Count == _format
+			? TextureFormat::Enum(s_ctx->m_textureRef[_handle.idx].m_format)
+			: _format
+			;
+		BX_CHECK(_format != TextureFormat::BGRA8
+			, "Can't use TextureFormat::BGRA8 with compute, use TextureFormat::RGBA8 instead."
+			);
+		BGFX_ENCODER(setImage(_stage, _sampler, _handle, _mip, _access, _format) );
+	}
 
 	void Encoder::dispatch(ViewId _id, ProgramHandle _program, uint32_t _numX, uint32_t _numY, uint32_t _numZ)
 	{
@@ -4125,6 +4147,16 @@ namespace bgfx
 	void destroy(ShaderHandle _handle)
 	{
 		s_ctx->destroyShader(_handle);
+	}
+
+	ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh, bool _destroyShaders)
+	{
+		if (!isValid(_fsh) )
+		{
+			return createProgram(_vsh, _destroyShaders);
+		}
+
+		return s_ctx->createProgram(_vsh, _gsh, _fsh, _destroyShaders);
 	}
 
 	ProgramHandle createProgram(ShaderHandle _vsh, ShaderHandle _fsh, bool _destroyShaders)

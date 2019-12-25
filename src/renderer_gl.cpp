@@ -496,6 +496,7 @@ namespace bgfx { namespace gl
 			ARB_ES3_compatibility,
 			ARB_framebuffer_object,
 			ARB_framebuffer_sRGB,
+			ARB_geometry_shader,
 			ARB_get_program_binary,
 			ARB_half_float_pixel,
 			ARB_half_float_vertex,
@@ -559,6 +560,7 @@ namespace bgfx { namespace gl
 			EXT_framebuffer_blit,
 			EXT_framebuffer_object,
 			EXT_framebuffer_sRGB,
+			EXT_geometry_shader,
 			EXT_gpu_shader4,
 			EXT_multi_draw_indirect,
 			EXT_occlusion_query_boolean,
@@ -707,6 +709,7 @@ namespace bgfx { namespace gl
 		{ "ARB_ES3_compatibility",                    BGFX_CONFIG_RENDERER_OPENGL >= 43, true  },
 		{ "ARB_framebuffer_object",                   BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_framebuffer_sRGB",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
+		{ "ARB_geometry_shader",                      BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_get_program_binary",                   BGFX_CONFIG_RENDERER_OPENGL >= 41, true  },
 		{ "ARB_half_float_pixel",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "ARB_half_float_vertex",                    BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
@@ -770,6 +773,7 @@ namespace bgfx { namespace gl
 		{ "EXT_framebuffer_blit",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "EXT_framebuffer_object",                   BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
 		{ "EXT_framebuffer_sRGB",                     BGFX_CONFIG_RENDERER_OPENGL >= 30, true  },
+		{ "EXT_geometry_shader",                      false,                             true  },
 		{ "EXT_gpu_shader4",                          false,                             true  },
 		{ "EXT_multi_draw_indirect",                  false,                             true  }, // GLES3.1 extension.
 		{ "EXT_occlusion_query_boolean",              false,                             true  }, // GLES2 extension.
@@ -2180,6 +2184,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					|| !!(BGFX_CONFIG_RENDERER_OPENGLES >= 31)
 					|| s_extension[Extension::ARB_compute_shader].m_supported
 					;
+				
+				const bool geometrySupport = false
+					|| !!(BGFX_CONFIG_RENDERER_OPENGLES >= 31)
+					|| s_extension[Extension::ARB_geometry_shader].m_supported
+					|| s_extension[Extension::EXT_geometry_shader].m_supported
+					;
 
 				for (uint32_t ii = 0; ii < TextureFormat::Count; ++ii)
 				{
@@ -2476,6 +2486,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					| (m_imageLoadStoreSupport     ? BGFX_CAPS_FRAMEBUFFER_RW         : 0)
 					;
 
+				g_caps.supported |= geometrySupport
+					? BGFX_CAPS_GEOMETRY_SHADER
+					: 0
+					;
+
 				g_caps.supported |= m_glctx.getCaps();
 
 				if (BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES) )
@@ -2769,10 +2784,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			m_shaders[_handle.idx].destroy();
 		}
 
-		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _fsh) override
+		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _gsh, ShaderHandle _fsh) override
 		{
 			ShaderGL dummyFragmentShader;
-			m_program[_handle.idx].create(m_shaders[_vsh.idx], isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader);
+			ShaderGL dummyGeometryShader;
+			m_program[_handle.idx].create(m_shaders[_vsh.idx], isValid(_gsh) ? m_shaders[_gsh.idx] : dummyGeometryShader, isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader);
 		}
 
 		void destroyProgram(ProgramHandle _handle) override
@@ -4150,10 +4166,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		return UniformType::End;
 	}
 
-	void ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _fsh)
+	void ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _gsh, const ShaderGL& _fsh)
 	{
 		m_id = glCreateProgram();
-		BX_TRACE("Program create: GL%d: GL%d, GL%d", m_id, _vsh.m_id, _fsh.m_id);
+		BX_TRACE("Program create: GL%d: GL%d, GL%d, GL%d", m_id, _vsh.m_id, _gsh.m_id, _fsh.m_id);
 
 		const uint64_t id = (uint64_t(_vsh.m_hash)<<32) | _fsh.m_hash;
 		const bool cached = s_renderGL->programFetchFromCache(m_id, id);
@@ -4164,6 +4180,11 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			if (0 != _vsh.m_id)
 			{
 				GL_CHECK(glAttachShader(m_id, _vsh.m_id) );
+				
+				if (0 != _gsh.m_id)
+				{
+					GL_CHECK(glAttachShader(m_id, _gsh.m_id) );
+				}
 
 				if (0 != _fsh.m_id)
 				{
@@ -4636,6 +4657,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		m_currentSamplerHash = UINT32_MAX;
 
 		const bool writeOnly    = 0 != (m_flags&BGFX_TEXTURE_RT_WRITE_ONLY);
+		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
 		const bool computeWrite = 0 != (m_flags&BGFX_TEXTURE_COMPUTE_WRITE );
 		const bool srgb         = 0 != (m_flags&BGFX_TEXTURE_SRGB);
 		const bool textureArray = false
@@ -4727,8 +4749,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				GL_CHECK(glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask) );
 			}
 		}
-
-		const bool renderTarget = 0 != (m_flags&BGFX_TEXTURE_RT_MASK);
 
 		if (renderTarget)
 		{
@@ -5318,6 +5338,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 		{
 			m_type = GL_FRAGMENT_SHADER;
 		}
+#if !BX_PLATFORM_EMSCRIPTEN
+		else if (isShaderType(magic, 'G') )
+		{
+			m_type = GL_GEOMETRY_SHADER;
+		}
+#endif
 		else if (isShaderType(magic, 'V') )
 		{
 			m_type = GL_VERTEX_SHADER;
@@ -5377,7 +5403,12 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		if (0 != m_id)
 		{
-			if (GL_COMPUTE_SHADER != m_type)
+//<<<<<<< HEAD
+//			if (GL_COMPUTE_SHADER != m_type)
+//=======
+			if ((GL_FRAGMENT_SHADER == m_type || GL_VERTEX_SHADER == m_type)
+			&&  0 != bx::strCmp(code, "#version 430", 12) )
+//>>>>>>> ff6611413... GS + fragment UAV WIP
 			{
 				int32_t tempLen = code.getLength() + (4<<10);
 				char* temp = (char*)alloca(tempLen);
@@ -5875,7 +5906,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code.set(temp);
 			}
-			else // GL_COMPUTE_SHADER
+			else if (GL_COMPUTE_SHADER == m_type) // GL_COMPUTE_SHADER
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
 				int32_t tempLen = codeLen + (4<<10);
@@ -5901,6 +5932,29 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code = temp;
 			}
+#if !BX_PLATFORM_EMSCRIPTEN
+			else if (GL_GEOMETRY_SHADER == m_type)
+			{
+				int32_t codeLen = (int32_t)bx::strLen(code);
+				int32_t tempLen = codeLen + (4<<10);
+				char* temp = (char*)alloca(tempLen);
+				bx::StaticMemoryBlockWriter writer(temp, tempLen);
+
+				bx::write(&writer, "#version 430\n");
+				bx::write(&writer, "#define texture2DLod    textureLod\n");
+				bx::write(&writer, "#define texture3DLod    textureLod\n");
+				bx::write(&writer, "#define textureCubeLod  textureLod\n");
+				bx::write(&writer, "#define texture2DGrad   textureGrad\n");
+				bx::write(&writer, "#define texture3DGrad   textureGrad\n");
+				bx::write(&writer, "#define textureCubeGrad textureGrad\n");
+
+				int32_t verLen = bx::strLen("#version 430\n");
+				bx::write(&writer, code.getPtr() + verLen, codeLen - verLen);
+				bx::write(&writer, '\0');
+
+				code = temp;
+			}
+#endif
 
 			GL_CHECK(glShaderSource(m_id, 1, (const GLchar**)&code, NULL) );
 			GL_CHECK(glCompileShader(m_id) );
@@ -5979,6 +6033,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 	{
 		if (0 != m_fbo[0])
 		{
+			m_num = 0;
+			m_numCompute = 0;
+
 			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo[0]) );
 
 			bool needResolve = false;
@@ -5993,6 +6050,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 				if (isValid(at.handle) )
 				{
 					const TextureGL& texture = s_renderGL->m_textures[at.handle.idx];
+
+					const bool renderTarget = 0 != (texture.m_flags&BGFX_TEXTURE_RT_MASK);
+					const bool computeWrite = 0 != (texture.m_flags&BGFX_TEXTURE_COMPUTE_WRITE);
 
 					if (0 == colorIdx)
 					{
@@ -6022,6 +6082,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					{
 						buffers[colorIdx] = attachment;
 						++colorIdx;
+					}
+					else if(computeWrite)
+					{
+						m_numCompute++;
 					}
 
 					if (0 != texture.m_rbo)
@@ -6661,13 +6725,47 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 										const TextureGL& texture = m_textures[bind.m_idx];
 										GL_CHECK(glBindImageTexture(ii
 											, texture.m_id
+//<<<<<<< HEAD
+//											, bind.m_mip
+//											, texture.isCubeMap() || texture.m_target == GL_TEXTURE_2D_ARRAY ? GL_TRUE : GL_FALSE
+//											, 0
+//											, s_access[bind.m_access]
+//											, s_imageFormat[bind.m_format])
+//											);
+//										barrier |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+////=======
+////										if (Access::Read == bind.m_un.m_compute.m_access)
+////										{
+////											TextureGL& texture = m_textures[bind.m_idx];
+////											texture.commit(ii, uint32_t(texture.m_flags), _render->m_colorPalette);
+////										}
+////										else
+////										{
+////											const TextureGL& texture = m_textures[bind.m_idx];
+////											GL_CHECK(glBindImageTexture(ii
+////												, texture.m_id
+////												, bind.m_mip
+////												, texture.isLayered() ? GL_TRUE : GL_FALSE
+////												, 0
+////												, s_access[bind.m_access]
+////												, s_imageFormat[bind.m_format])
+////												);
+////											barrier |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+////										}
+////>>>>>>> 0c9568f8a... Framebuffer Image binding support
+//=======
 											, bind.m_mip
-											, texture.isCubeMap() || texture.m_target == GL_TEXTURE_2D_ARRAY ? GL_TRUE : GL_FALSE
+											, texture.isLayered() ? GL_TRUE : GL_FALSE
 											, 0
 											, s_access[bind.m_access]
 											, s_imageFormat[bind.m_format])
 											);
-										barrier |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+
+										if (Access::Read != bind.m_access)
+										{
+											barrier |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+										}
+//>>>>>>> 0dce717d4... Fix read-only images
 									}
 									break;
 
@@ -6737,6 +6835,21 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							}
 
 							GL_CHECK(glMemoryBarrier(barrier) );
+
+							for (uint32_t ii = 0; ii < maxComputeBindings; ++ii)
+							{
+								const Binding& bind = renderBind.m_bind[ii];
+								if (kInvalidHandle != bind.m_idx
+								&&  Binding::Image == bind.m_type)
+								{
+									TextureGL& texture = m_textures[bind.m_idx];
+									if(Access::ReadWrite == bind.m_un.m_compute.m_access
+									|| Access::Write     == bind.m_un.m_compute.m_access)
+									{
+										texture.resolve(BGFX_RESOLVE_AUTO_GEN_MIPS);
+									}
+								}
+							}
 						}
 					}
 

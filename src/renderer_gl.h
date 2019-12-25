@@ -1292,6 +1292,17 @@ namespace bgfx { namespace gl
 		void commit(uint32_t _stage, uint32_t _flags, const float _palette[][4]);
 		void resolve(uint8_t _resolve) const;
 
+		bool isLayered() const
+		{
+			return 0
+//				|| GL_TEXTURE_1D_ARRAY == m_target
+				|| GL_TEXTURE_2D_ARRAY == m_target
+				|| GL_TEXTURE_3D == m_target
+				|| GL_TEXTURE_CUBE_MAP == m_target
+				|| GL_TEXTURE_CUBE_MAP_ARRAY == m_target
+				;
+		}
+
 		bool isCubeMap() const
 		{
 			return 0
@@ -1339,6 +1350,7 @@ namespace bgfx { namespace gl
 			: m_swapChain(NULL)
 			, m_denseIdx(UINT16_MAX)
 			, m_num(0)
+			, m_numCompute(0)
 			, m_needPresent(false)
 		{
 			bx::memSet(m_fbo, 0, sizeof(m_fbo) );
@@ -1359,6 +1371,7 @@ namespace bgfx { namespace gl
 		uint16_t m_denseIdx;
 		uint8_t  m_num;
 		uint8_t  m_numTh;
+		uint8_t  m_numCompute;
 		bool     m_needPresent;
 		Attachment m_attachment[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS];
 	};
@@ -1372,7 +1385,7 @@ namespace bgfx { namespace gl
 		{
 		}
 
-		void create(const ShaderGL& _vsh, const ShaderGL& _fsh);
+		void create(const ShaderGL& _vsh, const ShaderGL& _gsh, const ShaderGL& _fsh);
 		void destroy();
 		void init();
 		void bindInstanceData(uint32_t _stride, uint32_t _baseVertex = 0) const;
