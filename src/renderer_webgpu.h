@@ -13,7 +13,7 @@
 #include <dawn/dawncpp.h>
 #include <dawn/dawn_wsi.h>
 
-namespace webgpu = dawn;
+//namespace webgpu = dawn;
 
 #define BGFX_WEBGPU_PROFILER_BEGIN(_view, _abgr)         \
 	BX_MACRO_BLOCK_BEGIN                              \
