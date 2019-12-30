@@ -20,7 +20,7 @@
 			|| BX_PLATFORM_EMSCRIPTEN                     \
 			) )
 
-#define BGFX_USE_WEBGL (BGFX_CONFIG_RENDERER_OPENGLES && BX_PLATFORM_EMSCRIPTEN)
+//#define BGFX_USE_WEBGL (BGFX_CONFIG_RENDERER_OPENGLES && BX_PLATFORM_EMSCRIPTEN)
 
 #define BGFX_USE_WGL (BGFX_CONFIG_RENDERER_OPENGL && BX_PLATFORM_WINDOWS)
 #define BGFX_USE_GLX (BGFX_CONFIG_RENDERER_OPENGL && (0 \
@@ -132,7 +132,7 @@ typedef uint64_t GLuint64;
 
 #	if BGFX_USE_HTML5
 #		include "glcontext_html5.h"
-#	endif // BGFX_USE_EGL
+#	endif // BGFX_USE_HTML5
 
 #	if BGFX_USE_WEBGL
 #		include "glcontext_webgl.h"
