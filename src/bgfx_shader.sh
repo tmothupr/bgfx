@@ -50,15 +50,12 @@
 #	define bvec3 bool3
 #	define bvec4 bool4
 
-<<<<<<< HEAD
-=======
 #	if BGFX_SHADER_LANGUAGE_SPIRV
 #		define LAYOUT(_set, _binding) [[vk::binding(_binding, _set)]]
 //#		define LAYOUT(_set, _binding) layout(set = _set, binding = _binding)
 #	else
 #		define LAYOUT(_set, _binding)
 #	endif // BGFX_SHADER_LANGUAGE_HLSL
->>>>>>> a8d05cf8f... WebGPU first draft (does not compile)
 
 #	if BGFX_SHADER_LANGUAGE_HLSL > 4
 #		define REGISTER(_type, _reg) register(_type[_reg])
@@ -395,15 +392,9 @@ vec3 bgfxTextureSize(BgfxSampler3D _sampler, int _lod)
 #		define shadow2DProj(_sampler, _coord) bgfxShadow2DProj(_sampler, _coord)
 
 #		define SAMPLER2DARRAYSHADOW(_name, _reg) \
-<<<<<<< HEAD
-			uniform SamplerComparisonState _name ## SamplerComparison : REGISTER(s, _reg); \
-			uniform Texture2DArray _name ## Texture : REGISTER(t, _reg); \
-			static BgfxSampler2DArrayShadow _name = { _name ## SamplerComparison, _name ## Texture }
-=======
 			LAYOUT(1, _reg) uniform Texture2DArray _name ## Texture : REGISTER(t, _reg); \
 			LAYOUT(2, _reg) uniform SamplerComparisonState _name ## SamplerComparison : REGISTER(s, _reg); \
-			BgfxSampler2DArrayShadow _name = { _name ## SamplerComparison, _name ## Texture }
->>>>>>> a8d05cf8f... WebGPU first draft (does not compile)
+			static BgfxSampler2DArrayShadow _name = { _name ## SamplerComparison, _name ## Texture }
 #		define sampler2DArrayShadow BgfxSampler2DArrayShadow
 #		define shadow2DArray(_sampler, _coord) bgfxShadow2DArray(_sampler, _coord)
 
