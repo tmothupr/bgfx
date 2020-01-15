@@ -10,10 +10,8 @@
 
 #if BGFX_CONFIG_RENDERER_WEBGPU
 
-#include <dawn/dawncpp.h>
-#include <dawn/dawn_wsi.h>
-
-//namespace webgpu = dawn;
+#include <webgpu/webgpu_cpp.h>
+//#include <dawn/dawn_wsi.h>
 
 #define BGFX_WEBGPU_PROFILER_BEGIN(_view, _abgr)         \
 	BX_MACRO_BLOCK_BEGIN                              \
@@ -33,7 +31,7 @@
 #define WEBGPU_MAX_FRAMES_IN_FLIGHT 3
 
 namespace bgfx {
-	namespace wgpu
+	namespace webgpu
 	{
 
 		template <typename Ty>
@@ -113,7 +111,7 @@ namespace bgfx {
 			uint16_t m_flags;
 			bool     m_vertex;
 
-			webgpu::Buffer   m_ptr;
+			wgpu::Buffer   m_ptr;
 			uint8_t* m_dynamic;
 		};
 
@@ -154,7 +152,7 @@ namespace bgfx {
 				m_module.Release();
 			}
 
-			webgpu::ShaderModule m_module;
+			wgpu::ShaderModule m_module;
 
 			UniformBuffer* m_constantBuffer[UniformSet::Count];
 
@@ -170,8 +168,8 @@ namespace bgfx {
 			uint16_t m_numThreads[3];
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			webgpu::BindGroupLayoutBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			webgpu::BindGroupLayoutBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupLayoutBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupLayoutBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			uint8_t m_numSamplers = 0;
 		};
 
@@ -198,9 +196,9 @@ namespace bgfx {
 
 			PipelineStateWgpu* m_computePS;
 
-			webgpu::BindGroupLayout m_uniforms;
-			webgpu::BindGroupLayout m_textures;
-			webgpu::BindGroupLayout m_samplers;
+			wgpu::BindGroupLayout m_uniforms;
+			wgpu::BindGroupLayout m_textures;
+			wgpu::BindGroupLayout m_samplers;
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			uint32_t	m_numSamplers;
@@ -221,10 +219,10 @@ namespace bgfx {
 
 			uint16_t 	m_numThreads[3];
 
-			webgpu::BindGroupLayout m_bind;
+			wgpu::BindGroupLayout m_bind;
 
-			webgpu::RenderPipeline m_rps;
-			webgpu::ComputePipeline m_cps;
+			wgpu::RenderPipeline m_rps;
+			wgpu::ComputePipeline m_cps;
 		};
 
 		void release(PipelineStateWgpu* _ptr)
@@ -271,13 +269,13 @@ namespace bgfx {
 				, const Memory* _mem
 			);
 
-			webgpu::TextureView m_view;
-			webgpu::TextureView getTextureMipLevel(int _mip);
+			wgpu::TextureView m_view;
+			wgpu::TextureView getTextureMipLevel(int _mip);
 
-			webgpu::Texture m_ptr;
-			webgpu::Texture m_ptrMsaa;
-			webgpu::TextureView m_ptrMips[14];
-			webgpu::Sampler m_sampler;
+			wgpu::Texture m_ptr;
+			wgpu::Texture m_ptrMsaa;
+			wgpu::TextureView m_ptrMips[14];
+			wgpu::Sampler m_sampler;
 			uint64_t m_flags;
 			uint32_t m_width;
 			uint32_t m_height;
@@ -292,7 +290,7 @@ namespace bgfx {
 
 		struct SamplerStateWgpu
 		{
-			webgpu::Sampler m_sampler;
+			wgpu::Sampler m_sampler;
 		};
 
 		void release(SamplerStateWgpu* _ptr)
@@ -316,21 +314,23 @@ namespace bgfx {
 
 			~SwapChainWgpu();
 
-			void init(webgpu::Device _device, void* _nwh);
+			void init(wgpu::Device _device, void* _nwh);
 			void resize(FrameBufferWgpu& _frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags);
 
-			webgpu::Texture current();
+			wgpu::Texture current();
 
+#if !BX_PLATFORM_EMSCRIPTEN
 			DawnSwapChainImplementation m_impl;
+#endif
 
-			webgpu::SwapChain m_swapChain;
+			wgpu::SwapChain m_swapChain;
 
-			webgpu::Texture m_drawable;
-			webgpu::Texture m_backBufferColorMsaa;
-			webgpu::Texture m_backBufferDepth;
+			wgpu::Texture m_drawable;
+			wgpu::Texture m_backBufferColorMsaa;
+			wgpu::Texture m_backBufferDepth;
 
-			webgpu::TextureFormat m_colorFormat;
-			webgpu::TextureFormat m_depthFormat;
+			wgpu::TextureFormat m_colorFormat;
+			wgpu::TextureFormat m_depthFormat;
 
 			uint32_t m_maxAnisotropy;
 			uint8_t m_sampleCount;
@@ -383,23 +383,23 @@ namespace bgfx {
 			{
 			}
 
-			void init(webgpu::Device _device);
+			void init(wgpu::Device _device);
 			void shutdown();
 			void begin();
 			void kick(bool _endFrame, bool _waitForFinish = false);
 			void finish(bool _finishAll = false);
-			void release(webgpu::Buffer _buffer);
+			void release(wgpu::Buffer _buffer);
 			void consume();
 
 			bx::Semaphore m_framesSemaphore;
 
-			webgpu::Queue		   m_queue;
-			webgpu::CommandEncoder m_encoder;
+			wgpu::Queue		   m_queue;
+			wgpu::CommandEncoder m_encoder;
 
 			int m_releaseWriteIndex;
 			int m_releaseReadIndex;
 
-			typedef stl::vector<webgpu::Buffer> ResourceArray;
+			typedef stl::vector<wgpu::Buffer> ResourceArray;
 			ResourceArray m_release[WEBGPU_MAX_FRAMES_IN_FLIGHT];
 		};
 
@@ -449,8 +449,8 @@ namespace bgfx {
 
 			void postReset();
 			void preReset();
-			void begin(webgpu::RenderPassEncoder& _rce, Frame* _render, OcclusionQueryHandle _handle);
-			void end(webgpu::RenderPassEncoder& _rce);
+			void begin(wgpu::RenderPassEncoder& _rce, Frame* _render, OcclusionQueryHandle _handle);
+			void end(wgpu::RenderPassEncoder& _rce);
 			void resolve(Frame* _render, bool _wait = false);
 			void invalidate(OcclusionQueryHandle _handle);
 
@@ -459,7 +459,7 @@ namespace bgfx {
 				OcclusionQueryHandle m_handle;
 			};
 
-			webgpu::Buffer m_buffer;
+			wgpu::Buffer m_buffer;
 			Query m_query[BGFX_CONFIG_MAX_OCCLUSION_QUERIES];
 			bx::RingBufferControl m_control;
 		};
