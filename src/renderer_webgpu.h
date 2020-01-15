@@ -10,8 +10,12 @@
 
 #if BGFX_CONFIG_RENDERER_WEBGPU
 
+#if !BX_PLATFORM_EMSCRIPTEN
+#include <dawn/webgpu_cpp.h>
+#include <dawn/dawn_wsi.h>
+#else
 #include <webgpu/webgpu_cpp.h>
-//#include <dawn/dawn_wsi.h>
+#endif
 
 #define BGFX_WEBGPU_PROFILER_BEGIN(_view, _abgr)         \
 	BX_MACRO_BLOCK_BEGIN                              \
@@ -126,7 +130,7 @@ namespace bgfx {
 
 			void create(uint32_t _size, void* _data, VertexLayoutHandle _declHandle, uint16_t _flags);
 
-			VertexLayoutHandle m_decl;
+			VertexLayoutHandle m_layoutHandle;
 		};
 
 		struct SamplerInfo
@@ -317,7 +321,7 @@ namespace bgfx {
 			void init(wgpu::Device _device, void* _nwh);
 			void resize(FrameBufferWgpu& _frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags);
 
-			wgpu::Texture current();
+			wgpu::TextureView current();
 
 #if !BX_PLATFORM_EMSCRIPTEN
 			DawnSwapChainImplementation m_impl;
@@ -414,7 +418,7 @@ namespace bgfx {
 			void shutdown();
 			uint32_t begin(uint32_t _resultIdx);
 			void end(uint32_t _idx);
-			void addHandlers(CommandBuffer& _commandBuffer);
+			void addHandlers(wgpu::CommandBuffer& _commandBuffer);
 			bool get();
 
 			struct Result

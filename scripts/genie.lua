@@ -137,6 +137,10 @@ if not os.isdir(BX_DIR) or not os.isdir(BIMG_DIR) then
 	os.exit()
 end
 
+if _OPTIONS["webgpu"] then
+	_OPTIONS["with-windows"] = "10.0"
+end
+
 dofile (path.join(BX_DIR, "scripts/toolchain.lua"))
 if not toolchain(BGFX_BUILD_DIR, BGFX_THIRD_PARTY_DIR) then
 	return -- no action specified

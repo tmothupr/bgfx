@@ -17,7 +17,8 @@
 #if !BX_PLATFORM_EMSCRIPTEN
 #include <dawn_native/D3D12Backend.h>
 #include <dawn_native/DawnNative.h>
-//#include <dawn/dawn_wsi.h>
+#include <dawn/dawn_wsi.h>
+#include <dawn/dawn_proc.h>
 #endif
 
 #define UNIFORM_BUFFER_SIZE (8*1024*1024)
@@ -61,18 +62,24 @@ namespace bgfx { namespace webgpu
 		wgpu::RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
 	};
 
+	struct VertexBufferLayoutDescriptor
+	{
+		VertexBufferLayoutDescriptor();
+
+		wgpu::VertexBufferLayoutDescriptor descriptor();
+
+		wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
+		uint32_t numAttributes = 0;
+	};
+
 	struct VertexStateDescriptor
 	{
 		VertexStateDescriptor();
 
 		wgpu::VertexStateDescriptor descriptor();
 
-		// TODO (webgpu)
-		//wgpu::VertexInputDescriptor inputs[kMaxVertexInputs];
-		//wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
-
-		uint32_t numInputs = 0;
-		uint32_t numAttributes = 0;
+		wgpu::VertexBufferLayoutDescriptor vertexBuffers[kMaxVertexInputs];
+		uint32_t numVertexBuffers = 0;
 	};
 
 	struct RenderPipelineDescriptor 
@@ -83,6 +90,8 @@ namespace bgfx { namespace webgpu
 
 		wgpu::ProgrammableStageDescriptor vertexStage;
 		wgpu::ProgrammableStageDescriptor fragmentStage;
+
+		wgpu::VertexStateDescriptor inputState;
 
 		wgpu::RasterizationStateDescriptor rasterizationState;
 		wgpu::DepthStencilStateDescriptor depthStencilState;
@@ -109,33 +118,38 @@ namespace bgfx { namespace webgpu
 		return desc;
 	}
 
+	VertexBufferLayoutDescriptor::VertexBufferLayoutDescriptor()
+	{
+		for(uint32_t i = 0; i < kMaxVertexAttributes; ++i)
+		{
+			attributes[i] = defaultDescriptor<wgpu::VertexAttributeDescriptor>();
+		}
+	}
+
+	wgpu::VertexBufferLayoutDescriptor VertexBufferLayoutDescriptor::descriptor()
+	{
+		wgpu::VertexBufferLayoutDescriptor desc = defaultDescriptor<wgpu::VertexBufferLayoutDescriptor>();
+
+		desc.attributes = &attributes[0];
+		desc.attributeCount = numAttributes;
+
+		return desc;
+	}
+
 	VertexStateDescriptor::VertexStateDescriptor()
 	{
-		// TODO (webgpu)
-		//for(uint32_t i = 0; i < kMaxVertexInputs; ++i)
-		//{
-		//	inputs[i] = defaultDescriptor<wgpu::VertexInputDescriptor>();
-		//}
-//
-		//for(uint32_t i = 0; i < kMaxVertexAttributes; ++i)
-		//{
-		//	attributes[i] = defaultDescriptor<wgpu::VertexAttributeDescriptor>();
-		//}
+		for(uint32_t i = 0; i < kMaxVertexInputs; ++i)
+		{
+			vertexBuffers[i] = defaultDescriptor<wgpu::VertexBufferLayoutDescriptor>();
+		}
 	}
 
 	wgpu::VertexStateDescriptor VertexStateDescriptor::descriptor()
 	{
 		wgpu::VertexStateDescriptor desc = defaultDescriptor<wgpu::VertexStateDescriptor>();
 
-		//desc.inputs = &inputs[0];
-		//desc.numInputs = numInputs;
-
-		//desc.attributes = &attributes[0];
-		//desc.numAttributes = numAttributes;
-
-		// TODO (webgpu)
-		//desc.vertexBuffers = &attributes[0];
-		//desc.vertexBufferCount = numAttributes;
+		desc.vertexBuffers = vertexBuffers;
+		desc.vertexBufferCount = numVertexBuffers;
 
 		return desc;
 	}
@@ -165,7 +179,7 @@ namespace bgfx { namespace webgpu
 
 		desc.vertexStage = vertexStage;
 		desc.fragmentStage = &fragmentStage;
-		//desc.inputState = &inputState;
+		//desc.vertexState = &inputState;
 		desc.rasterizationState = &rasterizationState;
 		desc.depthStencilState = nullptr;
 		desc.colorStates = colorStates;
@@ -181,6 +195,8 @@ namespace bgfx { namespace webgpu
 		, uint32_t numSamplers
 	)
 	{
+		BX_UNUSED(numSamplers);
+
 		wgpu::BindGroupDescriptor uniformsDesc;
 		uniformsDesc.layout = program.m_uniforms;
 		uniformsDesc.bindingCount = 2;
@@ -566,7 +582,7 @@ namespace bgfx { namespace webgpu
 
 			//BX_ASSERT(adapterIt != adapters.end());
 
-			DawnDevice backendDevice = backendAdapter.CreateDevice();
+			WGPUDevice backendDevice = backendAdapter.CreateDevice();
 			DawnProcTable backendProcs = dawn_native::GetProcs();
 
 			switch(backendType) {
@@ -605,10 +621,12 @@ namespace bgfx { namespace webgpu
 			}
 
 			// Choose whether to use the backend procs and devices directly, or set up the wire.
-			DawnDevice cDevice = backendDevice;
+			WGPUDevice cDevice = backendDevice;
 			DawnProcTable procs = backendProcs;
 
-			auto PrintDeviceError = [](const char* message, wgpu::CallbackUserdata) {
+			auto PrintDeviceError = [](WGPUErrorType errorType, const char* message, void*) {
+				BX_UNUSED(errorType);
+
 				if(s_ignoreError)
 				{
 					BX_TRACE("Device error: %s", message);
@@ -620,8 +638,8 @@ namespace bgfx { namespace webgpu
 				s_ignoreError = false;
 			};
 
-			dawnSetProcs(&procs);
-			procs.deviceSetErrorCallback(cDevice, PrintDeviceError, 0);
+			dawnProcSetProcs(&procs);
+			procs.deviceSetUncapturedErrorCallback(cDevice, PrintDeviceError, 0);
 
 			m_device = wgpu::Device::Acquire(cDevice);
 #endif
@@ -837,14 +855,14 @@ namespace bgfx { namespace webgpu
 			m_indexBuffers[_handle.idx].destroy();
 		}
 
-		void createVertexDecl(VertexLayoutHandle _handle, const VertexLayout& _decl) // TODO (webgpu) override
+		void createVertexLayout(VertexLayoutHandle _handle, const VertexLayout& _decl) override
 		{
 			VertexLayout& decl = m_vertexDecls[_handle.idx];
 			bx::memCopy(&decl, &_decl, sizeof(VertexLayout) );
 			dump(decl);
 		}
 
-		void destroyVertexDecl(VertexLayoutHandle /*_handle*/) // TODO (webgpu) override
+		void destroyVertexLayout(VertexLayoutHandle /*_handle*/) override
 		{
 		}
 
@@ -931,6 +949,8 @@ namespace bgfx { namespace webgpu
 
 		void readTexture(TextureHandle _handle, void* _data, uint8_t _mip) override
 		{
+			BX_UNUSED(_data);
+
 			m_cmd.kick(false, true);
 			m_cmd.begin();
 
@@ -941,6 +961,10 @@ namespace bgfx { namespace webgpu
 			uint32_t srcWidth  = bx::uint32_max(1, texture.m_width  >> _mip);
 			uint32_t srcHeight = bx::uint32_max(1, texture.m_height >> _mip);
 			const uint8_t bpp  = bimg::getBitsPerPixel(bimg::TextureFormat::Enum(texture.m_textureFormat) );
+
+			BX_UNUSED(srcWidth);
+			BX_UNUSED(srcHeight);
+			BX_UNUSED(bpp);
 
 			//MTLRegion region =
 			//{
@@ -1314,6 +1338,7 @@ namespace bgfx { namespace webgpu
 			|| (m_resolution.reset&maskFlags) != (_resolution.reset&maskFlags) )
 			{
 				wgpu::TextureFormat prevMetalLayerPixelFormat; // = m_mainFrameBuffer.m_swapChain->m_metalLayer.pixelFormat;
+				BX_UNUSED(prevMetalLayerPixelFormat);
 
 				m_resolution = _resolution;
 				m_resolution.reset &= ~BGFX_RESET_INTERNAL_FORCE;
@@ -1617,6 +1642,9 @@ namespace bgfx { namespace webgpu
 
 		wgpu::TextureViewDescriptor attachmentView(const Attachment& _at, uint8_t _textureType, bool _resolve)
 		{
+			BX_UNUSED(_textureType);
+			BX_UNUSED(_resolve);
+
 			wgpu::TextureViewDescriptor desc;
 			desc.baseMipLevel = _at.mip;
 			desc.baseArrayLayer = _at.layer;
@@ -1655,11 +1683,11 @@ namespace bgfx { namespace webgpu
 				if (swapChain->m_backBufferColorMsaa)
 				{
 					_renderPassDescriptor.colorAttachments[0].attachment    = swapChain->m_backBufferColorMsaa.CreateView();
-					_renderPassDescriptor.colorAttachments[0].resolveTarget = swapChain->current().CreateView();
+					_renderPassDescriptor.colorAttachments[0].resolveTarget = swapChain->current();
 				}
 				else
 				{
-					_renderPassDescriptor.colorAttachments[0].attachment = swapChain->current().CreateView();
+					_renderPassDescriptor.colorAttachments[0].attachment = swapChain->current();
 				}
 
 				_renderPassDescriptor.depthStencilAttachment.attachment = swapChain->m_backBufferDepth.CreateView();
@@ -1828,7 +1856,7 @@ namespace bgfx { namespace webgpu
 				}
 				else
 				{
-					const FrameBufferWgpu& frameBuffer = m_frameBuffers[_fbh.idx];
+					//const FrameBufferWgpu& frameBuffer = m_frameBuffers[_fbh.idx];
 					frameBufferAttachment = frameBuffer.m_num;
 
 					for (uint32_t ii = 0; ii < frameBuffer.m_num; ++ii)
@@ -1944,20 +1972,22 @@ namespace bgfx { namespace webgpu
 
 				auto fillVertexDecl = [](const ShaderWgpu* _vsh, VertexStateDescriptor& _vertexInputState, const VertexLayout& _decl)
 				{
-#if 0 // TODO (webgpu)
-					wgpu::VertexInputDescriptor*    inputBinding = _vertexInputState.inputs;
-					wgpu::VertexAttributeDescriptor* inputAttrib = _vertexInputState.attributes;
+					wgpu::VertexBufferLayoutDescriptor* inputBinding = _vertexInputState.vertexBuffers;
+
+					// TODO (webgpu)
 
 					//inputBinding->binding = 0;
-					inputBinding->inputSlot = 0;
-					inputBinding->stride = _decl.m_stride;
+					//inputBinding->inputSlot = 0;
+					inputBinding->arrayStride = _decl.m_stride;
 					inputBinding->stepMode = wgpu::InputStepMode::Vertex;
-					_vertexInputState.numInputs = 1;
+					_vertexInputState.numVertexBuffers = 1;
 
 					uint32_t numAttribs = 0;
+					wgpu::VertexAttributeDescriptor* inputAttrib; // = inputBinding->attributes;
+
 					for(uint32_t attr = 0; attr < Attrib::Count; ++attr)
 					{
-						Attrib::Enum attrib = Attrib::Enum(attr);
+						//Attrib::Enum attrib = Attrib::Enum(attr);
 
 						if(UINT16_MAX != _decl.m_attributes[attr])
 						{
@@ -1965,7 +1995,7 @@ namespace bgfx { namespace webgpu
 								continue;
 
 							inputAttrib->shaderLocation = _vsh->m_attrRemap[attr];
-							inputAttrib->inputSlot = 0;
+							//inputAttrib->inputSlot = 0;
 							//inputAttrib->location = _vsh->m_attrRemap[attr];
 							//inputAttrib->binding = 0;
 
@@ -1990,16 +2020,14 @@ namespace bgfx { namespace webgpu
 						}
 					}
 
-					_vertexInputState.numAttributes = numAttribs;
+					inputBinding->attributeCount = numAttribs;
 
 					return numAttribs;
-#endif
-					return 0;
 				};
 
 				VertexStateDescriptor input;
 
-				bool attrSet[Attrib::Count] = {};
+				//bool attrSet[Attrib::Count] = {};
 
 				uint8_t stream = 0;
 				//for (; stream < _numStreams; ++stream)
@@ -2032,7 +2060,7 @@ namespace bgfx { namespace webgpu
 				wgpu::VertexStateDescriptor inputDesc = input.descriptor();
 				inputDesc.indexFormat = _index32 ? wgpu::IndexFormat::Uint32 : wgpu::IndexFormat::Uint16;
 
-				rpd.inputState = &inputDesc;
+				rpd.vertexState = &inputDesc;
 
 				pso->m_rps = m_device.CreateRenderPipeline(&rpd);
 
@@ -2050,7 +2078,7 @@ namespace bgfx { namespace webgpu
 			, VertexLayoutHandle _declHandle
 			, bool _index32
 			, ProgramHandle _program
-			, uint16_t _numInstanceData
+			, uint8_t _numInstanceData
 			)
 		{
 			const VertexLayout* decl = &m_vertexDecls[_declHandle.idx];
@@ -2111,7 +2139,7 @@ namespace bgfx { namespace webgpu
 				//m_samplerDescriptor.maxAnisotropy =  (0 != (_flags & (BGFX_SAMPLER_MIN_ANISOTROPIC|BGFX_SAMPLER_MAG_ANISOTROPIC) ) ) ? m_mainFrameBuffer.m_swapChain->m_maxAnisotropy : 1;
 
 				const uint32_t cmpFunc = (_flags&BGFX_SAMPLER_COMPARE_MASK)>>BGFX_SAMPLER_COMPARE_SHIFT;
-				desc.compareFunction = 0 == cmpFunc
+				desc.compare = 0 == cmpFunc
 					? wgpu::CompareFunction::Never
 					: s_cmpFunc[cmpFunc]
 					;
@@ -2140,7 +2168,7 @@ namespace bgfx { namespace webgpu
 			return m_cmd.m_encoder;
 		}
 
-		wgpu::RenderPassEncoder& renderPass(bgfx::Frame* _render, bgfx::FrameBufferHandle fbh, bool clear, Clear clr)
+		wgpu::RenderPassEncoder renderPass(bgfx::Frame* _render, bgfx::FrameBufferHandle fbh, bool clear, Clear clr)
 		{
 			RenderPassDescriptor renderPassDescriptor;
 			//renderPassDescriptor.visibilityResultBuffer = m_occlusionQuery.m_buffer;
@@ -2373,8 +2401,8 @@ namespace bgfx { namespace webgpu
 		const bool fragment = isShaderType(magic, 'F');
 		uint8_t fragmentBit = fragment ? BGFX_UNIFORM_FRAGMENTBIT : 0;
 
-		uint8_t lastSampler;
-		uint8_t numSamplers;
+		//uint8_t lastSampler;
+		//uint8_t numSamplers;
 
 		if (0 < count)
 		{
@@ -2494,7 +2522,7 @@ namespace bgfx { namespace webgpu
 		bx::memSet(m_attrMask, 0, sizeof(m_attrMask));
 		bx::memSet(m_attrRemap, UINT8_MAX, sizeof(m_attrRemap));
 
-		for(uint32_t ii = 0; ii < numAttrs; ++ii)
+		for(uint8_t ii = 0; ii < numAttrs; ++ii)
 		{
 			uint16_t id;
 			bx::read(&reader, id);
@@ -2687,11 +2715,11 @@ namespace bgfx { namespace webgpu
 		}
 	}
 
-	void VertexBufferWgpu::create(uint32_t _size, void* _data, VertexLayoutHandle _declHandle, uint16_t _flags)
+	void VertexBufferWgpu::create(uint32_t _size, void* _data, VertexLayoutHandle _layoutHandle, uint16_t _flags)
 	{
-		m_decl = _declHandle;
-		uint16_t stride = isValid(_declHandle)
-			? s_renderWgpu->m_vertexDecls[_declHandle.idx].m_stride
+		m_layoutHandle = _layoutHandle;
+		uint16_t stride = isValid(_layoutHandle)
+			? s_renderWgpu->m_vertexDecls[_layoutHandle.idx].m_stride
 			: 0
 			;
 
@@ -2907,11 +2935,12 @@ namespace bgfx { namespace webgpu
 						//m_ptr.
 						//m_ptr.replaceRegion(region, lod, side, data, bytesPerRow, bytesPerImage);
 
-						wgpu::BufferDescriptor desc;
-						desc.size = slice * depth;
+						wgpu::BufferDescriptor bufferCopyDesc;
+						bufferCopyDesc.size = slice * depth;
 						//desc.usage = wgpu::BufferUsage::TransferDst | wgpu::BufferUsage::TransferSrc;
+						// TODO (webgpu)
 
-						wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&desc);
+						wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&bufferCopyDesc);
 						staging.SetSubData(0, slice * depth, data);
 
 						wgpu::BufferCopyView bufferCopyView;
@@ -2951,6 +2980,8 @@ namespace bgfx { namespace webgpu
 
 	void TextureWgpu::update(uint8_t _side, uint8_t _mip, const Rect& _rect, uint16_t _z, uint16_t _depth, uint16_t _pitch, const Memory* _mem)
 	{
+		BX_UNUSED(_mip); BX_UNUSED(_depth);
+
 		const uint32_t bpp       = bimg::getBitsPerPixel(bimg::TextureFormat::Enum(m_textureFormat) );
 		const uint32_t rectpitch = _rect.m_width*bpp/8;
 		const uint32_t srcpitch  = UINT16_MAX == _pitch ? rectpitch : _pitch;
@@ -2992,6 +3023,7 @@ namespace bgfx { namespace webgpu
 		else
 		{
 			wgpu::CommandEncoder& bce = s_renderWgpu->getBlitCommandEncoder();
+			BX_UNUSED(bce);
 
 			const uint32_t dstpitch = bx::strideAlign(rectpitch, 64);
 
@@ -3165,11 +3197,12 @@ namespace bgfx { namespace webgpu
 		}
 	}
 
-	wgpu::Texture SwapChainWgpu::current()
+	wgpu::TextureView SwapChainWgpu::current()
 	{
-		if (!m_drawable)
-			m_drawable = m_swapChain.GetNextTexture();
-		return m_drawable;
+		return m_swapChain.GetCurrentTextureView();
+		//if (!m_drawable)
+		//	m_drawable = m_swapChain.GetCurrentTextureView();
+		//return m_drawable;
 	}
 
 	void FrameBufferWgpu::create(uint8_t _num, const Attachment* _attachment)
@@ -3387,15 +3420,16 @@ namespace bgfx { namespace webgpu
 		*( (int64_t*)_data) = bx::getHPCounter();
 	}
 
-	void TimerQueryWgpu::addHandlers(CommandBuffer& _commandBuffer)
+	void TimerQueryWgpu::addHandlers(wgpu::CommandBuffer& _commandBuffer)
 	{
+		BX_UNUSED(_commandBuffer);
+
 		while (0 == m_control.reserve(1) )
 		{
 			m_control.consume(1);
 		}
 
-		uint32_t offset = m_control.m_current;
-
+		//uint32_t offset = m_control.m_current;
 		//_commandBuffer.addScheduledHandler(setTimestamp, &m_result[offset].m_begin);
 		//_commandBuffer.addCompletedHandler(setTimestamp, &m_result[offset].m_end);
 		m_control.commit(1);
@@ -3433,6 +3467,7 @@ namespace bgfx { namespace webgpu
 
 	void OcclusionQueryWgpu::begin(wgpu::RenderPassEncoder& _rce, Frame* _render, OcclusionQueryHandle _handle)
 	{
+		BX_UNUSED(_rce);
 		while (0 == m_control.reserve(1) )
 		{
 			resolve(_render, true);
@@ -3440,14 +3475,15 @@ namespace bgfx { namespace webgpu
 
 		Query& query = m_query[m_control.m_current];
 		query.m_handle  = _handle;
-		uint32_t offset = _handle.idx * 8;
+		//uint32_t offset = _handle.idx * 8;
 		//_rce.setVisibilityResultMode(MTLVisibilityResultModeBoolean, offset);
 	}
 
 	void OcclusionQueryWgpu::end(wgpu::RenderPassEncoder& _rce)
 	{
-		Query& query = m_query[m_control.m_current];
-		uint32_t offset = query.m_handle.idx * 8;
+		BX_UNUSED(_rce);
+		//Query& query = m_query[m_control.m_current];
+		//uint32_t offset = query.m_handle.idx * 8;
 		//_rce.setVisibilityResultMode(MTLVisibilityResultModeDisabled, offset);
 		m_control.commit(1);
 	}
@@ -3513,6 +3549,7 @@ namespace bgfx { namespace webgpu
 			uint32_t depth     = bx::uint32_min(srcDepth,  dstDepth);
 			bool     readBack  = !!(dst.m_flags & BGFX_TEXTURE_READ_BACK);
 
+			BX_UNUSED(depth);
 #if 0
 			if (MTLTextureType3D == src.m_ptr.textureType() )
 			{
@@ -3629,7 +3666,7 @@ namespace bgfx { namespace webgpu
 		viewState.reset(_render);
 		uint32_t blendFactor = 0;
 
-		bool wireframe = !!(_render->m_debug&BGFX_DEBUG_WIREFRAME);
+		//bool wireframe = !!(_render->m_debug&BGFX_DEBUG_WIREFRAME);
 
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
 		SortKey key;
@@ -4136,15 +4173,15 @@ namespace bgfx { namespace webgpu
 						streamMask >>= ntz;
 						idx         += ntz;
 
-						currentState.m_stream[idx].m_decl        = draw.m_stream[idx].m_decl;
-						currentState.m_stream[idx].m_handle      = draw.m_stream[idx].m_handle;
-						currentState.m_stream[idx].m_startVertex = draw.m_stream[idx].m_startVertex;
+						currentState.m_stream[idx].m_layoutHandle = draw.m_stream[idx].m_layoutHandle;
+						currentState.m_stream[idx].m_handle       = draw.m_stream[idx].m_handle;
+						currentState.m_stream[idx].m_startVertex  = draw.m_stream[idx].m_startVertex;
 
 						const uint16_t handle = draw.m_stream[idx].m_handle.idx;
 						const VertexBufferWgpu& vb = m_vertexBuffers[handle];
-						const uint16_t decl = isValid(draw.m_stream[idx].m_decl)
-							? draw.m_stream[idx].m_decl.idx
-							: vb.m_decl.idx;
+						const uint16_t decl = isValid(draw.m_stream[idx].m_layoutHandle)
+							? draw.m_stream[idx].m_layoutHandle.idx
+							: vb.m_layoutHandle.idx;
 						const VertexLayout& vertexDecl = m_vertexDecls[decl];
 						const uint32_t stride = vertexDecl.m_stride;
 
@@ -4189,7 +4226,7 @@ namespace bgfx { namespace webgpu
 								, decls
 								, index32
 								, currentProgram
-								, draw.m_instanceDataStride/16
+								, uint8_t(draw.m_instanceDataStride/16)
 								);
 						}
 
@@ -4205,7 +4242,7 @@ namespace bgfx { namespace webgpu
 					if (isValid(draw.m_instanceDataBuffer) )
 					{
 						const VertexBufferWgpu& inst = m_vertexBuffers[draw.m_instanceDataBuffer.idx];
-						rce.SetVertexBuffers(numStreams+1, inst.m_ptr, draw.m_instanceDataOffset);
+						rce.SetVertexBuffer(numStreams+1, inst.m_ptr, draw.m_instanceDataOffset);
 					}
 
 					programChanged =
@@ -4304,7 +4341,7 @@ namespace bgfx { namespace webgpu
 					if (UINT32_MAX == numVertices)
 					{
 						const VertexBufferWgpu& vb = m_vertexBuffers[currentState.m_stream[0].m_handle.idx];
-						uint16_t decl = !isValid(vb.m_decl) ? draw.m_stream[0].m_decl.idx : vb.m_decl.idx;
+						uint16_t decl = !isValid(vb.m_layoutHandle) ? draw.m_stream[0].m_layoutHandle.idx : vb.m_layoutHandle.idx;
 						const VertexLayout& vertexDecl = m_vertexDecls[decl];
 						numVertices = vb.m_size/vertexDecl.m_stride;
 					}

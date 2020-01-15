@@ -168,12 +168,26 @@ function bgfxProjectBase(_kind, _defines)
         includedirs {
             path.join(DAWN_DIR, "src"),
             path.join(DAWN_DIR, "src/include"),
-            path.join(DAWN_DIR, "out/Default/gen"),
+            path.join(DAWN_DIR, "out/Default/gen/src"),
+            path.join(DAWN_DIR, "out/Default/gen/src/include"),
         }
         
         defines {
             "BGFX_CONFIG_RENDERER_WEBGPU=1",
-        }
+		}
+		
+		configuration { "vs*" }
+			defines {
+				"NTDDI_VERSION=NTDDI_WIN10_RS2",
+
+				-- We can't say `=_WIN32_WINNT_WIN10` here because some files do
+				-- `#if WINVER < 0x0600` without including windows.h before,
+				-- and then _WIN32_WINNT_WIN10 isn't yet known to be 0x0A00.
+				"_WIN32_WINNT=0x0A00",
+				"WINVER=0x0A00",
+			}
+
+		configuration {}
     end
     
 	if _OPTIONS["with-amalgamated"] then
