@@ -395,9 +395,11 @@ namespace bgfx {
 			void release(wgpu::Buffer _buffer);
 			void consume();
 
-			bx::Semaphore m_framesSemaphore;
+#if BGFX_CONFIG_MULTITHREADED
+			bx::Semaphore 		 m_framesSemaphore;
+#endif
 
-			wgpu::Queue		   m_queue;
+			wgpu::Queue		     m_queue;
 			wgpu::CommandEncoder m_encoder;
 
 			int m_releaseWriteIndex;

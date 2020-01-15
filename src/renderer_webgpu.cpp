@@ -3114,10 +3114,12 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh)
 	{
-		m_impl = CreateSwapChain(_device, _nwh);
-
 		wgpu::SwapChainDescriptor desc;
+
+#if !BX_PLATFORM_EMSCRIPTEN
+		m_impl = CreateSwapChain(_device, _nwh);
 		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
+#endif
 
 		m_swapChain = _device.CreateSwapChain(&desc);
 
@@ -3306,7 +3308,9 @@ namespace bgfx { namespace webgpu
 	void CommandQueueWgpu::init(wgpu::Device _device)
 	{
 		m_queue = _device.CreateQueue();
+#if BGFX_CONFIG_MULTITHREADED
 		m_framesSemaphore.post(WEBGPU_MAX_FRAMES_IN_FLIGHT);
+#endif
 	}
 
 	void CommandQueueWgpu::shutdown()
@@ -3325,10 +3329,12 @@ namespace bgfx { namespace webgpu
 	{
 		CommandQueueWgpu* queue = (CommandQueueWgpu*)_data;
 
+#if BGFX_CONFIG_MULTITHREADED
 		if (queue)
 		{
 			queue->m_framesSemaphore.post();
 		}
+#endif
 	}
 
 	void CommandQueueWgpu::kick(bool _endFrame, bool _waitForFinish)
@@ -3347,7 +3353,9 @@ namespace bgfx { namespace webgpu
 			if (_waitForFinish)
 			{
 				m_queue.Submit(1, &commands);
+#if BGFX_CONFIG_MULTITHREADED
 				m_framesSemaphore.post();
+#endif
 			}
 
 			m_encoder.Release();
@@ -3368,7 +3376,9 @@ namespace bgfx { namespace webgpu
 				consume();
 			}
 
+#if BGFX_CONFIG_MULTITHREADED
 			m_framesSemaphore.post(count);
+#endif
 		}
 		else
 		{
@@ -3383,7 +3393,9 @@ namespace bgfx { namespace webgpu
 
 	void CommandQueueWgpu::consume()
 	{
+#if BGFX_CONFIG_MULTITHREADED
 		m_framesSemaphore.wait();
+#endif
 
 		m_releaseReadIndex = (m_releaseReadIndex + 1) % WEBGPU_MAX_FRAMES_IN_FLIGHT;
 
@@ -4615,11 +4627,11 @@ namespace bgfx { namespace webgpu
 		m_renderCommandEncoderFrameBufferHandle.idx = kInvalidHandle;
 	}
 
-} /* namespace wgpu */ } // namespace bgfx
+} /* namespace webgpu */ } // namespace bgfx
 
 #else
 
-namespace bgfx { namespace wgpu
+namespace bgfx { namespace webgpu
 	{
 		RendererContextI* rendererCreate(const Init& _init)
 		{
@@ -4630,6 +4642,6 @@ namespace bgfx { namespace wgpu
 		void rendererDestroy()
 		{
 		}
-	} /* namespace wgpu */ } // namespace bgfx
+	} /* namespace webgpu */ } // namespace bgfx
 
 #endif // BGFX_CONFIG_RENDERER_WEBGPU
