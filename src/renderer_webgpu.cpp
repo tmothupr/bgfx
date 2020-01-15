@@ -1243,8 +1243,8 @@ namespace bgfx { namespace webgpu
 				const uint32_t total = vsize + fsize;
 
 				wgpu::BindGroupBinding uniforms[2] = {};
-				wgpu::BindGroupBinding textures[1] = {};
-				wgpu::BindGroupBinding samplers[1] = {};
+				wgpu::BindGroupBinding textures[2] = {};
+				wgpu::BindGroupBinding samplers[2] = {};
 
 				const uint32_t voffset = m_uniformBufferOffset;
 				const uint32_t foffset = m_uniformBufferOffset + vsize;
