@@ -54,7 +54,7 @@ namespace bgfx { namespace webgpu
 	{
 		RenderPassDescriptor();
 
-		wgpu::RenderPassDescriptor descriptor();
+		wgpu::RenderPassDescriptor desc;
 
 		wgpu::RenderPassColorAttachmentDescriptor colorAttachments[kMaxColorAttachments];
 		uint32_t colorAttachmentCount = 0;
@@ -62,31 +62,25 @@ namespace bgfx { namespace webgpu
 		wgpu::RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
 	};
 
-	struct VertexBufferLayoutDescriptor
-	{
-		VertexBufferLayoutDescriptor();
-
-		wgpu::VertexBufferLayoutDescriptor descriptor();
-
-		wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
-		uint32_t numAttributes = 0;
-	};
 
 	struct VertexStateDescriptor
 	{
 		VertexStateDescriptor();
 
-		wgpu::VertexStateDescriptor descriptor();
+		wgpu::VertexStateDescriptor desc;
 
 		wgpu::VertexBufferLayoutDescriptor vertexBuffers[kMaxVertexInputs];
 		uint32_t numVertexBuffers = 0;
+
+		wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
+		uint32_t numAttributes = 0;
 	};
 
 	struct RenderPipelineDescriptor 
 	{
 		RenderPipelineDescriptor();
 
-		wgpu::RenderPipelineDescriptor descriptor();
+		wgpu::RenderPipelineDescriptor desc;
 
 		wgpu::ProgrammableStageDescriptor vertexStage;
 		wgpu::ProgrammableStageDescriptor fragmentStage;
@@ -106,34 +100,13 @@ namespace bgfx { namespace webgpu
 		{
 			colorAttachments[i] = defaultDescriptor<wgpu::RenderPassColorAttachmentDescriptor>();
 		}
-	}
 
-	wgpu::RenderPassDescriptor RenderPassDescriptor::descriptor()
-	{
-		wgpu::RenderPassDescriptor desc = defaultDescriptor<wgpu::RenderPassDescriptor>();
+		desc = defaultDescriptor<wgpu::RenderPassDescriptor>();
 		desc.colorAttachmentCount = colorAttachmentCount;
 		desc.colorAttachments = colorAttachments;
-		if(depthStencilAttachment.attachment)
+
+		if (depthStencilAttachment.attachment)
 			desc.depthStencilAttachment = &depthStencilAttachment;
-		return desc;
-	}
-
-	VertexBufferLayoutDescriptor::VertexBufferLayoutDescriptor()
-	{
-		for(uint32_t i = 0; i < kMaxVertexAttributes; ++i)
-		{
-			attributes[i] = defaultDescriptor<wgpu::VertexAttributeDescriptor>();
-		}
-	}
-
-	wgpu::VertexBufferLayoutDescriptor VertexBufferLayoutDescriptor::descriptor()
-	{
-		wgpu::VertexBufferLayoutDescriptor desc = defaultDescriptor<wgpu::VertexBufferLayoutDescriptor>();
-
-		desc.attributes = &attributes[0];
-		desc.attributeCount = numAttributes;
-
-		return desc;
 	}
 
 	VertexStateDescriptor::VertexStateDescriptor()
@@ -142,16 +115,19 @@ namespace bgfx { namespace webgpu
 		{
 			vertexBuffers[i] = defaultDescriptor<wgpu::VertexBufferLayoutDescriptor>();
 		}
-	}
 
-	wgpu::VertexStateDescriptor VertexStateDescriptor::descriptor()
-	{
-		wgpu::VertexStateDescriptor desc = defaultDescriptor<wgpu::VertexStateDescriptor>();
+		for (uint32_t i = 0; i < kMaxVertexAttributes; ++i)
+		{
+			attributes[i] = defaultDescriptor<wgpu::VertexAttributeDescriptor>();
+		}
+
+		vertexBuffers[0].attributes = &attributes[0];
+		vertexBuffers[0].attributeCount = numAttributes;
+
+		desc = defaultDescriptor<wgpu::VertexStateDescriptor>();
 
 		desc.vertexBuffers = vertexBuffers;
 		desc.vertexBufferCount = numVertexBuffers;
-
-		return desc;
 	}
 
 	RenderPipelineDescriptor::RenderPipelineDescriptor()
@@ -165,11 +141,8 @@ namespace bgfx { namespace webgpu
 		{
 			colorStates[i] = defaultDescriptor<wgpu::ColorStateDescriptor>();
 		}
-	}
 
-	wgpu::RenderPipelineDescriptor RenderPipelineDescriptor::descriptor()
-	{
-		wgpu::RenderPipelineDescriptor desc = defaultDescriptor<wgpu::RenderPipelineDescriptor>();
+		desc = defaultDescriptor<wgpu::RenderPipelineDescriptor>();
 
 		desc.primitiveTopology = wgpu::PrimitiveTopology::TriangleList;
 		desc.sampleCount = 1;
@@ -183,8 +156,6 @@ namespace bgfx { namespace webgpu
 		desc.rasterizationState = &rasterizationState;
 		desc.depthStencilState = nullptr;
 		desc.colorStates = colorStates;
-
-		return desc;
 	}
 
 	void bindProgram(
@@ -572,13 +543,16 @@ namespace bgfx { namespace webgpu
 			m_instance.DiscoverDefaultAdapters();
 
 			dawn_native::Adapter backendAdapter;
+			backendAdapter = m_instance.GetAdapter();
 
+#if 0
 			std::vector<dawn_native::Adapter> adapters = m_instance.GetAdapters();
 			for (dawn_native::Adapter& adapter : adapters)
 			{
 				if (adapter.GetBackendType() == backendType)
 					backendAdapter = adapter;
 			}
+#endif
 
 			//BX_ASSERT(adapterIt != adapters.end());
 
@@ -1221,9 +1195,7 @@ namespace bgfx { namespace webgpu
 				//	: wgpu::StoreOp::Store
 				//;
 
-				wgpu::RenderPassDescriptor desc = renderPassDescriptor.descriptor();
-
-				wgpu::RenderPassEncoder rce = m_cmd.m_encoder.BeginRenderPass(&desc);
+				wgpu::RenderPassEncoder rce = m_cmd.m_encoder.BeginRenderPass(&renderPassDescriptor.desc);
 				m_renderEncoder = rce;
 				m_renderCommandEncoderFrameBufferHandle = fbh;
 
@@ -1953,11 +1925,11 @@ namespace bgfx { namespace webgpu
 				const uint8_t cullIndex = uint8_t(cull >> BGFX_STATE_CULL_SHIFT);
 				pd.rasterizationState.cullMode = s_cullMode[cullIndex];
 
-				wgpu::RenderPipelineDescriptor rpd = pd.descriptor();// m_renderPipelineDescriptor:
-				rpd.sampleCount = sampleCount;
-				rpd.depthStencilState = &pd.depthStencilState;
+				// pd.desc = m_renderPipelineDescriptor;
+				pd.desc.sampleCount = sampleCount;
+				pd.desc.depthStencilState = &pd.depthStencilState;
 
-				rpd.layout = m_device.CreatePipelineLayout(&layout);
+				pd.desc.layout = m_device.CreatePipelineLayout(&layout);
 				// @todo this should be cached too
 
 				//uint32_t ref = (_state&BGFX_STATE_ALPHA_REF_MASK) >> BGFX_STATE_ALPHA_REF_SHIFT;
@@ -1968,7 +1940,7 @@ namespace bgfx { namespace webgpu
 				uint8_t primIndex = uint8_t(pt >> BGFX_STATE_PT_SHIFT);
 
 				PrimInfo prim = s_primInfo[primIndex];
-				rpd.primitiveTopology = prim.m_type;
+				pd.desc.primitiveTopology = prim.m_type;
 
 				auto fillVertexDecl = [](const ShaderWgpu* _vsh, VertexStateDescriptor& _vertexInputState, const VertexLayout& _decl)
 				{
@@ -1983,7 +1955,7 @@ namespace bgfx { namespace webgpu
 					_vertexInputState.numVertexBuffers = 1;
 
 					uint32_t numAttribs = 0;
-					wgpu::VertexAttributeDescriptor* inputAttrib; // = inputBinding->attributes;
+					wgpu::VertexAttributeDescriptor* inputAttrib = _vertexInputState.attributes;
 
 					for(uint32_t attr = 0; attr < Attrib::Count; ++attr)
 					{
@@ -2057,12 +2029,11 @@ namespace bgfx { namespace webgpu
 				//	//inputs[stream+1].stepRate = 1;
 				//}
 
-				wgpu::VertexStateDescriptor inputDesc = input.descriptor();
-				inputDesc.indexFormat = _index32 ? wgpu::IndexFormat::Uint32 : wgpu::IndexFormat::Uint16;
+				input.desc.indexFormat = _index32 ? wgpu::IndexFormat::Uint32 : wgpu::IndexFormat::Uint16;
 
-				rpd.vertexState = &inputDesc;
+				pd.desc.vertexState = &input.desc;
 
-				pso->m_rps = m_device.CreateRenderPipeline(&rpd);
+				pso->m_rps = m_device.CreateRenderPipeline(&pd.desc);
 
 				m_pipelineStateCache.add(hash, pso);
 			}
@@ -2261,8 +2232,7 @@ namespace bgfx { namespace webgpu
 				}
 			}
 
-			wgpu::RenderPassDescriptor desc = renderPassDescriptor.descriptor();
-			wgpu::RenderPassEncoder rce = m_cmd.m_encoder.BeginRenderPass(&desc);
+			wgpu::RenderPassEncoder rce = m_cmd.m_encoder.BeginRenderPass(&renderPassDescriptor.desc);
 			m_renderEncoder = rce;
 			m_renderCommandEncoderFrameBufferHandle = fbh;
 			return rce;
@@ -2937,8 +2907,7 @@ namespace bgfx { namespace webgpu
 
 						wgpu::BufferDescriptor bufferCopyDesc;
 						bufferCopyDesc.size = slice * depth;
-						//desc.usage = wgpu::BufferUsage::TransferDst | wgpu::BufferUsage::TransferSrc;
-						// TODO (webgpu)
+						bufferCopyDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::CopySrc;
 
 						wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&bufferCopyDesc);
 						staging.SetSubData(0, slice * depth, data);

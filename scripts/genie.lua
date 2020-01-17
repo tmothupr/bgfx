@@ -96,10 +96,10 @@ solution "bgfx"
 		}
 	else
 		platforms {
-			"x32",
+			--"x32",
 			"x64",
 --			"Xbox360",
-			"Native", -- for targets where bitness is not specified
+			--"Native", -- for targets where bitness is not specified
 		}
 	end
 
@@ -194,14 +194,33 @@ function exampleProjectDefaults()
 	}
 
     if _OPTIONS["webgpu"] then
+        includedirs {
+            path.join(DAWN_DIR, "src"),
+            path.join(DAWN_DIR, "src/include"),
+            path.join(DAWN_DIR, "out/Default/gen/src"),
+			path.join(DAWN_DIR, "out/Default/gen/src/include"),
+		}
+		
         libdirs {
             path.join(DAWN_DIR, "out/Default"),
+            path.join(DAWN_DIR, "out/Default/obj/third_party/SPIRV-Tools"),
         }
         
+		files {
+			path.join(DAWN_DIR, "out/Default/gen/src/dawn/webgpu_cpp.cpp"),
+		}
+
         links {
-            "libdawn",
-            "libdawn_native",
-        }
+            "libdawn_proc.dll",
+            "libdawn_native.dll",
+            "libshaderc.dll",
+            "libshaderc_spvc.dll",
+		}
+		
+		removeflags {
+			"FatalWarnings",
+		}
+		
     end
     
 	if _OPTIONS["with-sdl"] then
