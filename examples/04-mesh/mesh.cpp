@@ -7,7 +7,7 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
- //#define IMGUI
+#define IMGUI
 
 namespace
 {

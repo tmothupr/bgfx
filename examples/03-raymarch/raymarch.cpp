@@ -7,7 +7,7 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
- //#define IMGUI
+ #define IMGUI
 
 namespace
 {
@@ -257,7 +257,7 @@ public:
 			const uint32_t capture_freq = 60;
 			static bool capture = false;
 			uint32_t frame = bgfx::frame(capture);
-			capture = frame % capture_freq == 0;
+			//capture = frame % capture_freq == 0;
 
 			return true;
 		}

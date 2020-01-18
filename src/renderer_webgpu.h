@@ -325,7 +325,8 @@ namespace bgfx {
 
 			wgpu::SwapChain m_swapChain;
 
-			wgpu::Texture m_drawable;
+			wgpu::TextureView m_drawable;
+
 			wgpu::Texture m_backBufferColorMsaa;
 			wgpu::Texture m_backBufferDepth;
 

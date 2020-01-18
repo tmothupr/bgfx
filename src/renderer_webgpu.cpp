@@ -1275,11 +1275,11 @@ namespace bgfx { namespace webgpu
 			{
 				FrameBufferWgpu& frameBuffer = ii == 0 ? m_mainFrameBuffer : m_frameBuffers[m_windows[ii].idx];
 				if (NULL != frameBuffer.m_swapChain
-				&&  frameBuffer.m_swapChain->m_drawable)
+				&& frameBuffer.m_swapChain->m_drawable)
 				{
 					SwapChainWgpu& swapChain = *frameBuffer.m_swapChain;
 					swapChain.m_swapChain.Present(); // TODO (webgpu) swapChain.m_drawable);
-					//swapChain.m_drawable = swapChain.m_swapChain.GetNextTexture();
+					swapChain.m_drawable = swapChain.m_swapChain.GetCurrentTextureView();
 				}
 			}
 
@@ -3206,10 +3206,9 @@ namespace bgfx { namespace webgpu
 
 	wgpu::TextureView SwapChainWgpu::current()
 	{
-		return m_swapChain.GetCurrentTextureView();
-		//if (!m_drawable)
-		//	m_drawable = m_swapChain.GetCurrentTextureView();
-		//return m_drawable;
+		if (!m_drawable)
+			m_drawable = m_swapChain.GetCurrentTextureView();
+		return m_drawable;
 	}
 
 	void FrameBufferWgpu::create(uint8_t _num, const Attachment* _attachment)
