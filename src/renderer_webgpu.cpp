@@ -19,6 +19,9 @@
 #include <dawn_native/DawnNative.h>
 #include <dawn/dawn_wsi.h>
 #include <dawn/dawn_proc.h>
+#else
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #endif
 
 #define UNIFORM_BUFFER_SIZE (8*1024*1024)
@@ -614,6 +617,8 @@ namespace bgfx { namespace webgpu
 			procs.deviceSetUncapturedErrorCallback(cDevice, PrintDeviceError, 0);
 
 			m_device = wgpu::Device::Acquire(cDevice);
+#else
+			m_device = emscripten_webgpu_get_device();
 #endif
 
 			if (!m_device)
@@ -1278,8 +1283,7 @@ namespace bgfx { namespace webgpu
 				&& frameBuffer.m_swapChain->m_drawable)
 				{
 					SwapChainWgpu& swapChain = *frameBuffer.m_swapChain;
-					swapChain.m_swapChain.Present(); // TODO (webgpu) swapChain.m_drawable);
-					swapChain.m_drawable = swapChain.m_swapChain.GetCurrentTextureView();
+					swapChain.flip();
 				}
 			}
 
@@ -3204,11 +3208,26 @@ namespace bgfx { namespace webgpu
 		}
 	}
 
+	void SwapChainWgpu::flip()
+	{
+#if BX_PLATFORM_EMSCRIPTEN
+#else
+		m_swapChain.Present(); // TODO (webgpu) swapChain.m_drawable);
+		m_drawable = m_swapChain.GetCurrentTextureView();
+#endif
+	}
+
 	wgpu::TextureView SwapChainWgpu::current()
 	{
+#if BX_PLATFORM_EMSCRIPTEN
+		if (!m_drawable)
+			m_drawable = emscripten_webgpu_get_current_texture_view();
+		return m_drawable;
+#else
 		if (!m_drawable)
 			m_drawable = m_swapChain.GetCurrentTextureView();
 		return m_drawable;
+#endif
 	}
 
 	void FrameBufferWgpu::create(uint8_t _num, const Attachment* _attachment)

@@ -317,13 +317,17 @@ namespace bgfx {
 			void init(wgpu::Device _device, void* _nwh);
 			void resize(FrameBufferWgpu& _frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags);
 
+			void flip();
+
 			wgpu::TextureView current();
 
 #if !BX_PLATFORM_EMSCRIPTEN
 			DawnSwapChainImplementation m_impl;
-#endif
 
 			wgpu::SwapChain m_swapChain;
+#else
+
+#endif
 
 			wgpu::TextureView m_drawable;
 
