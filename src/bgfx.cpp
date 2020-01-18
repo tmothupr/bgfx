@@ -1681,6 +1681,11 @@ namespace bgfx
 		return s_ctx->m_uniformRef[_handle.idx].m_name.getPtr();
 	}
 
+	const String& getName(ShaderHandle _handle)
+	{
+		return s_ctx->m_shaderRef[_handle.idx].m_name;
+	}
+
 	static const char* s_topologyName[] =
 	{
 		"Triangles",

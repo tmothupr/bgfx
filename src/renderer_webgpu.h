@@ -142,33 +142,29 @@ namespace bgfx {
 
 		struct ShaderWgpu
 		{
-			ShaderWgpu()
-				: m_constantBuffer{}
-				, m_hash(0)
-				, m_numUniforms(0)
-				, m_numPredefined(0)
-			{
-			}
-
-			void create(const Memory* _mem);
+			void create(ShaderHandle _handle, const Memory* _mem);
 			void destroy()
 			{
 				m_module.Release();
 			}
 
+			String name() { return getName(m_handle); }
+
+			ShaderHandle m_handle;
+
 			wgpu::ShaderModule m_module;
 
-			UniformBuffer* m_constantBuffer[UniformSet::Count];
+			UniformBuffer* m_constantBuffer[UniformSet::Count] = {};
 
 			PredefinedUniform m_predefined[PredefinedUniform::Count];
 			uint16_t m_attrMask[Attrib::Count];
 			uint8_t m_attrRemap[Attrib::Count];
 
-			uint32_t m_hash;
-			uint16_t m_numUniforms;
-			uint16_t m_size;
-			uint8_t m_numPredefined;
-			uint8_t m_numAttrs;
+			uint32_t m_hash = 0;
+			uint16_t m_numUniforms = 0;
+			uint16_t m_size = 0;
+			uint8_t m_numPredefined = 0;
+			uint8_t m_numAttrs = 0;
 			uint16_t m_numThreads[3];
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];

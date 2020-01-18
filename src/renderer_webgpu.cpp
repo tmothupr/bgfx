@@ -57,7 +57,7 @@ namespace bgfx { namespace webgpu
 		wgpu::RenderPassDescriptor desc;
 
 		wgpu::RenderPassColorAttachmentDescriptor colorAttachments[kMaxColorAttachments];
-		uint32_t colorAttachmentCount = 0;
+		//uint32_t colorAttachmentCount = 0;
 
 		wgpu::RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
 	};
@@ -70,10 +70,10 @@ namespace bgfx { namespace webgpu
 		wgpu::VertexStateDescriptor desc;
 
 		wgpu::VertexBufferLayoutDescriptor vertexBuffers[kMaxVertexInputs];
-		uint32_t numVertexBuffers = 0;
+		//uint32_t numVertexBuffers = 0;
 
 		wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
-		uint32_t numAttributes = 0;
+		//uint32_t numAttributes = 0;
 	};
 
 	struct RenderPipelineDescriptor 
@@ -82,7 +82,7 @@ namespace bgfx { namespace webgpu
 
 		wgpu::RenderPipelineDescriptor desc;
 
-		wgpu::ProgrammableStageDescriptor vertexStage;
+		//wgpu::ProgrammableStageDescriptor vertexStage;
 		wgpu::ProgrammableStageDescriptor fragmentStage;
 
 		wgpu::VertexStateDescriptor inputState;
@@ -102,11 +102,9 @@ namespace bgfx { namespace webgpu
 		}
 
 		desc = defaultDescriptor<wgpu::RenderPassDescriptor>();
-		desc.colorAttachmentCount = colorAttachmentCount;
+		//desc.colorAttachmentCount = colorAttachmentCount;
 		desc.colorAttachments = colorAttachments;
-
-		if (depthStencilAttachment.attachment)
-			desc.depthStencilAttachment = &depthStencilAttachment;
+		desc.colorAttachmentCount = 1; // TODO set it properly everywhere
 	}
 
 	VertexStateDescriptor::VertexStateDescriptor()
@@ -122,17 +120,17 @@ namespace bgfx { namespace webgpu
 		}
 
 		vertexBuffers[0].attributes = &attributes[0];
-		vertexBuffers[0].attributeCount = numAttributes;
+		//vertexBuffers[0].attributeCount = numAttributes;
 
 		desc = defaultDescriptor<wgpu::VertexStateDescriptor>();
 
 		desc.vertexBuffers = vertexBuffers;
-		desc.vertexBufferCount = numVertexBuffers;
+		//desc.vertexBufferCount = numVertexBuffers;
 	}
 
 	RenderPipelineDescriptor::RenderPipelineDescriptor()
 	{
-		vertexStage = defaultDescriptor<wgpu::ProgrammableStageDescriptor>();
+		//vertexStage = defaultDescriptor<wgpu::ProgrammableStageDescriptor>();
 		fragmentStage = defaultDescriptor<wgpu::ProgrammableStageDescriptor>();
 		rasterizationState = defaultDescriptor<wgpu::RasterizationStateDescriptor>();
 		depthStencilState = defaultDescriptor<wgpu::DepthStencilStateDescriptor>();
@@ -150,7 +148,7 @@ namespace bgfx { namespace webgpu
 
 		//wgpu::VertexStateDescriptor inputState = inputState.descriptor();
 
-		desc.vertexStage = vertexStage;
+		desc.vertexStage = defaultDescriptor<wgpu::ProgrammableStageDescriptor>();
 		desc.fragmentStage = &fragmentStage;
 		//desc.vertexState = &inputState;
 		desc.rasterizationState = &rasterizationState;
@@ -186,13 +184,13 @@ namespace bgfx { namespace webgpu
 		samplersDesc.bindings = samplers;
 
 		wgpu::BindGroup uniformsGroup = device.CreateBindGroup(&uniformsDesc);
-		rce.SetBindGroup(0, uniformsGroup, 0, nullptr);
+		rce.SetBindGroup(0, uniformsGroup);
 
 		wgpu::BindGroup texturesGroup = device.CreateBindGroup(&texturesDesc);
-		rce.SetBindGroup(1, texturesGroup, 0, nullptr);
+		rce.SetBindGroup(1, texturesGroup);
 
 		wgpu::BindGroup samplersGroup = device.CreateBindGroup(&samplersDesc);
-		rce.SetBindGroup(2, samplersGroup, 0, nullptr);
+		rce.SetBindGroup(2, samplersGroup);
 	}
 
 	static char s_viewName[BGFX_CONFIG_MAX_VIEWS][BGFX_CONFIG_MAX_VIEW_NAME];
@@ -674,7 +672,7 @@ namespace bgfx { namespace webgpu
 				);
 
 			g_caps.limits.maxTextureSize   = 16384;
-			g_caps.limits.maxFBAttachments = 8;
+			g_caps.limits.maxFBAttachments = 4;
 			g_caps.supported |= BGFX_CAPS_TEXTURE_CUBE_ARRAY;
 
 			if (false) // m_device.supportsFeatureSet( (MTLFeatureSet)10001 /* MTLFeatureSet_macOS_GPUFamily1_v2 */ ))
@@ -883,7 +881,7 @@ namespace bgfx { namespace webgpu
 
 		void createShader(ShaderHandle _handle, const Memory* _mem) override
 		{
-			m_shaders[_handle.idx].create(_mem);
+			m_shaders[_handle.idx].create(_handle, _mem);
 		}
 
 		void destroyShader(ShaderHandle _handle) override
@@ -1388,16 +1386,16 @@ namespace bgfx { namespace webgpu
 
 		void commitShaderConstants(const ProgramWgpu& _program, uint32_t _vertexOffset, uint32_t _fragmentOffset)
 		{
-			{
-				const uint32_t size = _program.m_vsh->m_size;
+			const uint32_t size = _program.m_vsh->m_size;
+			if (0 != size)
 				m_uniformBuffer.SetSubData(_vertexOffset, size, (uint8_t*)m_vsScratch);
-				m_vsChanges = 0;
-			}
+			m_vsChanges = 0;
 
 			if(NULL != _program.m_fsh)
 			{
 				const uint32_t size = _program.m_fsh->m_size;
-				m_uniformBuffer.SetSubData(_fragmentOffset, size, (uint8_t*)m_fsScratch);
+				if(0 != size)
+					m_uniformBuffer.SetSubData(_fragmentOffset, size, (uint8_t*)m_fsScratch);
 				m_fsChanges = 0;
 			}
 		}
@@ -1647,10 +1645,8 @@ namespace bgfx { namespace webgpu
 					: m_frameBuffers[_fbh.idx].m_swapChain
 					;
 
-				_renderPassDescriptor.depthStencilAttachment = defaultDescriptor<wgpu::RenderPassDepthStencilAttachmentDescriptor>();
-
 				_renderPassDescriptor.colorAttachments[0] = defaultDescriptor<wgpu::RenderPassColorAttachmentDescriptor>();
-				_renderPassDescriptor.colorAttachmentCount = 1;
+				_renderPassDescriptor.desc.colorAttachmentCount = 1;
 
 				if (swapChain->m_backBufferColorMsaa)
 				{
@@ -1662,13 +1658,15 @@ namespace bgfx { namespace webgpu
 					_renderPassDescriptor.colorAttachments[0].attachment = swapChain->current();
 				}
 
+				_renderPassDescriptor.depthStencilAttachment = defaultDescriptor<wgpu::RenderPassDepthStencilAttachmentDescriptor>();
 				_renderPassDescriptor.depthStencilAttachment.attachment = swapChain->m_backBufferDepth.CreateView();
+				_renderPassDescriptor.desc.depthStencilAttachment = &_renderPassDescriptor.depthStencilAttachment;
 			}
 			else
 			{
 				FrameBufferWgpu& frameBuffer = m_frameBuffers[_fbh.idx];
 
-				_renderPassDescriptor.colorAttachmentCount = frameBuffer.m_num;
+				_renderPassDescriptor.desc.colorAttachmentCount = frameBuffer.m_num;
 
 				for (uint32_t ii = 0; ii < frameBuffer.m_num; ++ii)
 				{
@@ -1912,7 +1910,7 @@ namespace bgfx { namespace webgpu
 					}
 				}
 
-				pd.vertexStage.module = program.m_vsh->m_module;
+				pd.desc.vertexStage.module = program.m_vsh->m_module;
 				pd.fragmentStage.module = program.m_fsh != NULL ? program.m_fsh->m_module : wgpu::ShaderModule();
 
 				wgpu::PipelineLayoutDescriptor layout = defaultDescriptor<wgpu::PipelineLayoutDescriptor>();
@@ -1952,7 +1950,7 @@ namespace bgfx { namespace webgpu
 					//inputBinding->inputSlot = 0;
 					inputBinding->arrayStride = _decl.m_stride;
 					inputBinding->stepMode = wgpu::InputStepMode::Vertex;
-					_vertexInputState.numVertexBuffers = 1;
+					_vertexInputState.desc.vertexBufferCount = 1;
 
 					uint32_t numAttribs = 0;
 					wgpu::VertexAttributeDescriptor* inputAttrib = _vertexInputState.attributes;
@@ -2336,8 +2334,16 @@ namespace bgfx { namespace webgpu
 		bx::write(_writer, _str, (int32_t)bx::strLen(_str) );
 	}
 
-	void ShaderWgpu::create(const Memory* _mem)
+	void ShaderWgpu::create(ShaderHandle _handle, const Memory* _mem)
 	{
+		m_handle = _handle;
+
+		if (strCmp(getName(_handle), "vs_cubes") == 0)
+			int i = 0;
+
+		if (strCmp(getName(_handle), "fs_cubes") == 0)
+			int i = 0;
+
 		bx::MemoryReader reader(_mem->data, _mem->size);
 
 		uint32_t magic;
@@ -2479,10 +2485,12 @@ namespace bgfx { namespace webgpu
 		uint32_t shaderSize;
 		bx::read(&reader, shaderSize);
 
-		BX_TRACE("Shader code is at %i size %i remaining %i", reader.getPos(), shaderSize, reader.remaining());
+		BX_TRACE("\tshader body is at %i size %i remaining %i", reader.getPos(), shaderSize, reader.remaining());
 
 		const char* code = (const char*)reader.getDataPtr();
 		bx::skip(&reader, shaderSize+1);
+
+		BX_TRACE("\tremaining %i", reader.remaining());
 
 		uint8_t numAttrs = 0;
 		bx::read(&reader, numAttrs);
@@ -2497,13 +2505,35 @@ namespace bgfx { namespace webgpu
 			uint16_t id;
 			bx::read(&reader, id);
 
+			auto toString = [](Attrib::Enum attr)
+			{
+				if (attr == Attrib::Position) return "Position";
+				else if (attr == Attrib::Normal) return "Normal";
+				else if (attr == Attrib::Tangent) return "Tangent";
+				else if (attr == Attrib::Bitangent) return "Bitangent";
+				else if (attr == Attrib::Color0) return "Color0";
+				else if (attr == Attrib::Color1) return "Color1";
+				else if (attr == Attrib::Color2) return "Color2";
+				else if (attr == Attrib::Color3) return "Color3";
+				else if (attr == Attrib::Indices) return "Indices";
+				else if (attr == Attrib::Weight) return "Weight";
+				else if (attr == Attrib::TexCoord0) return "TexCoord0";
+				else if (attr == Attrib::TexCoord1) return "TexCoord1";
+				else if (attr == Attrib::TexCoord2) return "TexCoord2";
+				else if (attr == Attrib::TexCoord3) return "TexCoord3";
+				else if (attr == Attrib::TexCoord4) return "TexCoord4";
+				else if (attr == Attrib::TexCoord5) return "TexCoord5";
+				else if (attr == Attrib::TexCoord6) return "TexCoord6";
+				else if (attr == Attrib::TexCoord7) return "TexCoord7";
+			};
+
 			Attrib::Enum attr = idToAttrib(id);
 
 			if(Attrib::Count != attr)
 			{
 				m_attrMask[attr] = UINT16_MAX;
 				m_attrRemap[attr] = ii;
-				BX_TRACE("attrib %i at index %i", attr, ii);
+				BX_TRACE("\tattrib: %s (%i) at index %i", toString(attr), attr, ii);
 			}
 		}
 
@@ -2528,7 +2558,13 @@ namespace bgfx { namespace webgpu
 		murmur.add(m_attrMask, numAttrs);
 		m_hash = murmur.end();
 
+		auto roundUp = [](auto value, auto multiple)
+		{
+			return ((value + multiple - 1) / multiple) * multiple;
+		};
+
 		bx::read(&reader, m_size);
+		m_size = roundUp(m_size, 4);
 	}
 
 	void ProgramWgpu::create(const ShaderWgpu* _vsh, const ShaderWgpu* _fsh)
@@ -2626,7 +2662,7 @@ namespace bgfx { namespace webgpu
 		wgpu::BufferDescriptor desc;
 		desc.size = paddedSize;
 		desc.usage = _vertex ? wgpu::BufferUsage::Vertex : wgpu::BufferUsage::Index;
-		//desc.usage |= wgpu::BufferUsage::TransferDst;
+		desc.usage |= wgpu::BufferUsage::CopyDst;
 
 		m_ptr = s_renderWgpu->m_device.CreateBuffer(&desc);
 
@@ -2663,7 +2699,7 @@ namespace bgfx { namespace webgpu
 
 			wgpu::BufferDescriptor desc;
 			desc.size = end - start;
-			//desc.usage = wgpu::BufferUsage::TransferDst | wgpu::BufferUsage::TransferSrc;
+			desc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::CopySrc;
 
 			wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&desc); // m_dynamic, , 0);
 			staging.SetSubData(0, _size, reinterpret_cast<const uint8_t*>(_data));
@@ -2675,7 +2711,7 @@ namespace bgfx { namespace webgpu
 		{
 			wgpu::BufferDescriptor desc;
 			desc.size = _size;
-			//desc.usage = wgpu::BufferUsage::TransferDst | wgpu::BufferUsage::TransferSrc;
+			desc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::CopySrc;
 
 			wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&desc);
 			staging.SetSubData(0, _size, reinterpret_cast<const uint8_t*>(_data));
@@ -4297,9 +4333,11 @@ namespace bgfx { namespace webgpu
 							{
 								TextureWgpu& texture = m_textures[bind.m_idx];
 
-								textures[currentSampler].binding = stage;
+								//textures[currentSampler].binding = stage;
+								textures[currentSampler].binding = program.m_fsh->m_textures[stage].binding;
 								textures[currentSampler].textureView = texture.m_ptr.CreateView();
-								samplers[currentSampler].binding = stage;
+								//samplers[currentSampler].binding = stage;
+								samplers[currentSampler].binding = program.m_fsh->m_samplers[stage].binding;
 								samplers[currentSampler].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
 									? getSamplerState(bind.m_samplerFlags)
 									: texture.m_sampler;

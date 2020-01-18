@@ -699,16 +699,19 @@ namespace bgfx { namespace spirv
 
 		shader->setEntryPoint("main");
 		shader->setAutoMapBindings(true);
+
+#if 0
 		uint32_t bindingOffset = (stage == EShLanguage::EShLangFragment ? 48 : 0);
 		shader->setShiftBinding(glslang::EResUbo, bindingOffset);
 		shader->setShiftBinding(glslang::EResTexture, bindingOffset + 16);
 		shader->setShiftBinding(glslang::EResSampler, bindingOffset + 32);
 		shader->setShiftBinding(glslang::EResSsbo, bindingOffset + 16);
 		shader->setShiftBinding(glslang::EResImage, bindingOffset + 32);
+#endif
 
 		// bindings 0 and 1 are reserved for vertex/fragment uniform buffers, so we shift all samplers by 2
-		//shader->setShiftBinding(glslang::TResourceType::EResSampler, 2);
-		//shader->setShiftBinding(glslang::TResourceType::EResTexture, 2);
+		shader->setShiftBinding(glslang::EResSampler, 2);
+		shader->setShiftBinding(glslang::EResTexture, 2);
 
 		const char* shaderStrings[] = { _code.c_str() };
 		shader->setStrings(

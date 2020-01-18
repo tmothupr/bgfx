@@ -613,6 +613,10 @@ project "shaderc"
 		path.join(SPIRV_TOOLS, "include"),
 	}
 
+	defines {
+		"SHADERC_STATIC",
+	}
+	
 	links {
 		"bx",
 		"fcpp",
