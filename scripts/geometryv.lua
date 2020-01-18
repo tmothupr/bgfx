@@ -119,7 +119,6 @@ project ("geometryv")
 
 	configuration { "asmjs" }
 		kind "ConsoleApp"
-		targetextension ".bc"
 
 	configuration { "linux-* or freebsd" }
 		links {

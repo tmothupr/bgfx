@@ -347,8 +347,11 @@ function exampleProjectDefaults()
 
 	configuration { "asmjs" }
 		kind "ConsoleApp"
-		targetextension ".bc"
 
+		linkoptions {
+			"-g2",
+		}
+		
 	configuration { "linux-* or freebsd", "not linux-steamlink" }
 		links {
 			"X11",

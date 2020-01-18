@@ -164,28 +164,35 @@ function bgfxProjectBase(_kind, _defines)
 		path.join(BGFX_DIR, "src/renderer_nvn.h"),
 	})
 
-    if _OPTIONS["webgpu"] then
-        includedirs {
-            path.join(DAWN_DIR, "src"),
-            path.join(DAWN_DIR, "src/include"),
-            path.join(DAWN_DIR, "out/Default/gen/src"),
-            path.join(DAWN_DIR, "out/Default/gen/src/include"),
-        }
-        
-        defines {
-            "BGFX_CONFIG_RENDERER_WEBGPU=1",
-		}
-		
-		configuration { "vs*" }
+	if _OPTIONS["webgpu"] then
+		configuration { "asmjs" }
 			defines {
-				"NTDDI_VERSION=NTDDI_WIN10_RS2",
-
-				-- We can't say `=_WIN32_WINNT_WIN10` here because some files do
-				-- `#if WINVER < 0x0600` without including windows.h before,
-				-- and then _WIN32_WINNT_WIN10 isn't yet known to be 0x0A00.
-				"_WIN32_WINNT=0x0A00",
-				"WINVER=0x0A00",
+				"BGFX_CONFIG_RENDERER_OPENGL=0",
+				"BGFX_CONFIG_RENDERER_OPENGLES=0",
 			}
+			
+		configuration { "not asmjs" }
+			includedirs {
+				path.join(DAWN_DIR, "src"),
+				path.join(DAWN_DIR, "src/include"),
+				path.join(DAWN_DIR, "out/Default/gen/src"),
+				path.join(DAWN_DIR, "out/Default/gen/src/include"),
+			}
+			
+			defines {
+				"BGFX_CONFIG_RENDERER_WEBGPU=1",
+			}
+			
+			configuration { "vs*" }
+				defines {
+					"NTDDI_VERSION=NTDDI_WIN10_RS2",
+
+					-- We can't say `=_WIN32_WINNT_WIN10` here because some files do
+					-- `#if WINVER < 0x0600` without including windows.h before,
+					-- and then _WIN32_WINNT_WIN10 isn't yet known to be 0x0A00.
+					"_WIN32_WINNT=0x0A00",
+					"WINVER=0x0A00",
+				}
 
 		configuration {}
     end
