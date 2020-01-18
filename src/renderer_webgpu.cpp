@@ -618,7 +618,7 @@ namespace bgfx { namespace webgpu
 
 			m_device = wgpu::Device::Acquire(cDevice);
 #else
-			m_device = emscripten_webgpu_get_device();
+			m_device = wgpu::Device(emscripten_webgpu_get_device());
 #endif
 
 			if (!m_device)
@@ -627,7 +627,7 @@ namespace bgfx { namespace webgpu
 				return false;
 			}
 
-			m_mainFrameBuffer.create(
+			bool success = m_mainFrameBuffer.create(
 				  0
 				, g_platformData.nwh
 				, _init.resolution.width
@@ -637,7 +637,7 @@ namespace bgfx { namespace webgpu
 				);
 			m_numWindows = 1;
 
-			if (!m_mainFrameBuffer.m_swapChain->m_swapChain)
+			if (!success)
 			{
 				return false;
 			}
@@ -3123,18 +3123,17 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh)
 	{
-		wgpu::SwapChainDescriptor desc;
-
 #if !BX_PLATFORM_EMSCRIPTEN
 		m_impl = CreateSwapChain(_device, _nwh);
-		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
-#endif
 
+		wgpu::SwapChainDescriptor desc;
+		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
 		m_swapChain = _device.CreateSwapChain(&desc);
 
 		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
 
 		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
+#endif
 
 		m_colorFormat = wgpu::TextureFormat::RGBA8Unorm;
 		m_depthFormat = wgpu::TextureFormat::Depth24PlusStencil8;
@@ -3156,7 +3155,9 @@ namespace bgfx { namespace webgpu
 			: wgpu::TextureFormat::RGBA8Unorm
 			;
 
+#if !BX_PLATFORM_EMSCRIPTEN
 		m_swapChain.Configure(format, wgpu::TextureUsage::OutputAttachment, _width, _height);
+#endif
 
 		m_colorFormat = format;
 		m_depthFormat = wgpu::TextureFormat::Depth24PlusStencil8;
@@ -3221,7 +3222,7 @@ namespace bgfx { namespace webgpu
 	{
 #if BX_PLATFORM_EMSCRIPTEN
 		if (!m_drawable)
-			m_drawable = emscripten_webgpu_get_current_texture_view();
+			m_drawable = wgpu::TextureView(emscripten_webgpu_get_current_texture_view());
 		return m_drawable;
 #else
 		if (!m_drawable)
@@ -3292,7 +3293,7 @@ namespace bgfx { namespace webgpu
 		m_pixelFormatHash = murmur.end();
 	}
 
-	void FrameBufferWgpu::create(uint16_t _denseIdx, void* _nwh, uint32_t _width, uint32_t _height, TextureFormat::Enum _format, TextureFormat::Enum _depthFormat)
+	bool FrameBufferWgpu::create(uint16_t _denseIdx, void* _nwh, uint32_t _width, uint32_t _height, TextureFormat::Enum _format, TextureFormat::Enum _depthFormat)
 	{
 		BX_UNUSED(_format, _depthFormat);
 		m_swapChain = BX_NEW(g_allocator, SwapChainWgpu);
@@ -3304,6 +3305,11 @@ namespace bgfx { namespace webgpu
 
 		m_swapChain->init(s_renderWgpu->m_device, _nwh);
 		m_swapChain->resize(*this, _width, _height, 0);
+
+#if !BX_PLATFORM_EMSCRIPTEN
+		return m_swapChain->m_swapChain != nullptr;
+#endif
+		return true;
 	}
 
 	void FrameBufferWgpu::postReset()

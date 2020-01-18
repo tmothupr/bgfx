@@ -354,7 +354,7 @@ namespace bgfx {
 			}
 
 			void create(uint8_t _num, const Attachment* _attachment);
-			void create(
+			bool create(
 				uint16_t _denseIdx
 				, void* _nwh
 				, uint32_t _width

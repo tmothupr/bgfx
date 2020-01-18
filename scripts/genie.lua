@@ -96,7 +96,7 @@ solution "bgfx"
 		}
 	else
 		platforms {
-			--"x32",
+			"x32",
 			"x64",
 --			"Xbox360",
 			--"Native", -- for targets where bitness is not specified
@@ -193,7 +193,7 @@ function exampleProjectDefaults()
 		"bx",
 	}
 
-    if _OPTIONS["webgpu"] then
+    if _OPTIONS["webgpu"] and _OPTIONS["gcc"] ~= "asmjs" then
         includedirs {
             path.join(DAWN_DIR, "src"),
             path.join(DAWN_DIR, "src/include"),
@@ -204,8 +204,8 @@ function exampleProjectDefaults()
         libdirs {
             path.join(DAWN_DIR, "out/Default"),
             path.join(DAWN_DIR, "out/Default/obj/third_party/SPIRV-Tools"),
-        }
-        
+		}
+		
 		files {
 			path.join(DAWN_DIR, "out/Default/gen/src/dawn/webgpu_cpp.cpp"),
 		}
