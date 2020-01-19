@@ -193,34 +193,40 @@ function exampleProjectDefaults()
 		"bx",
 	}
 
-    if _OPTIONS["webgpu"] and _OPTIONS["gcc"] ~= "asmjs" then
-        includedirs {
-            path.join(DAWN_DIR, "src"),
-            path.join(DAWN_DIR, "src/include"),
-            path.join(DAWN_DIR, "out/Default/gen/src"),
-			path.join(DAWN_DIR, "out/Default/gen/src/include"),
-		}
-		
-        libdirs {
-            path.join(DAWN_DIR, "out/Default"),
-            path.join(DAWN_DIR, "out/Default/obj/third_party/SPIRV-Tools"),
-		}
-		
-		files {
-			path.join(DAWN_DIR, "out/Default/gen/src/dawn/webgpu_cpp.cpp"),
+	if _OPTIONS["webgpu"] then
+		linkoptions {
+			"-s USE_WEBGPU=1",
 		}
 
-        links {
-            "libdawn_proc.dll",
-            "libdawn_native.dll",
-            "libshaderc.dll",
-            "libshaderc_spvc.dll",
-		}
-		
-		removeflags {
-			"FatalWarnings",
-		}
-		
+		configuration { "not asmjs" }
+			includedirs {
+				path.join(DAWN_DIR, "src"),
+				path.join(DAWN_DIR, "src/include"),
+				path.join(DAWN_DIR, "out/Default/gen/src"),
+				path.join(DAWN_DIR, "out/Default/gen/src/include"),
+			}
+
+			libdirs {
+				path.join(DAWN_DIR, "out/Default"),
+				path.join(DAWN_DIR, "out/Default/obj/third_party/SPIRV-Tools"),
+			}
+
+			files {
+				path.join(DAWN_DIR, "out/Default/gen/src/dawn/webgpu_cpp.cpp"),
+			}
+
+			links {
+				"libdawn_proc.dll",
+				"libdawn_native.dll",
+				"libshaderc.dll",
+				"libshaderc_spvc.dll",
+			}
+
+			removeflags {
+				"FatalWarnings",
+			}
+
+		configuration {}
     end
     
 	if _OPTIONS["with-sdl"] then
@@ -348,6 +354,20 @@ function exampleProjectDefaults()
 	configuration { "asmjs" }
 		kind "ConsoleApp"
 
+		linkoptions {
+			"-s TOTAL_MEMORY=256MB",
+			"--memory-init-file 1",
+		}
+
+		removeflags {
+			"OptimizeSpeed",
+		}
+
+		flags {
+			"Optimize"
+		}
+
+	configuration { "asmjs", "Debug" }
 		linkoptions {
 			"-g2",
 		}

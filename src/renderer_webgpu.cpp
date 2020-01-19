@@ -2345,11 +2345,7 @@ namespace bgfx { namespace webgpu
 	{
 		m_handle = _handle;
 
-		if (strCmp(getName(_handle), "vs_cubes") == 0)
-			int i = 0;
-
-		if (strCmp(getName(_handle), "fs_cubes") == 0)
-			int i = 0;
+		BX_TRACE("Creating shader %s", getName(_handle).getPtr());
 
 		bx::MemoryReader reader(_mem->data, _mem->size);
 

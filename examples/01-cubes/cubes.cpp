@@ -366,7 +366,7 @@ public:
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
-			const uint32_t capture_freq = 60;
+			//const uint32_t capture_freq = 60;
 			static bool capture = false;
 			uint32_t frame = bgfx::frame(capture);
 			//capture = frame % capture_freq == 0;
