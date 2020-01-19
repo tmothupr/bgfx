@@ -224,6 +224,7 @@ namespace bgfx { namespace webgpu
 	};
 	BX_STATIC_ASSERT(Topology::Count == BX_COUNTOF(s_primInfo) );
 	
+#if 0
 	static const char* s_attribName[] =
 	{
 		"a_position",
@@ -256,7 +257,8 @@ namespace bgfx { namespace webgpu
 		"i_data4",
 	};
 	BX_STATIC_ASSERT(BGFX_CONFIG_MAX_INSTANCE_DATA_COUNT == BX_COUNTOF(s_instanceDataName) );
-	
+#endif
+
 	static const wgpu::VertexFormat s_attribType[][4][2] =
 	{
 		{ // Uint8
@@ -481,7 +483,9 @@ namespace bgfx { namespace webgpu
 	struct RendererContextWgpu;
 	static RendererContextWgpu* s_renderWgpu;
 
+#if 0
 	static bool s_ignoreError = false;
+#endif
 
 #if !BX_PLATFORM_EMSCRIPTEN
 	DawnSwapChainImplementation(*CreateSwapChain)(wgpu::Device device, void* nwh);
@@ -644,7 +648,7 @@ namespace bgfx { namespace webgpu
 
 			m_queue = m_device.CreateQueue();
 
-			m_cmd.init(m_device, m_queue);
+			m_cmd.init(m_queue);
 			//BGFX_FATAL(NULL != m_cmd.m_commandQueue, Fatal::UnableToInitialize, "Unable to create Metal device.");
 
 			for (uint8_t ii = 0; ii < WEBGPU_MAX_FRAMES_IN_FLIGHT; ++ii)
@@ -759,7 +763,7 @@ namespace bgfx { namespace webgpu
 
 			for (uint32_t ii = 1, last = 0; ii < BX_COUNTOF(s_msaa); ++ii)
 			{
-				const int32_t sampleCount = 1; //1<<ii;
+				//const int32_t sampleCount = 1; //1<<ii;
 				//if (m_device.supportsTextureSampleCount(sampleCount) )
 				//{
 				//	s_msaa[ii] = sampleCount;
@@ -1217,7 +1221,7 @@ namespace bgfx { namespace webgpu
 
 				const uint32_t vsize = bx::strideAlign(program.m_vsh->m_size, align);
 				const uint32_t fsize = bx::strideAlign((NULL != program.m_fsh ? program.m_fsh->m_size : 0), align);
-				const uint32_t total = vsize + fsize;
+				//const uint32_t total = vsize + fsize;
 
 				wgpu::BindGroupBinding uniforms[2] = {};
 				wgpu::BindGroupBinding textures[2] = {};
@@ -1579,7 +1583,7 @@ namespace bgfx { namespace webgpu
 
 			const uint32_t vsize = bx::strideAlign(program.m_vsh->m_size, align);
 			const uint32_t fsize = bx::strideAlign((NULL != program.m_fsh ? program.m_fsh->m_size : 0), align);
-			const uint32_t total = vsize + fsize;
+			//const uint32_t total = vsize + fsize;
 
 			wgpu::BindGroupBinding uniforms[2] = {};
 
@@ -1639,6 +1643,8 @@ namespace bgfx { namespace webgpu
 			//	else
 			//		_attachmentDescriptor.resolveSlice = _at.layer;
 			//}
+
+			return desc;
 		}
 
 		void setFrameBuffer(RenderPassDescriptor& _renderPassDescriptor, FrameBufferHandle _fbh, bool _msaa = true)
@@ -1730,8 +1736,9 @@ namespace bgfx { namespace webgpu
 
 			if (0 != _stencil)
 			{
-				const uint32_t readMask  = (fstencil&BGFX_STENCIL_FUNC_RMASK_MASK)>>BGFX_STENCIL_FUNC_RMASK_SHIFT;
-				const uint32_t writeMask = 0xff;
+				// TODO (hugoam)
+				//const uint32_t readMask  = (fstencil&BGFX_STENCIL_FUNC_RMASK_MASK)>>BGFX_STENCIL_FUNC_RMASK_SHIFT;
+				//const uint32_t writeMask = 0xff;
 
 				desc.stencilFront.failOp      = s_stencilOp[(fstencil&BGFX_STENCIL_OP_FAIL_S_MASK)>>BGFX_STENCIL_OP_FAIL_S_SHIFT];
 				desc.stencilFront.depthFailOp = s_stencilOp[(fstencil&BGFX_STENCIL_OP_FAIL_Z_MASK)>>BGFX_STENCIL_OP_FAIL_Z_SHIFT];
@@ -1939,7 +1946,7 @@ namespace bgfx { namespace webgpu
 				//uint32_t ref = (_state&BGFX_STATE_ALPHA_REF_MASK) >> BGFX_STATE_ALPHA_REF_SHIFT;
 				//viewState.m_alphaRef = ref / 255.0f;
 
-				const uint64_t primType = 0;
+				//const uint64_t primType = 0; // TODO
 				const uint64_t pt = _state & BGFX_STATE_PT_MASK;
 				uint8_t primIndex = uint8_t(pt >> BGFX_STATE_PT_SHIFT);
 
@@ -2488,12 +2495,13 @@ namespace bgfx { namespace webgpu
 		uint32_t shaderSize;
 		bx::read(&reader, shaderSize);
 
-		BX_TRACE("\tshader body is at %i size %i remaining %i", reader.getPos(), shaderSize, reader.remaining());
+		BX_TRACE("Shader body is at %i size %i remaining %i", reader.getPos(), shaderSize, reader.remaining());
 
-		const char* code = (const char*)reader.getDataPtr();
+		const uint32_t* code = (const uint32_t*)reader.getDataPtr();
 		bx::skip(&reader, shaderSize+1);
 
-		BX_TRACE("\tremaining %i", reader.remaining());
+		BX_TRACE("First word %08" PRIx32, code[0]);
+		BX_TRACE("Remaining %i", reader.remaining());
 
 		uint8_t numAttrs = 0;
 		bx::read(&reader, numAttrs);
@@ -2528,6 +2536,7 @@ namespace bgfx { namespace webgpu
 				else if (attr == Attrib::TexCoord5) return "TexCoord5";
 				else if (attr == Attrib::TexCoord6) return "TexCoord6";
 				else if (attr == Attrib::TexCoord7) return "TexCoord7";
+				return "Invalid";
 			};
 
 			Attrib::Enum attr = idToAttrib(id);
@@ -2988,13 +2997,14 @@ namespace bgfx { namespace webgpu
 
 	void TextureWgpu::update(uint8_t _side, uint8_t _mip, const Rect& _rect, uint16_t _z, uint16_t _depth, uint16_t _pitch, const Memory* _mem)
 	{
-		BX_UNUSED(_mip); BX_UNUSED(_depth);
+		BX_UNUSED(_side); BX_UNUSED(_mip); BX_UNUSED(_depth); BX_UNUSED(_z);
 
 		const uint32_t bpp       = bimg::getBitsPerPixel(bimg::TextureFormat::Enum(m_textureFormat) );
 		const uint32_t rectpitch = _rect.m_width*bpp/8;
 		const uint32_t srcpitch  = UINT16_MAX == _pitch ? rectpitch : _pitch;
-		const uint32_t slice     = ( (m_type == Texture3D) ? 0 : _side + _z * (m_type == TextureCube ? 6 : 1) );
-		const uint16_t zz        = (m_type == Texture3D) ? _z : 0 ;
+		// TODO
+		//const uint32_t slice     = ( (m_type == Texture3D) ? 0 : _side + _z * (m_type == TextureCube ? 6 : 1) );
+		//const uint16_t zz        = (m_type == Texture3D) ? _z : 0 ;
 
 		const bool convert = m_textureFormat != m_requestedFormat;
 
@@ -3122,6 +3132,8 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh)
 	{
+		BX_UNUSED(_nwh);
+
 		wgpu::SwapChainDescriptor desc;
 
 #if !BX_PLATFORM_EMSCRIPTEN
@@ -3138,6 +3150,7 @@ namespace bgfx { namespace webgpu
         wgpu::Surface surface = wgpu::Instance().CreateSurface(&surfDesc);
 
         wgpu::SwapChainDescriptor scDesc{};
+		scDesc.presentMode = wgpu::PresentMode::VSync;
         scDesc.format = wgpu::TextureFormat::BGRA8Unorm;
         scDesc.width = 200;
         scDesc.height = 300;
@@ -3338,9 +3351,9 @@ namespace bgfx { namespace webgpu
 		return denseIdx;
 	}
 
-	void CommandQueueWgpu::init(wgpu::Device _device, wgpu::Queue _queue)
+	void CommandQueueWgpu::init(wgpu::Queue _queue)
 	{
-		m_queue = _queue; // _device.CreateQueue();
+		m_queue = _queue;
 #if BGFX_CONFIG_MULTITHREADED
 		m_framesSemaphore.post(WEBGPU_MAX_FRAMES_IN_FLIGHT);
 #endif
@@ -3360,13 +3373,14 @@ namespace bgfx { namespace webgpu
 
 	inline void commandBufferFinishedCallback(void* _data)
 	{
-		CommandQueueWgpu* queue = (CommandQueueWgpu*)_data;
-
 #if BGFX_CONFIG_MULTITHREADED
+		CommandQueueWgpu* queue = (CommandQueueWgpu*)_data;
 		if (queue)
 		{
 			queue->m_framesSemaphore.post();
 		}
+#else
+		BX_UNUSED(_data);
 #endif
 	}
 
@@ -3460,10 +3474,12 @@ namespace bgfx { namespace webgpu
 		BX_UNUSED(_idx);
 	}
 
+#if 0
 	static void setTimestamp(void* _data)
 	{
 		*( (int64_t*)_data) = bx::getHPCounter();
 	}
+#endif
 
 	void TimerQueryWgpu::addHandlers(wgpu::CommandBuffer& _commandBuffer)
 	{
@@ -4078,7 +4094,8 @@ namespace bgfx { namespace webgpu
 					}
 				}
 
-				const bool depthWrite = !!(BGFX_STATE_WRITE_Z & draw.m_stateFlags);
+				// TODO (hugoam)
+				//const bool depthWrite = !!(BGFX_STATE_WRITE_Z & draw.m_stateFlags);
 				const uint64_t newFlags = draw.m_stateFlags;
 				uint64_t changedFlags = currentState.m_stateFlags ^ draw.m_stateFlags;
 				currentState.m_stateFlags = newFlags;
