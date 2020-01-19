@@ -2548,7 +2548,7 @@ namespace bgfx { namespace webgpu
 		}
 
 		wgpu::ShaderModuleDescriptor desc;
-		desc.code = (uint32_t*)code;
+		desc.code = code;
 		desc.codeSize = shaderSize/4;
 
 		m_module = s_renderWgpu->m_device.CreateShaderModule(&desc);

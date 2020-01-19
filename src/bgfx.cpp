@@ -479,31 +479,45 @@ namespace bgfx
 		BGFX_EMBEDDED_SHADER_END()
 	};
 
-	ShaderHandle createEmbeddedShader(const EmbeddedShader* _es, RendererType::Enum _type, const char* _name)
+	const EmbeddedShader::Data* findEmbeddedShader(const bgfx::EmbeddedShader* _es, RendererType::Enum _type, const char* _name)
 	{
-		if(RendererType::Enum::WebGPU == _type)
-			_type = RendererType::Enum::Vulkan;
-			//_type = RendererType::Enum::Direct3D12;
+		if (RendererType::WebGPU == _type)
+			_type = RendererType::Vulkan;
 
 		for (const EmbeddedShader* es = _es; NULL != es->name; ++es)
 		{
-			if (0 == bx::strCmp(_name, es->name) )
+			if (0 == bx::strCmp(_name, es->name))
 			{
 				for (const EmbeddedShader::Data* esd = es->data; RendererType::Count != esd->type; ++esd)
 				{
 					if (_type == esd->type
-					&&  1 < esd->size)
+						&& 1 < esd->size)
 					{
-						ShaderHandle handle = createShader(makeRef(esd->data, esd->size) );
-						if (isValid(handle) )
-						{
-							setName(handle, _name);
-						}
-
-						return handle;
+						return esd;
 					}
 				}
 			}
+		}
+
+		return nullptr;
+	}
+
+	ShaderHandle createEmbeddedShader(const EmbeddedShader* _es, RendererType::Enum _type, const char* _name)
+	{
+		const EmbeddedShader::Data* esd = findEmbeddedShader(_es, _type, _name);
+		if(esd)
+		{
+			ShaderHandle handle = createShader(makeRef(esd->data, esd->size) );
+			if (isValid(handle) )
+			{
+				setName(handle, _name);
+			}
+			else
+			{
+				BX_CHECK(false, "Failed to create embedded shader %s", _name);
+			}
+
+			return handle;
 		}
 
 		ShaderHandle handle = BGFX_INVALID_HANDLE;
