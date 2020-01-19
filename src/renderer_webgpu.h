@@ -388,7 +388,7 @@ namespace bgfx {
 			{
 			}
 
-			void init(wgpu::Device _device);
+			void init(wgpu::Device _device, wgpu::Queue _queue);
 			void shutdown();
 			void begin();
 			void kick(bool _endFrame, bool _waitForFinish = false);

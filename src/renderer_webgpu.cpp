@@ -642,7 +642,9 @@ namespace bgfx { namespace webgpu
 				return false;
 			}
 
-			m_cmd.init(m_device);
+			m_queue = m_device.CreateQueue();
+
+			m_cmd.init(m_device, m_queue);
 			//BGFX_FATAL(NULL != m_cmd.m_commandQueue, Fatal::UnableToInitialize, "Unable to create Metal device.");
 
 			for (uint8_t ii = 0; ii < WEBGPU_MAX_FRAMES_IN_FLIGHT; ++ii)
@@ -2266,7 +2268,8 @@ namespace bgfx { namespace webgpu
 #if !BX_PLATFORM_EMSCRIPTEN
 		dawn_native::Instance m_instance;
 #endif
-		wgpu::Device     m_device;
+		wgpu::Device       m_device;
+		wgpu::Queue        m_queue;
 		OcclusionQueryWgpu m_occlusionQuery;
 		TimerQueryWgpu     m_gpuTimer;
 		CommandQueueWgpu   m_cmd;
@@ -2970,7 +2973,7 @@ namespace bgfx { namespace webgpu
 						encoder.CopyBufferToTexture(&bufferCopyView, &textureCopyView, &copySize);
 
 						wgpu::CommandBuffer copy = encoder.Finish();
-						wgpu::Queue queue = s_renderWgpu->m_device.CreateQueue();
+						wgpu::Queue queue = s_renderWgpu->m_queue;
 						queue.Submit(1, &copy);
 					}
 
@@ -3334,9 +3337,9 @@ namespace bgfx { namespace webgpu
 		return denseIdx;
 	}
 
-	void CommandQueueWgpu::init(wgpu::Device _device)
+	void CommandQueueWgpu::init(wgpu::Device _device, wgpu::Queue _queue)
 	{
-		m_queue = _device.CreateQueue();
+		m_queue = _queue; // _device.CreateQueue();
 #if BGFX_CONFIG_MULTITHREADED
 		m_framesSemaphore.post(WEBGPU_MAX_FRAMES_IN_FLIGHT);
 #endif
