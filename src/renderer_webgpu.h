@@ -323,11 +323,9 @@ namespace bgfx {
 
 #if !BX_PLATFORM_EMSCRIPTEN
 			DawnSwapChainImplementation m_impl;
+#endif
 
 			wgpu::SwapChain m_swapChain;
-#else
-
-#endif
 
 			wgpu::TextureView m_drawable;
 

@@ -357,6 +357,7 @@ function exampleProjectDefaults()
 		linkoptions {
 			"-s TOTAL_MEMORY=256MB",
 			"--memory-init-file 1",
+			"--preload-file " .. path.join(BGFX_DIR, "examples/runtime") .. "@/",
 		}
 
 		removeflags {

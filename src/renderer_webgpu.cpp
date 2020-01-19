@@ -3122,17 +3122,32 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh)
 	{
-#if !BX_PLATFORM_EMSCRIPTEN
-		m_impl = CreateSwapChain(_device, _nwh);
-
 		wgpu::SwapChainDescriptor desc;
+
+#if !BX_PLATFORM_EMSCRIPTEN
+		wgpu::SwapChainDescriptor desc;
+		m_impl = CreateSwapChain(_device, _nwh);
 		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
 		m_swapChain = _device.CreateSwapChain(&desc);
+#else
+		wgpu::SurfaceDescriptorFromHTMLCanvas canvasDesc{};
+        canvasDesc.target = "#canvas";
 
-		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
+        wgpu::SurfaceDescriptor surfDesc{};
+        surfDesc.nextInChain = &canvasDesc;
+        wgpu::Surface surface = wgpu::Instance().CreateSurface(&surfDesc);
 
-		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
+        wgpu::SwapChainDescriptor scDesc{};
+        scDesc.format = wgpu::TextureFormat::BGRA8Unorm;
+        scDesc.width = 200;
+        scDesc.height = 300;
+        m_swapChain = _device.CreateSwapChain(surface, &scDesc);
 #endif
+
+
+		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
+
+		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
 
 		m_colorFormat = wgpu::TextureFormat::RGBA8Unorm;
 		m_depthFormat = wgpu::TextureFormat::Depth24PlusStencil8;
@@ -3210,24 +3225,17 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::flip()
 	{
-#if BX_PLATFORM_EMSCRIPTEN
-#else
-		m_swapChain.Present(); // TODO (webgpu) swapChain.m_drawable);
-		m_drawable = m_swapChain.GetCurrentTextureView();
+#if !BX_PLATFORM_EMSCRIPTEN
+		m_swapChain.Present();
 #endif
+		m_drawable = m_swapChain.GetCurrentTextureView();
 	}
 
 	wgpu::TextureView SwapChainWgpu::current()
 	{
-#if BX_PLATFORM_EMSCRIPTEN
-		if (!m_drawable)
-			m_drawable = wgpu::TextureView(emscripten_webgpu_get_current_texture_view());
-		return m_drawable;
-#else
 		if (!m_drawable)
 			m_drawable = m_swapChain.GetCurrentTextureView();
 		return m_drawable;
-#endif
 	}
 
 	void FrameBufferWgpu::create(uint8_t _num, const Attachment* _attachment)
@@ -3305,10 +3313,7 @@ namespace bgfx { namespace webgpu
 		m_swapChain->init(s_renderWgpu->m_device, _nwh);
 		m_swapChain->resize(*this, _width, _height, 0);
 
-#if !BX_PLATFORM_EMSCRIPTEN
 		return m_swapChain->m_swapChain != nullptr;
-#endif
-		return true;
 	}
 
 	void FrameBufferWgpu::postReset()
