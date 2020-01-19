@@ -483,9 +483,7 @@ namespace bgfx { namespace webgpu
 	struct RendererContextWgpu;
 	static RendererContextWgpu* s_renderWgpu;
 
-#if 0
 	static bool s_ignoreError = false;
-#endif
 
 #if !BX_PLATFORM_EMSCRIPTEN
 	DawnSwapChainImplementation(*CreateSwapChain)(wgpu::Device device, void* nwh);
@@ -602,11 +600,17 @@ namespace bgfx { namespace webgpu
 			// Choose whether to use the backend procs and devices directly, or set up the wire.
 			WGPUDevice cDevice = backendDevice;
 			DawnProcTable procs = backendProcs;
+			dawnProcSetProcs(&procs);
+
+			m_device = wgpu::Device::Acquire(cDevice);
+#else
+			m_device = wgpu::Device(emscripten_webgpu_get_device());
+#endif
 
 			auto PrintDeviceError = [](WGPUErrorType errorType, const char* message, void*) {
 				BX_UNUSED(errorType);
 
-				if(s_ignoreError)
+				if (s_ignoreError)
 				{
 					BX_TRACE("Device error: %s", message);
 				}
@@ -617,13 +621,7 @@ namespace bgfx { namespace webgpu
 				s_ignoreError = false;
 			};
 
-			dawnProcSetProcs(&procs);
-			procs.deviceSetUncapturedErrorCallback(cDevice, PrintDeviceError, 0);
-
-			m_device = wgpu::Device::Acquire(cDevice);
-#else
-			m_device = wgpu::Device(emscripten_webgpu_get_device());
-#endif
+			m_device.SetUncapturedErrorCallback(PrintDeviceError, nullptr);
 
 			if (!m_device)
 			{
@@ -3134,8 +3132,6 @@ namespace bgfx { namespace webgpu
 	{
 		BX_UNUSED(_nwh);
 
-		wgpu::SwapChainDescriptor desc;
-
 #if !BX_PLATFORM_EMSCRIPTEN
 		wgpu::SwapChainDescriptor desc;
 		m_impl = CreateSwapChain(_device, _nwh);
@@ -3156,7 +3152,6 @@ namespace bgfx { namespace webgpu
         scDesc.height = 300;
         m_swapChain = _device.CreateSwapChain(surface, &scDesc);
 #endif
-
 
 		//m_swapChain.Configure(wgpu::TextureFormat::RGBA8Unorm, wgpu::TextureUsage::OutputAttachment, 640, 480);
 
