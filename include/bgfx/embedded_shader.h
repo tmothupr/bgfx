@@ -144,6 +144,8 @@ namespace bgfx
 	};
 
 	const EmbeddedShader::Data* findEmbeddedShader(const bgfx::EmbeddedShader* _es, RendererType::Enum _type, const char* _name);
+	const EmbeddedShader::Data* findBuiltinShader(RendererType::Enum _type, const char* _name);
+
 	ShaderHandle createEmbeddedShader(const bgfx::EmbeddedShader* _es, RendererType::Enum _type, const char* _name);
 
 } // namespace bgfx

@@ -9,10 +9,10 @@
 
 #include "bgfx/embedded_shader.h"
 
-#define IMGUI
-//#define EMBEDDED
+#define IMGUI 0
+#define EMBEDDED 1
 
-#ifdef EMBEDDED
+#if EMBEDDED
 #include "vs_cubes.bin.h"
 #include "fs_cubes.bin.h"
 
@@ -223,8 +223,10 @@ public:
 			bgfx::makeRef(s_cubePoints, sizeof(s_cubePoints) )
 			);
 
+		BX_TRACE("");
+
 		// Create program from shaders.
-#ifdef EMBEDDED
+#if EMBEDDED
 		bgfx::ShaderHandle vsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "vs_cubes");
 		bgfx::ShaderHandle fsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "fs_cubes");
 		m_program = bgfx::createProgram(vsh, fsh, true /* destroy shaders when program is destroyed */);
@@ -234,14 +236,14 @@ public:
 
 		m_timeOffset = bx::getHPCounter();
 
-#ifdef IMGUI
+#if IMGUI
 		imguiCreate();
 #endif
 	}
 
 	virtual int shutdown() override
 	{
-#ifdef IMGUI
+#if IMGUI
 		imguiDestroy();
 #endif
 
@@ -264,7 +266,7 @@ public:
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
-#ifdef IMGUI
+#if IMGUI
 			imguiBeginFrame(m_mouseState.m_mx
 				,  m_mouseState.m_my
 				, (m_mouseState.m_buttons[entry::MouseButton::Left  ] ? IMGUI_MBUT_LEFT   : 0)

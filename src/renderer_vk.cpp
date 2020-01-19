@@ -2663,9 +2663,6 @@ VK_IMPORT_DEVICE
 			wds[2].pBufferInfo = NULL;
 			wds[2].pTexelBufferView = NULL;
 
-			m_vsChanges = 0;
-			m_fsChanges = 0;
-
 			vkUpdateDescriptorSets(m_device, 3, wds, 0, NULL);
 			vkCmdBindDescriptorSets(
 				m_commandBuffer
@@ -2866,12 +2863,10 @@ VK_IMPORT_DEVICE
 			if (_flags&BGFX_UNIFORM_FRAGMENTBIT)
 			{
 				bx::memCopy(&m_fsScratch[_regIndex], _val, _numRegs*16);
-				m_fsChanges += _numRegs;
 			}
 			else
 			{
 				bx::memCopy(&m_vsScratch[_regIndex], _val, _numRegs*16);
-				m_vsChanges += _numRegs;
 			}
 		}
 
@@ -2919,9 +2914,6 @@ VK_IMPORT_DEVICE
 //					, NULL
 //					);
 //			}
-//
-//			m_vsChanges = 0;
-//			m_fsChanges = 0;
 //		}
 
 		void setFrameBuffer(FrameBufferHandle _fbh, bool _msaa = true)
@@ -4155,8 +4147,6 @@ VK_IMPORT_DEVICE
 
 		uint8_t m_fsScratch[64<<10];
 		uint8_t m_vsScratch[64<<10];
-		uint32_t m_fsChanges;
-		uint32_t m_vsChanges;
 
 		uint32_t m_backBufferColorIdx;
 		FrameBufferHandle m_fbh;
@@ -6046,9 +6036,6 @@ VK_DESTROY
 
 						offset = scratchBuffer.m_pos;
 
-						m_vsChanges = 0;
-						m_fsChanges = 0;
-
 						bx::memCopy(&scratchBuffer.m_data[scratchBuffer.m_pos], m_vsScratch, program.m_vsh->m_size);
 
 						scratchBuffer.m_pos += vsize;
@@ -6355,8 +6342,6 @@ VK_DESTROY
 							bx::memCopy(&scratchBuffer.m_data[scratchBuffer.m_pos + vsize], m_fsScratch, program.m_fsh->m_size);
 						}
 
-						m_vsChanges = 0;
-						m_fsChanges = 0;
 						scratchBuffer.m_pos += total;
 					}
 

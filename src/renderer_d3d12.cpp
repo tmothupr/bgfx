@@ -2291,12 +2291,10 @@ namespace bgfx { namespace d3d12
 			if (_flags&BGFX_UNIFORM_FRAGMENTBIT)
 			{
 				bx::memCopy(&m_fsScratch[_regIndex], _val, _numRegs*16);
-				m_fsChanges += _numRegs;
 			}
 			else
 			{
 				bx::memCopy(&m_vsScratch[_regIndex], _val, _numRegs*16);
-				m_vsChanges += _numRegs;
 			}
 		}
 
@@ -2324,15 +2322,11 @@ namespace bgfx { namespace d3d12
 				const uint32_t size = program.m_vsh->m_size;
 				bx::memCopy(data, m_vsScratch, size);
 				data += size;
-
-				m_vsChanges = 0;
 			}
 
 			if (NULL != program.m_fsh)
 			{
 				bx::memCopy(data, m_fsScratch, program.m_fsh->m_size);
-
-				m_fsChanges = 0;
 			}
 		}
 
@@ -3356,8 +3350,6 @@ namespace bgfx { namespace d3d12
 
 		uint8_t m_fsScratch[64<<10];
 		uint8_t m_vsScratch[64<<10];
-		uint32_t m_fsChanges = 0;
-		uint32_t m_vsChanges = 0;
 
 		FrameBufferHandle m_fbh;
 		uint32_t m_backBufferColorIdx = 0;
@@ -6072,25 +6064,17 @@ namespace bgfx { namespace d3d12
 									bind.m_srvHandle = srvHandle[0];
 									bind.m_samplerStateIdx = getSamplerState(samplerFlags, maxComputeBindings, _render->m_colorPalette);
 									bindCached = bindLru.add(bindHash, bind, 0);
-
-									uint16_t samplerStateIdx = bindCached->m_samplerStateIdx;
-									if (samplerStateIdx != currentSamplerStateIdx)
-									{
-										currentSamplerStateIdx = samplerStateIdx;
-										m_commandList->SetComputeRootDescriptorTable(Rdt::Sampler, m_samplerAllocator.get(samplerStateIdx) );
-									}
-									m_commandList->SetComputeRootDescriptorTable(Rdt::SRV, bindCached->m_srvHandle);
-									m_commandList->SetComputeRootDescriptorTable(Rdt::UAV, bindCached->m_srvHandle);
 								}
 							}
 						}
-						else
+
+						if (NULL == bindCached)
 						{
 							uint16_t samplerStateIdx = bindCached->m_samplerStateIdx;
 							if (samplerStateIdx != currentSamplerStateIdx)
 							{
 								currentSamplerStateIdx = samplerStateIdx;
-								m_commandList->SetComputeRootDescriptorTable(Rdt::Sampler, m_samplerAllocator.get(samplerStateIdx) );
+								m_commandList->SetComputeRootDescriptorTable(Rdt::Sampler, m_samplerAllocator.get(samplerStateIdx));
 							}
 							m_commandList->SetComputeRootDescriptorTable(Rdt::SRV, bindCached->m_srvHandle);
 							m_commandList->SetComputeRootDescriptorTable(Rdt::UAV, bindCached->m_srvHandle);
@@ -6388,19 +6372,10 @@ namespace bgfx { namespace d3d12
 								bind.m_srvHandle       = srvHandle[0];
 								bind.m_samplerStateIdx = getSamplerState(samplerFlags, BGFX_CONFIG_MAX_TEXTURE_SAMPLERS, _render->m_colorPalette);
 								bindCached = bindLru.add(bindHash, bind, 0);
-
-								uint16_t samplerStateIdx = bindCached->m_samplerStateIdx;
-								if (samplerStateIdx != currentSamplerStateIdx)
-								{
-									currentSamplerStateIdx = samplerStateIdx;
-									m_commandList->SetGraphicsRootDescriptorTable(Rdt::Sampler, m_samplerAllocator.get(samplerStateIdx) );
-								}
-
-								m_commandList->SetGraphicsRootDescriptorTable(Rdt::SRV, bindCached->m_srvHandle);
-								m_commandList->SetGraphicsRootDescriptorTable(Rdt::UAV, bindCached->m_srvHandle);
 							}
 						}
-						else
+
+						if (NULL != bindCached)
 						{
 							uint16_t samplerStateIdx = bindCached->m_samplerStateIdx;
 							if (samplerStateIdx != currentSamplerStateIdx)

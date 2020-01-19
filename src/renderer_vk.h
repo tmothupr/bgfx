@@ -314,14 +314,6 @@ VK_DESTROY
 	class ScratchBufferVK
 	{
 	public:
-		ScratchBufferVK()
-		{
-		}
-
-		~ScratchBufferVK()
-		{
-		}
-
 		void create(uint32_t _size, uint32_t _maxDescriptors);
 		void destroy();
 		void reset();
@@ -331,7 +323,7 @@ VK_DESTROY
 			return m_descriptorSet[m_currentDs - 1];
 		}
 
-		VkDescriptorSet* m_descriptorSet;
+		VkDescriptorSet* m_descriptorSet; // [1024];
 		VkBuffer m_buffer;
 		VkDeviceMemory m_deviceMem;
 		uint8_t* m_data;

@@ -502,6 +502,11 @@ namespace bgfx
 		return nullptr;
 	}
 
+	const EmbeddedShader::Data* findBuiltinShader(RendererType::Enum _type, const char* _name)
+	{
+		return findEmbeddedShader(s_embeddedShaders, _type, _name);
+	}
+
 	ShaderHandle createEmbeddedShader(const EmbeddedShader* _es, RendererType::Enum _type, const char* _name)
 	{
 		const EmbeddedShader::Data* esd = findEmbeddedShader(_es, _type, _name);
@@ -1905,7 +1910,9 @@ namespace bgfx
 
 		dumpCaps();
 
+#if! BX_PLATFORM_EMSCRIPTEN
 		m_textVideoMemBlitter.init();
+#endif
 		m_clearQuad.init();
 
 		m_submit->m_transientVb = createTransientVertexBuffer(_init.limits.transientVbSize);

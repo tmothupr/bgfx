@@ -199,25 +199,24 @@ namespace bgfx {
 			wgpu::BindGroupLayout m_uniforms;
 			wgpu::BindGroupLayout m_textures;
 			wgpu::BindGroupLayout m_samplers;
+			uint32_t			  m_bindGroupLayoutHash;
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			uint32_t	m_numSamplers;
 		};
 
+		struct BindStateWgpu
+		{
+			void clear();
+
+			wgpu::BindGroup m_uniformsGroup;
+			wgpu::BindGroup m_texturesGroup;
+			wgpu::BindGroup m_samplersGroup;
+		};
+
 		struct PipelineStateWgpu
 		{
-			PipelineStateWgpu()
-			{
-				m_numThreads[0] = 1;
-				m_numThreads[1] = 1;
-				m_numThreads[2] = 1;
-			}
-
-			~PipelineStateWgpu()
-			{
-			}
-
-			uint16_t 	m_numThreads[3];
+			uint16_t m_numThreads[3] = { 1, 1, 1 };
 
 			wgpu::BindGroupLayout m_bind;
 
@@ -229,6 +228,21 @@ namespace bgfx {
 		{
 			BX_DELETE(g_allocator, _ptr);
 		}
+
+		class ScratchBufferWgpu
+		{
+		public:
+			void create(uint32_t _size); // , uint32_t _maxBindGroups);
+			void destroy();
+			void reset();
+
+			BindStateWgpu m_bindStates[1024] = {};
+			wgpu::Buffer m_buffer;
+			uint32_t m_offset;
+			uint32_t m_size;
+			uint32_t m_currentBindState;
+			//uint32_t m_maxBindStates;
+		};
 
 		struct TextureWgpu
 		{
