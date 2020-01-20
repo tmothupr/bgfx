@@ -328,7 +328,7 @@ namespace bgfx {
 
 			~SwapChainWgpu();
 
-			void init(wgpu::Device _device, void* _nwh);
+			void init(wgpu::Device _device, void* _nwh, uint32_t _width, uint32_t _height);
 			void resize(FrameBufferWgpu& _frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags);
 
 			void flip();

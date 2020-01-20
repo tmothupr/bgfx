@@ -3135,7 +3135,7 @@ namespace bgfx { namespace webgpu
 		//}
 	}
 
-	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh)
+	void SwapChainWgpu::init(wgpu::Device _device, void* _nwh, uint32_t _width, uint32_t _height)
 	{
 		BX_UNUSED(_nwh);
 
@@ -3155,8 +3155,8 @@ namespace bgfx { namespace webgpu
         wgpu::SwapChainDescriptor scDesc{};
 		scDesc.presentMode = wgpu::PresentMode::VSync;
         scDesc.format = wgpu::TextureFormat::BGRA8Unorm;
-        scDesc.width = 200;
-        scDesc.height = 300;
+        scDesc.width = _width;
+        scDesc.height = _height;
         m_swapChain = _device.CreateSwapChain(surface, &scDesc);
 #endif
 
@@ -3322,7 +3322,7 @@ namespace bgfx { namespace webgpu
 		m_nwh       = _nwh;
 		m_denseIdx  = _denseIdx;
 
-		m_swapChain->init(s_renderWgpu->m_device, _nwh);
+		m_swapChain->init(s_renderWgpu->m_device, _nwh, _width, _height);
 		m_swapChain->resize(*this, _width, _height, 0);
 
 		return m_swapChain->m_swapChain != nullptr;
