@@ -1232,18 +1232,18 @@ namespace bgfx { namespace webgpu
 
 		void flip() override
 		{
-			if (!m_cmd.m_encoder)
-			{
-				return;
-			}
+			//if (!m_cmd.m_encoder)
+			//{
+			//	return;
+			//}
 
-			m_cmd.kick(true);
+			//m_cmd.kick(true);
 
 			for (uint32_t ii = 0, num = m_numWindows; ii < num; ++ii)
 			{
 				FrameBufferWgpu& frameBuffer = ii == 0 ? m_mainFrameBuffer : m_frameBuffers[m_windows[ii].idx];
-				if (NULL != frameBuffer.m_swapChain
-				&& frameBuffer.m_swapChain->m_drawable)
+				if (NULL != frameBuffer.m_swapChain)
+				//&& frameBuffer.m_swapChain->m_drawable)
 				{
 					SwapChainWgpu& swapChain = *frameBuffer.m_swapChain;
 					swapChain.flip();
@@ -1251,7 +1251,7 @@ namespace bgfx { namespace webgpu
 			}
 
 			//m_cmd.kick(true);
-			m_cmd.m_encoder = 0;
+			m_cmd.m_encoder = nullptr;
 		}
 
 		void updateResolution(const Resolution& _resolution)
@@ -1548,13 +1548,13 @@ namespace bgfx { namespace webgpu
 			scratchBuffer.m_buffer.SetSubData(voffset, bx::uint32_min(vsize, sizeof(mrtClearDepth)), (uint8_t*)mrtClearDepth);
 
 			uniforms[0].buffer = scratchBuffer.m_buffer;
-			uniforms[0].offset = voffset;
+			uniforms[0].offset = 0;
 			uniforms[0].size = vsize;
 
 			scratchBuffer.m_buffer.SetSubData(foffset, bx::uint32_min(fsize, sizeof(mrtClearColor)), (uint8_t*)mrtClearColor);
 
 			uniforms[1].buffer = scratchBuffer.m_buffer;
-			uniforms[1].offset = foffset;
+			uniforms[1].offset = 0;
 			uniforms[1].size = fsize;
 
 			wgpu::BindGroupDescriptor uniformsDesc;
@@ -1562,8 +1562,11 @@ namespace bgfx { namespace webgpu
 			uniformsDesc.bindingCount = 2;
 			uniformsDesc.bindings = uniforms;
 
+			uint32_t numOffset = 0;
+			uint32_t offsets[2] = { voffset, foffset };
+
 			wgpu::BindGroup bindGroup = m_device.CreateBindGroup(&uniformsDesc);
-			m_renderEncoder.SetBindGroup(0, bindGroup, 0, nullptr);
+			m_renderEncoder.SetBindGroup(0, bindGroup, numOffset, offsets);
 
 
 			const VertexBufferWgpu& vb = m_vertexBuffers[_clearQuad.m_vb.idx];
@@ -3038,9 +3041,9 @@ namespace bgfx { namespace webgpu
 
 	void BindStateWgpu::clear()
 	{
-		m_uniformsGroup.Release();
-		m_texturesGroup.Release();
-		m_samplersGroup.Release();
+		m_uniformsGroup = nullptr;
+		m_texturesGroup = nullptr;
+		m_samplersGroup = nullptr;
 	}
 
 	void ScratchBufferWgpu::create(uint32_t _size) //, uint32_t _maxBindGroups)
@@ -3200,8 +3203,6 @@ namespace bgfx { namespace webgpu
 
 		desc.dimension = wgpu::TextureDimension::e2D;
 
-		desc.format = wgpu::TextureFormat::Depth24PlusStencil8;
-		
 		desc.size.width  = _width;
 		desc.size.height = _height;
 		desc.size.depth  = 1;
@@ -3218,6 +3219,8 @@ namespace bgfx { namespace webgpu
 		{
 			m_backBufferDepth.Destroy();
 		}
+
+		desc.format = wgpu::TextureFormat::Depth24PlusStencil8;
 
 		m_backBufferDepth = s_renderWgpu->m_device.CreateTexture(&desc);
 
@@ -3237,9 +3240,6 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::flip()
 	{
-#if !BX_PLATFORM_EMSCRIPTEN
-		m_swapChain.Present();
-#endif
 		m_drawable = m_swapChain.GetCurrentTextureView();
 	}
 
@@ -3404,7 +3404,7 @@ namespace bgfx { namespace webgpu
 #endif
 			}
 
-			m_encoder.Release();
+			m_encoder = nullptr;
 		}
 	}
 
@@ -4447,35 +4447,26 @@ namespace bgfx { namespace webgpu
 						scratchBuffer.m_currentBindState++;
 
 						BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
-
 						bindState.m_uniformsGroup = m_device.CreateBindGroup(&uniformsDesc);
 						bindState.m_texturesGroup = m_device.CreateBindGroup(&texturesDesc);
 						bindState.m_samplersGroup = m_device.CreateBindGroup(&samplersDesc);
-
-						return bindState;
 					};
 
 					uint32_t bindHash = bx::hash<bx::HashMurmur2A>(renderBind.m_bind, sizeof(renderBind.m_bind));
 					if (currentBindHash != bindHash
-					 || currentBindLayoutHash != program.m_bindGroupLayoutHash)
+					||  currentBindLayoutHash != program.m_bindGroupLayoutHash)
 					{
 						currentBindHash = bindHash;
 						currentBindLayoutHash = program.m_bindGroupLayoutHash;
 
-						BindStateWgpu& bindState = allocBindState(program, renderBind);
-
-						rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-						rce.SetBindGroup(1, bindState.m_texturesGroup);
-						rce.SetBindGroup(2, bindState.m_samplersGroup);
+						allocBindState(program, renderBind);
 					}
-					else
-					{
-						BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
 
-						rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-						rce.SetBindGroup(1, bindState.m_texturesGroup);
-						rce.SetBindGroup(2, bindState.m_samplersGroup);
-					}
+					BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
+
+					rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
+					rce.SetBindGroup(1, bindState.m_texturesGroup);
+					rce.SetBindGroup(2, bindState.m_samplersGroup);
 				}
 
 				if (0 != currentState.m_streamMask)
@@ -4756,6 +4747,19 @@ namespace bgfx { namespace webgpu
 
 		endEncoding();
 		m_renderCommandEncoderFrameBufferHandle.idx = kInvalidHandle;
+
+		m_cmd.kick(true);
+
+		for (uint32_t ii = 0, num = m_numWindows; ii < num; ++ii)
+		{
+			FrameBufferWgpu& frameBuffer = ii == 0 ? m_mainFrameBuffer : m_frameBuffers[m_windows[ii].idx];
+			if (NULL != frameBuffer.m_swapChain
+			&& frameBuffer.m_swapChain->m_drawable)
+			{
+				SwapChainWgpu& swapChain = *frameBuffer.m_swapChain;
+				swapChain.m_swapChain.Present();
+			}
+		}
 	}
 
 } /* namespace webgpu */ } // namespace bgfx

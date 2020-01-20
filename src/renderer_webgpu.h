@@ -145,7 +145,7 @@ namespace bgfx {
 			void create(ShaderHandle _handle, const Memory* _mem);
 			void destroy()
 			{
-				m_module.Release();
+				m_module = nullptr;
 			}
 
 			String name() { return getName(m_handle); }
