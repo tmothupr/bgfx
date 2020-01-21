@@ -4623,7 +4623,10 @@ namespace bgfx { namespace webgpu
 		{
 			rce = renderPass(_render, BGFX_INVALID_HANDLE, false, Clear());
 
-			rce.PushDebugGroup("debugstats");
+			if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+			{
+				rce.PushDebugGroup("debugstats");
+			}
 
 			TextVideoMem& tvm = m_textVideoMem;
 
@@ -4704,16 +4707,25 @@ namespace bgfx { namespace webgpu
 			blit(this, _textVideoMemBlitter, tvm);
 			rce = m_renderEncoder;
 
-			rce.PopDebugGroup();
+			if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+			{
+				rce.PopDebugGroup();
+			}
 		}
 		else if (_render->m_debug & BGFX_DEBUG_TEXT)
 		{
-			rce.PushDebugGroup("debugtext");
+			if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+			{
+				rce.PushDebugGroup("debugtext");
+			}
 
 			blit(this, _textVideoMemBlitter, _render->m_textVideoMem);
 			rce = m_renderEncoder;
 
-			rce.PopDebugGroup();
+			if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+			{
+				rce.PopDebugGroup();
+			}
 		}
 
 		endEncoding();
