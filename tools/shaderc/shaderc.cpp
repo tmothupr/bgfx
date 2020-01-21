@@ -2122,9 +2122,9 @@ namespace bgfx
 
 						if (0 != spirv)
 						{
-							preprocessor.writef(
-								"\tgl_Position.y = -gl_Position.y; \\\n"
-								);
+//							preprocessor.writef(
+//								"\tgl_Position.y = -gl_Position.y; \\\n"
+//								);
 						}
 
 						preprocessor.writef(
