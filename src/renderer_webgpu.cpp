@@ -2509,7 +2509,7 @@ namespace bgfx { namespace webgpu
 		}
 
 		wgpu::BindGroupLayoutBinding uniforms[2];
-		uint8_t numUniforms = NULL != _fsh ? 2 : 1;
+		m_numUniforms = 0 + (_vsh->m_size > 0 ? 1 : 0) + (NULL != _fsh && _fsh->m_size > 0 ? 1 : 0);
 
 		// bind uniform buffer at slot 0
 		uniforms[0].binding = 0;
@@ -2517,10 +2517,13 @@ namespace bgfx { namespace webgpu
 		uniforms[0].type = wgpu::BindingType::UniformBuffer;
 		uniforms[0].hasDynamicOffset = true;
 
-		uniforms[1].binding = 1;
-		uniforms[1].visibility = wgpu::ShaderStage::Fragment;
-		uniforms[1].type = wgpu::BindingType::UniformBuffer;
-		uniforms[0].hasDynamicOffset = true;
+		if (m_numUniforms > 1)
+		{
+			uniforms[1].binding = 1;
+			uniforms[1].visibility = wgpu::ShaderStage::Fragment;
+			uniforms[1].type = wgpu::BindingType::UniformBuffer;
+			uniforms[1].hasDynamicOffset = true;
+		}
 
 		wgpu::BindGroupLayoutBinding textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 		wgpu::BindGroupLayoutBinding samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
@@ -2546,7 +2549,7 @@ namespace bgfx { namespace webgpu
 		m_numSamplers = numSamplers;
 
 		wgpu::BindGroupLayoutDescriptor uniformsDesc;
-		uniformsDesc.bindingCount = numUniforms;
+		uniformsDesc.bindingCount = m_numUniforms;
 		uniformsDesc.bindings = uniforms;
 		m_uniforms = s_renderWgpu->m_device.CreateBindGroupLayout(&uniformsDesc);
 
@@ -2562,6 +2565,7 @@ namespace bgfx { namespace webgpu
 
 		bx::HashMurmur2A murmur;
 		murmur.begin();
+		murmur.add(m_numUniforms);
 		murmur.add(textures, sizeof(wgpu::BindGroupLayoutBinding) * numSamplers);
 		murmur.add(samplers, sizeof(wgpu::BindGroupLayoutBinding) * numSamplers);
 		m_bindGroupLayoutHash = murmur.end();
@@ -3688,6 +3692,7 @@ namespace bgfx { namespace webgpu
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
 		uint32_t currentBindHash = 0;
 		uint32_t currentBindLayoutHash = 0;
+		BindStateWgpu* previousBindState = nullptr;
 		SortKey key;
 		uint16_t view = UINT16_MAX;
 		FrameBufferHandle fbh = { BGFX_CONFIG_MAX_FRAME_BUFFERS };
@@ -4318,14 +4323,15 @@ namespace bgfx { namespace webgpu
 
 					auto allocBindState = [this, &scratchBuffer](const ProgramWgpu& program, const RenderBind& renderBind)
 					{
-						scratchBuffer.m_currentBindState++;
-
 						BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
+						scratchBuffer.m_currentBindState++;
 
 						const uint32_t align = kMinUniformBufferOffsetAlignment;
 
 						const uint32_t vsize = bx::strideAlign(program.m_vsh->m_size, align);
 						const uint32_t fsize = bx::strideAlign((NULL != program.m_fsh ? program.m_fsh->m_size : 0), align);
+
+						bindState.numOffset = program.m_numUniforms;
 
 						// first two bindings are always uniform buffer (vertex/fragment)
 						bindState.m_uniforms[0].binding = 0;
@@ -4387,7 +4393,7 @@ namespace bgfx { namespace webgpu
 
 						wgpu::BindGroupDescriptor uniformsDesc;
 						uniformsDesc.layout = program.m_uniforms;
-						uniformsDesc.bindingCount = 2;
+						uniformsDesc.bindingCount = program.m_numUniforms;
 						uniformsDesc.bindings = bindState.m_uniforms;
 
 						wgpu::BindGroupDescriptor texturesDesc;
@@ -4413,12 +4419,14 @@ namespace bgfx { namespace webgpu
 					{
 						currentBindHash = bindHash;
 						currentBindLayoutHash = program.m_bindGroupLayoutHash;
+						previousBindState = &scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
 
 						allocBindState(program, renderBind);
 					}
 
-					BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
+					BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState-1];
 
+					BX_CHECK(bindState.numOffset == numOffset, "We're obviously doing something wrong");
 					rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
 					rce.SetBindGroup(1, bindState.m_texturesGroup);
 					rce.SetBindGroup(2, bindState.m_samplersGroup);

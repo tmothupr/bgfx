@@ -148,7 +148,7 @@ namespace bgfx {
 				m_module = nullptr;
 			}
 
-			String name() { return getName(m_handle); }
+			String name() const { return getName(m_handle); }
 
 			ShaderHandle m_handle;
 
@@ -202,6 +202,7 @@ namespace bgfx {
 			wgpu::BindGroupLayout m_uniforms;
 			wgpu::BindGroupLayout m_textures;
 			wgpu::BindGroupLayout m_samplers;
+			uint32_t			  m_numUniforms;
 			uint32_t			  m_bindGroupLayoutHash;
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
@@ -258,6 +259,8 @@ namespace bgfx {
 		struct BindStateWgpu
 		{
 			void clear();
+
+			uint32_t numOffset;
 
 			wgpu::BindGroupBinding m_uniforms[2];
 			wgpu::BindGroupBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];

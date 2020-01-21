@@ -9,7 +9,8 @@
 
 #include "bgfx/embedded_shader.h"
 
-#define IMGUI 0
+#define CUBES 1
+#define IMGUI 1
 #define EMBEDDED 1
 
 #if EMBEDDED
@@ -340,6 +341,7 @@ public:
 				| s_ptState[m_pt]
 				;
 
+#if CUBES
 			// Submit 11x11 cubes.
 			for (uint32_t yy = 0; yy < 11; ++yy)
 			{
@@ -365,6 +367,7 @@ public:
 					bgfx::submit(0, m_program);
 				}
 			}
+#endif
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
