@@ -30,12 +30,6 @@
 
 namespace bgfx { namespace webgpu
 {
-	constexpr size_t kMaxVertexInputs = 16;
-	constexpr size_t kMaxVertexAttributes = 16;
-	constexpr size_t kMaxColorAttachments = BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS;
-
-	constexpr uint32_t kMinUniformBufferOffsetAlignment = 256;
-
 	template <class T>
 	T defaultDescriptor() { return T(); }
 
@@ -52,48 +46,6 @@ namespace bgfx { namespace webgpu
 
 	template <> wgpu::RenderPassColorAttachmentDescriptor defaultDescriptor() { return { {}, {}, wgpu::LoadOp::Clear, wgpu::StoreOp::Store, { 0.0f, 0.0f, 0.0f, 0.0f } }; }
 	template <> wgpu::RenderPassDepthStencilAttachmentDescriptor defaultDescriptor() { return { {}, wgpu::LoadOp::Clear, wgpu::StoreOp::Store, 1.0f, wgpu::LoadOp::Clear, wgpu::StoreOp::Store, 0 }; }
-
-	struct RenderPassDescriptor 
-	{
-		RenderPassDescriptor();
-
-		wgpu::RenderPassDescriptor desc;
-
-		wgpu::RenderPassColorAttachmentDescriptor colorAttachments[kMaxColorAttachments];
-		//uint32_t colorAttachmentCount = 0;
-
-		wgpu::RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
-	};
-
-
-	struct VertexStateDescriptor
-	{
-		VertexStateDescriptor();
-
-		wgpu::VertexStateDescriptor desc;
-
-		wgpu::VertexBufferLayoutDescriptor vertexBuffers[kMaxVertexInputs];
-		//uint32_t numVertexBuffers = 0;
-
-		wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
-		//uint32_t numAttributes = 0;
-	};
-
-	struct RenderPipelineDescriptor 
-	{
-		RenderPipelineDescriptor();
-
-		wgpu::RenderPipelineDescriptor desc;
-
-		//wgpu::ProgrammableStageDescriptor vertexStage;
-		wgpu::ProgrammableStageDescriptor fragmentStage;
-
-		wgpu::VertexStateDescriptor inputState;
-
-		wgpu::RasterizationStateDescriptor rasterizationState;
-		wgpu::DepthStencilStateDescriptor depthStencilState;
-		wgpu::ColorStateDescriptor colorStates[kMaxColorAttachments];
-	};
 
 	RenderPassDescriptor::RenderPassDescriptor()
 	{
@@ -1773,9 +1725,9 @@ namespace bgfx { namespace webgpu
 			{
 				pso = BX_NEW(g_allocator, PipelineStateWgpu);
 
-				RenderPipelineDescriptor pd;
-
 				//pd.alphaToCoverageEnabled = !!(BGFX_STATE_BLEND_ALPHA_TO_COVERAGE & _state);
+
+				RenderPipelineDescriptor& pd = pso->m_rpd;
 
 				uint32_t frameBufferAttachment = 1;
 				uint32_t sampleCount = 1;
@@ -2451,6 +2403,12 @@ namespace bgfx { namespace webgpu
 
 		const uint32_t* code = (const uint32_t*)reader.getDataPtr();
 		bx::skip(&reader, shaderSize+1);
+
+		m_code = (uint32_t*)BX_ALLOC(g_allocator, shaderSize);
+		m_codeSize = shaderSize;
+
+		bx::memCopy(m_code, code, shaderSize);
+		// TODO (hugoam) delete this
 
 		BX_TRACE("First word %08" PRIx32, code[0]);
 		BX_TRACE("Remaining %i", reader.remaining());

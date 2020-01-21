@@ -154,6 +154,9 @@ namespace bgfx {
 
 			wgpu::ShaderModule m_module;
 
+			uint32_t* m_code = nullptr;
+			size_t m_codeSize = 0;
+
 			UniformBuffer* m_constantBuffer[UniformSet::Count] = {};
 
 			PredefinedUniform m_predefined[PredefinedUniform::Count];
@@ -205,6 +208,53 @@ namespace bgfx {
 			uint32_t	m_numSamplers;
 		};
 
+		constexpr size_t kMaxVertexInputs = 16;
+		constexpr size_t kMaxVertexAttributes = 16;
+		constexpr size_t kMaxColorAttachments = BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS;
+
+		constexpr uint32_t kMinUniformBufferOffsetAlignment = 256;
+
+		struct RenderPassDescriptor
+		{
+			RenderPassDescriptor();
+
+			wgpu::RenderPassDescriptor desc;
+
+			wgpu::RenderPassColorAttachmentDescriptor colorAttachments[kMaxColorAttachments];
+			//uint32_t colorAttachmentCount = 0;
+
+			wgpu::RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
+		};
+
+		struct VertexStateDescriptor
+		{
+			VertexStateDescriptor();
+
+			wgpu::VertexStateDescriptor desc;
+
+			wgpu::VertexBufferLayoutDescriptor vertexBuffers[kMaxVertexInputs];
+			//uint32_t numVertexBuffers = 0;
+
+			wgpu::VertexAttributeDescriptor attributes[kMaxVertexAttributes];
+			//uint32_t numAttributes = 0;
+		};
+
+		struct RenderPipelineDescriptor
+		{
+			RenderPipelineDescriptor();
+
+			wgpu::RenderPipelineDescriptor desc;
+
+			//wgpu::ProgrammableStageDescriptor vertexStage;
+			wgpu::ProgrammableStageDescriptor fragmentStage;
+
+			wgpu::VertexStateDescriptor inputState;
+
+			wgpu::RasterizationStateDescriptor rasterizationState;
+			wgpu::DepthStencilStateDescriptor depthStencilState;
+			wgpu::ColorStateDescriptor colorStates[kMaxColorAttachments];
+		};
+
 		struct BindStateWgpu
 		{
 			void clear();
@@ -216,6 +266,8 @@ namespace bgfx {
 
 		struct PipelineStateWgpu
 		{
+			RenderPipelineDescriptor m_rpd;
+
 			uint16_t m_numThreads[3] = { 1, 1, 1 };
 
 			wgpu::BindGroupLayout m_bind;
