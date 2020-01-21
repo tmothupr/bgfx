@@ -568,6 +568,31 @@ or _OPTIONS["with-combined-examples"] then
 		, "41-tess"
 		)
 
+	project "example-03-raymarch"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_raymarching.bin") .. "@/shaders/spirv/vs_raymarching.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_raymarching.bin") .. "@/shaders/spirv/fs_raymarching.bin",
+			}
+
+	project "example-04-mesh"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_mesh.bin") .. "@/shaders/spirv/vs_mesh.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_mesh.bin") .. "@/shaders/spirv/fs_mesh.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/meshes/bunny.bin") .. "@/meshes/bunny.bin",
+			}
+
+	project "example-06-bump"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_bump.bin") .. "@/shaders/spirv/vs_bump.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_bump.bin") .. "@/shaders/spirv/fs_bump.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/fieldstone-rgba.png") .. "@/textures/fieldstone-rgba.png",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/fieldstone-n.png") .. "@/textures/fieldstone-n.png",
+		      --"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/") .. "@/",
+			}
+
 	-- C99 source doesn't compile under WinRT settings
 	if not premake.vstudio.iswinrt() then
 		exampleProject(false, "25-c99")

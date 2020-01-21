@@ -254,10 +254,11 @@ public:
 			// process submitted rendering primitives.
 			//bgfx::frame();
 
-			const uint32_t capture_freq = 60;
+			//const uint32_t capture_freq = 60;
 			static bool capture = false;
 			uint32_t frame = bgfx::frame(capture);
 			//capture = frame % capture_freq == 0;
+			BX_UNUSED(frame);
 
 			return true;
 		}
