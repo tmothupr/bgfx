@@ -144,8 +144,8 @@ namespace entry
 			{
 				case EMSCRIPTEN_EVENT_MOUSEMOVE:
 				{
-					s_ctx.m_mx = event->canvasX;
-					s_ctx.m_my = event->canvasY;
+					s_ctx.m_mx = event->targetX;
+					s_ctx.m_my = event->targetY;
 					s_ctx.m_eventQueue.postMouseEvent(s_defaultWindow, s_ctx.m_mx, s_ctx.m_my, s_ctx.m_scroll);
 					return true;
 				}
@@ -153,8 +153,8 @@ namespace entry
 				case EMSCRIPTEN_EVENT_MOUSEUP:
 				case EMSCRIPTEN_EVENT_DBLCLICK:
 				{
-					s_ctx.m_mx = event->canvasX;
-					s_ctx.m_my = event->canvasY;
+					s_ctx.m_mx = event->targetX;
+					s_ctx.m_my = event->targetY;
 					MouseButton::Enum mb = (event->button == 2) ? MouseButton::Right : ((event->button == 1) ? MouseButton::Middle : MouseButton::Left);
 					s_ctx.m_eventQueue.postMouseEvent(s_defaultWindow, s_ctx.m_mx, s_ctx.m_my, s_ctx.m_scroll, mb, (eventType != EMSCRIPTEN_EVENT_MOUSEUP));
 					return true;
