@@ -1845,6 +1845,8 @@ namespace bgfx { namespace webgpu
 				const uint8_t cullIndex = uint8_t(cull >> BGFX_STATE_CULL_SHIFT);
 				pd.rasterizationState.cullMode = s_cullMode[cullIndex];
 
+				pd.rasterizationState.frontFace = (_state & BGFX_STATE_FRONT_CCW) ? wgpu::FrontFace::CCW : wgpu::FrontFace::CW;
+
 				// pd.desc = m_renderPipelineDescriptor;
 				pd.desc.sampleCount = sampleCount;
 				pd.desc.depthStencilState = &pd.depthStencilState;
