@@ -178,6 +178,7 @@ function exampleProjectDefaults()
 		path.join(BGFX_DIR, "include"),
 		path.join(BGFX_DIR, "3rdparty"),
 		path.join(BGFX_DIR, "examples/common"),
+		path.join(BGFX_DIR, "src"),
 	}
 
 	flags {
@@ -356,10 +357,11 @@ function exampleProjectDefaults()
 
 		linkoptions {
 			"-s TOTAL_MEMORY=256MB",
-			"--memory-init-file 1",
-			"--preload-file " .. path.join(BGFX_DIR, "examples/runtime") .. "@/",
+			--"--memory-init-file 1",
+			--"--preload-file " .. path.join(BGFX_DIR, "examples/runtime") .. "@/",
 		}
 
+	configuration { "asmjs", "Release" }
 		removeflags {
 			"OptimizeSpeed",
 		}
@@ -370,7 +372,7 @@ function exampleProjectDefaults()
 
 	configuration { "asmjs", "Debug" }
 		linkoptions {
-			"-g2",
+			"-g3",
 		}
 		
 	configuration { "linux-* or freebsd", "not linux-steamlink" }

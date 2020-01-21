@@ -122,6 +122,7 @@ static const uint16_t s_cubePoints[] =
 	0, 1, 2, 3, 4, 5, 6, 7
 };
 
+#if IMGUI
 static const char* s_ptNames[]
 {
 	"Triangle List",
@@ -130,6 +131,7 @@ static const char* s_ptNames[]
 	"Line Strip",
 	"Points",
 };
+#endif
 
 static const uint64_t s_ptState[]
 {
@@ -139,7 +141,10 @@ static const uint64_t s_ptState[]
 	BGFX_STATE_PT_LINESTRIP,
 	BGFX_STATE_PT_POINTS,
 };
+
+#if IMGUI
 BX_STATIC_ASSERT(BX_COUNTOF(s_ptState) == BX_COUNTOF(s_ptNames) );
+#endif
 
 class ExampleCubes : public entry::AppI
 {

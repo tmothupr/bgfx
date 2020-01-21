@@ -461,7 +461,7 @@ namespace bgfx { namespace webgpu
 			m_instance.DiscoverDefaultAdapters();
 
 			dawn_native::Adapter backendAdapter;
-			backendAdapter = m_instance.GetAdapter();
+			//backendAdapter = m_instance.GetAdapter();
 
 #if 0
 			std::vector<dawn_native::Adapter> adapters = m_instance.GetAdapters();
@@ -2061,7 +2061,8 @@ namespace bgfx { namespace webgpu
 
 		wgpu::RenderPassEncoder renderPass(bgfx::Frame* _render, bgfx::FrameBufferHandle fbh, bool clear, Clear clr)
 		{
-			RenderPassDescriptor renderPassDescriptor;
+			// TODO store it
+			static RenderPassDescriptor renderPassDescriptor;
 			//renderPassDescriptor.visibilityResultBuffer = m_occlusionQuery.m_buffer;
 
 			setFrameBuffer(renderPassDescriptor, fbh);
@@ -2399,7 +2400,7 @@ namespace bgfx { namespace webgpu
 		uint32_t shaderSize;
 		bx::read(&reader, shaderSize);
 
-		BX_TRACE("Shader body is at %i size %i remaining %i", reader.getPos(), shaderSize, reader.remaining());
+		BX_TRACE("Shader body is at %lld size %u remaining %lld", reader.getPos(), shaderSize, reader.remaining());
 
 		const uint32_t* code = (const uint32_t*)reader.getDataPtr();
 		bx::skip(&reader, shaderSize+1);
@@ -2411,7 +2412,6 @@ namespace bgfx { namespace webgpu
 		// TODO (hugoam) delete this
 
 		BX_TRACE("First word %08" PRIx32, code[0]);
-		BX_TRACE("Remaining %i", reader.remaining());
 
 		uint8_t numAttrs = 0;
 		bx::read(&reader, numAttrs);
@@ -2460,7 +2460,7 @@ namespace bgfx { namespace webgpu
 		}
 
 		wgpu::ShaderModuleDescriptor desc;
-		desc.code = code;
+		desc.code = m_code;
 		desc.codeSize = shaderSize/4;
 
 		m_module = s_renderWgpu->m_device.CreateShaderModule(&desc);
@@ -3115,10 +3115,11 @@ namespace bgfx { namespace webgpu
         wgpu::Surface surface = wgpu::Instance().CreateSurface(&surfDesc);
 
         wgpu::SwapChainDescriptor scDesc{};
-		scDesc.presentMode = wgpu::PresentMode::VSync;
+		scDesc.usage = wgpu::TextureUsage::OutputAttachment;
         scDesc.format = wgpu::TextureFormat::BGRA8Unorm;
         scDesc.width = _width;
         scDesc.height = _height;
+		scDesc.presentMode = wgpu::PresentMode::VSync;
         m_swapChain = _device.CreateSwapChain(surface, &scDesc);
 #endif
 
@@ -3135,6 +3136,8 @@ namespace bgfx { namespace webgpu
 
 	void SwapChainWgpu::resize(FrameBufferWgpu &_frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags)
 	{
+		BX_TRACE("SwapChainWgpu::resize");
+		
 		const int32_t sampleCount = s_msaa[(_flags&BGFX_RESET_MSAA_MASK)>>BGFX_RESET_MSAA_SHIFT];
 
 #if BX_PLATFORM_OSX > 101300
@@ -4713,6 +4716,7 @@ namespace bgfx { namespace webgpu
 
 		m_cmd.kick(true);
 
+#if !BX_PLATFORM_EMSCRIPTEN
 		for (uint32_t ii = 0, num = m_numWindows; ii < num; ++ii)
 		{
 			FrameBufferWgpu& frameBuffer = ii == 0 ? m_mainFrameBuffer : m_frameBuffers[m_windows[ii].idx];
@@ -4723,6 +4727,7 @@ namespace bgfx { namespace webgpu
 				swapChain.m_swapChain.Present();
 			}
 		}
+#endif
 	}
 
 } /* namespace webgpu */ } // namespace bgfx
