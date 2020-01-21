@@ -4318,9 +4318,9 @@ namespace bgfx { namespace webgpu
 
 					auto allocBindState = [this, &scratchBuffer](const ProgramWgpu& program, const RenderBind& renderBind)
 					{
-						wgpu::BindGroupBinding uniforms[2];
-						wgpu::BindGroupBinding textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-						wgpu::BindGroupBinding samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+						scratchBuffer.m_currentBindState++;
+
+						BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
 
 						const uint32_t align = kMinUniformBufferOffsetAlignment;
 
@@ -4328,15 +4328,15 @@ namespace bgfx { namespace webgpu
 						const uint32_t fsize = bx::strideAlign((NULL != program.m_fsh ? program.m_fsh->m_size : 0), align);
 
 						// first two bindings are always uniform buffer (vertex/fragment)
-						uniforms[0].binding = 0;
-						uniforms[0].buffer = scratchBuffer.m_buffer;
-						uniforms[0].offset = 0;
-						uniforms[0].size = vsize;
+						bindState.m_uniforms[0].binding = 0;
+						bindState.m_uniforms[0].buffer = scratchBuffer.m_buffer;
+						bindState.m_uniforms[0].offset = 0;
+						bindState.m_uniforms[0].size = vsize;
 
-						uniforms[1].binding = 1;
-						uniforms[1].buffer = scratchBuffer.m_buffer;
-						uniforms[1].offset = 0;
-						uniforms[1].size = fsize;
+						bindState.m_uniforms[1].binding = 1;
+						bindState.m_uniforms[1].buffer = scratchBuffer.m_buffer;
+						bindState.m_uniforms[1].offset = 0;
+						bindState.m_uniforms[1].size = fsize;
 
 						uint8_t currentSampler = 0;
 						//uint8_t currentBuffer = 2;
@@ -4367,11 +4367,11 @@ namespace bgfx { namespace webgpu
 								TextureWgpu& texture = m_textures[bind.m_idx];
 
 								//textures[currentSampler].binding = stage;
-								textures[currentSampler].binding = program.m_fsh->m_textures[stage].binding;
-								textures[currentSampler].textureView = texture.m_ptr.CreateView();
+								bindState.m_textures[currentSampler].binding = program.m_fsh->m_textures[stage].binding;
+								bindState.m_textures[currentSampler].textureView = texture.m_ptr.CreateView();
 								//samplers[currentSampler].binding = stage;
-								samplers[currentSampler].binding = program.m_fsh->m_samplers[stage].binding;
-								samplers[currentSampler].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
+								bindState.m_samplers[currentSampler].binding = program.m_fsh->m_samplers[stage].binding;
+								bindState.m_samplers[currentSampler].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
 									? getSamplerState(bind.m_samplerFlags)
 									: texture.m_sampler;
 								currentSampler++;
@@ -4388,23 +4388,20 @@ namespace bgfx { namespace webgpu
 						wgpu::BindGroupDescriptor uniformsDesc;
 						uniformsDesc.layout = program.m_uniforms;
 						uniformsDesc.bindingCount = 2;
-						uniformsDesc.bindings = uniforms;
+						uniformsDesc.bindings = bindState.m_uniforms;
 
 						wgpu::BindGroupDescriptor texturesDesc;
 						texturesDesc.layout = program.m_textures;
 						//texturesDesc.bindingCount = numSamplers;
 						texturesDesc.bindingCount = program.m_numSamplers;
-						texturesDesc.bindings = textures;
+						texturesDesc.bindings = bindState.m_textures;
 
 						wgpu::BindGroupDescriptor samplersDesc;
 						samplersDesc.layout = program.m_samplers;
 						//samplersDesc.bindingCount = numSamplers;
 						samplersDesc.bindingCount = program.m_numSamplers;
-						samplersDesc.bindings = samplers;
+						samplersDesc.bindings = bindState.m_samplers;
 
-						scratchBuffer.m_currentBindState++;
-
-						BindStateWgpu& bindState = scratchBuffer.m_bindStates[scratchBuffer.m_currentBindState];
 						bindState.m_uniformsGroup = m_device.CreateBindGroup(&uniformsDesc);
 						bindState.m_texturesGroup = m_device.CreateBindGroup(&texturesDesc);
 						bindState.m_samplersGroup = m_device.CreateBindGroup(&samplersDesc);
