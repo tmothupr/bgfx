@@ -461,7 +461,7 @@ namespace bgfx { namespace webgpu
 			m_instance.DiscoverDefaultAdapters();
 
 			dawn_native::Adapter backendAdapter;
-			//backendAdapter = m_instance.GetAdapter();
+			backendAdapter = m_instance.GetAdapter(backendType);
 
 #if 0
 			std::vector<dawn_native::Adapter> adapters = m_instance.GetAdapters();
@@ -575,8 +575,8 @@ namespace bgfx { namespace webgpu
 				| BGFX_CAPS_BLEND_INDEPENDENT
 				| BGFX_CAPS_FRAGMENT_DEPTH
 				| BGFX_CAPS_INDEX32
-				| BGFX_CAPS_INSTANCING
-				| BGFX_CAPS_OCCLUSION_QUERY
+			//	| BGFX_CAPS_INSTANCING
+			//	| BGFX_CAPS_OCCLUSION_QUERY
 				| BGFX_CAPS_SWAP_CHAIN
 				| BGFX_CAPS_TEXTURE_2D_ARRAY
 				| BGFX_CAPS_TEXTURE_3D
@@ -586,7 +586,7 @@ namespace bgfx { namespace webgpu
 				| BGFX_CAPS_TEXTURE_READ_BACK
 				| BGFX_CAPS_VERTEX_ATTRIB_HALF
 				| BGFX_CAPS_VERTEX_ATTRIB_UINT10
-				| BGFX_CAPS_COMPUTE
+			//	| BGFX_CAPS_COMPUTE
 				);
 
 			g_caps.limits.maxTextureSize   = 16384;
