@@ -3726,6 +3726,7 @@ namespace bgfx { namespace webgpu
 #endif
 
 		BindStateCacheWgpu& bindStates = m_bindStateCache[m_frameIndex];
+		bindStates.reset();
 
 		if (0 < _render->m_iboffset)
 		{
