@@ -91,12 +91,6 @@ namespace bgfx {
 
 		struct BufferWgpu
 		{
-			BufferWgpu()
-				: m_flags(BGFX_BUFFER_NONE)
-				, m_dynamic(NULL)
-			{
-			}
-
 			void create(uint32_t _size, void* _data, uint16_t _flags, uint16_t _stride = 0, bool _vertex = false);
 			void update(uint32_t _offset, uint32_t _size, void* _data, bool _discard = false);
 
@@ -112,22 +106,17 @@ namespace bgfx {
 			}
 
 			uint32_t m_size;
-			uint16_t m_flags;
+			uint16_t m_flags = BGFX_BUFFER_NONE;
 			bool     m_vertex;
 
-			wgpu::Buffer   m_ptr;
-			uint8_t* m_dynamic;
+			wgpu::Buffer m_ptr;
+			uint8_t*     m_dynamic = NULL;
 		};
 
 		typedef BufferWgpu IndexBufferWgpu;
 
 		struct VertexBufferWgpu : public BufferWgpu
 		{
-			VertexBufferWgpu()
-				: BufferWgpu()
-			{
-			}
-
 			void create(uint32_t _size, void* _data, VertexLayoutHandle _declHandle, uint16_t _flags);
 
 			VertexLayoutHandle m_layoutHandle;
@@ -180,24 +169,16 @@ namespace bgfx {
 
 		struct ProgramWgpu
 		{
-			ProgramWgpu()
-				: m_vsh(NULL)
-				, m_fsh(NULL)
-				, m_computePS(NULL)
-				, m_numSamplers(0)
-			{
-			}
-
 			void create(const ShaderWgpu* _vsh, const ShaderWgpu* _fsh);
 			void destroy();
 
-			const ShaderWgpu* m_vsh;
-			const ShaderWgpu* m_fsh;
+			const ShaderWgpu* m_vsh = NULL;
+			const ShaderWgpu* m_fsh = NULL;
 
 			PredefinedUniform m_predefined[PredefinedUniform::Count * 2];
 			uint8_t m_numPredefined;
 
-			PipelineStateWgpu* m_computePS;
+			PipelineStateWgpu* m_computePS = NULL;
 
 			wgpu::BindGroupLayout m_uniforms;
 			wgpu::BindGroupLayout m_textures;
@@ -206,7 +187,7 @@ namespace bgfx {
 			uint32_t			  m_bindGroupLayoutHash;
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			uint32_t	m_numSamplers;
+			uint32_t	m_numSamplers = 0;
 		};
 
 		constexpr size_t kMaxVertexInputs = 16;
@@ -295,14 +276,22 @@ namespace bgfx {
 			void destroy();
 			void reset();
 
-			BindStateWgpu m_bindStates[1024] = {};
 			wgpu::Buffer m_buffer;
 			uint32_t m_offset;
 			uint32_t m_size;
+		};
+
+		class BindStateCacheWgpu
+		{
+		public:
+			void create(); // , uint32_t _maxBindGroups);
+			void destroy();
+			void reset();
+
+			BindStateWgpu m_bindStates[1024] = {};
 			uint32_t m_currentBindState;
 			//uint32_t m_maxBindStates;
 		};
-
 		struct TextureWgpu
 		{
 			enum Enum
@@ -311,19 +300,6 @@ namespace bgfx {
 				Texture3D,
 				TextureCube,
 			};
-
-			TextureWgpu()
-				: m_flags(0)
-				, m_width(0)
-				, m_height(0)
-				, m_depth(0)
-				, m_numMips(0)
-			{
-				for(uint32_t ii = 0; ii < BX_COUNTOF(m_ptrMips); ++ii)
-				{
-					m_ptrMips[ii] = NULL;
-				}
-			}
 
 			void create(const Memory* _mem, uint64_t _flags, uint8_t _skip);
 
@@ -347,16 +323,16 @@ namespace bgfx {
 
 			wgpu::Texture m_ptr;
 			wgpu::Texture m_ptrMsaa;
-			wgpu::TextureView m_ptrMips[14];
+			wgpu::TextureView m_ptrMips[14] = {};
 			wgpu::Sampler m_sampler;
-			uint64_t m_flags;
-			uint32_t m_width;
-			uint32_t m_height;
-			uint32_t m_depth;
+			uint64_t m_flags = 0;
+			uint32_t m_width = 0;
+			uint32_t m_height = 0;
+			uint32_t m_depth = 0;
 			uint8_t m_type;
 			uint8_t m_requestedFormat;
 			uint8_t m_textureFormat;
-			uint8_t m_numMips;
+			uint8_t m_numMips = 0;
 			uint8_t m_numLayers;
 			uint8_t m_sampleCount;
 		};
@@ -375,18 +351,6 @@ namespace bgfx {
 
 		struct SwapChainWgpu
 		{
-			SwapChainWgpu()
-				//: m_metalLayer(nil)
-				//, m_drawable(nil)
-				//, m_drawableTexture(nil)
-				: m_backBufferColorMsaa()
-				, m_backBufferDepth()
-				, m_maxAnisotropy(0)
-			{
-			}
-
-			~SwapChainWgpu();
-
 			void init(wgpu::Device _device, void* _nwh, uint32_t _width, uint32_t _height);
 			void resize(FrameBufferWgpu& _frameBuffer, uint32_t _width, uint32_t _height, uint32_t _flags);
 
@@ -408,22 +372,12 @@ namespace bgfx {
 			wgpu::TextureFormat m_colorFormat;
 			wgpu::TextureFormat m_depthFormat;
 
-			uint32_t m_maxAnisotropy;
+			uint32_t m_maxAnisotropy = 0;
 			uint8_t m_sampleCount;
 		};
 
 		struct FrameBufferWgpu
 		{
-			FrameBufferWgpu()
-				: m_swapChain(NULL)
-				, m_nwh(NULL)
-				, m_denseIdx(UINT16_MAX)
-				, m_pixelFormatHash(0)
-				, m_num(0)
-			{
-				m_depthHandle.idx = kInvalidHandle;
-			}
-
 			void create(uint8_t _num, const Attachment* _attachment);
 			bool create(
 				uint16_t _denseIdx
@@ -436,29 +390,23 @@ namespace bgfx {
 			void postReset();
 			uint16_t destroy();
 
-			SwapChainWgpu* m_swapChain;
-			void* m_nwh;
+			SwapChainWgpu* m_swapChain = NULL;
+			void* m_nwh = NULL;
 			uint32_t m_width;
 			uint32_t m_height;
-			uint16_t m_denseIdx;
+			uint16_t m_denseIdx = UINT16_MAX;
 
-			uint32_t m_pixelFormatHash;
+			uint32_t m_pixelFormatHash = 0;
 
 			TextureHandle m_colorHandle[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS - 1];
-			TextureHandle m_depthHandle;
+			TextureHandle m_depthHandle = { kInvalidHandle };
 			Attachment m_colorAttachment[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS - 1];
 			Attachment m_depthAttachment;
-			uint8_t m_num; // number of color handles
+			uint8_t m_num = 0; // number of color handles
 		};
 
 		struct CommandQueueWgpu
 		{
-			CommandQueueWgpu()
-				: m_releaseWriteIndex(0)
-				, m_releaseReadIndex(0)
-			{
-			}
-
 			void init(wgpu::Queue _queue);
 			void shutdown();
 			void begin();
@@ -474,8 +422,8 @@ namespace bgfx {
 			wgpu::Queue		     m_queue;
 			wgpu::CommandEncoder m_encoder;
 
-			int m_releaseWriteIndex;
-			int m_releaseReadIndex;
+			int m_releaseWriteIndex = 0;
+			int m_releaseReadIndex = 0;
 
 			typedef stl::vector<wgpu::Buffer> ResourceArray;
 			ResourceArray m_release[WEBGPU_MAX_FRAMES_IN_FLIGHT];
