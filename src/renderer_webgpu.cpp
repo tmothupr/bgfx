@@ -575,7 +575,7 @@ namespace bgfx { namespace webgpu
 				| BGFX_CAPS_BLEND_INDEPENDENT
 				| BGFX_CAPS_FRAGMENT_DEPTH
 				| BGFX_CAPS_INDEX32
-			//	| BGFX_CAPS_INSTANCING
+				| BGFX_CAPS_INSTANCING
 			//	| BGFX_CAPS_OCCLUSION_QUERY
 				| BGFX_CAPS_SWAP_CHAIN
 				| BGFX_CAPS_TEXTURE_2D_ARRAY
@@ -1868,10 +1868,6 @@ namespace bgfx { namespace webgpu
 				{
 					wgpu::VertexBufferLayoutDescriptor* inputBinding = _vertexInputState.vertexBuffers;
 
-					// TODO (webgpu)
-
-					//inputBinding->binding = 0;
-					//inputBinding->inputSlot = 0;
 					inputBinding->arrayStride = _decl.m_stride;
 					inputBinding->stepMode = wgpu::InputStepMode::Vertex;
 					_vertexInputState.desc.vertexBufferCount = 1;
@@ -1881,17 +1877,12 @@ namespace bgfx { namespace webgpu
 
 					for(uint32_t attr = 0; attr < Attrib::Count; ++attr)
 					{
-						//Attrib::Enum attrib = Attrib::Enum(attr);
-
 						if(UINT16_MAX != _decl.m_attributes[attr])
 						{
 							if(UINT8_MAX == _vsh->m_attrRemap[attr])
 								continue;
 
 							inputAttrib->shaderLocation = _vsh->m_attrRemap[attr];
-							//inputAttrib->inputSlot = 0;
-							//inputAttrib->location = _vsh->m_attrRemap[attr];
-							//inputAttrib->binding = 0;
 
 							if(0 == _decl.m_attributes[attr])
 							{
@@ -1933,23 +1924,50 @@ namespace bgfx { namespace webgpu
 					//input.inputs[stream+1].stepMode = wgpu::InputStepMode::Vertex;
 				}
 
-				//if (0 < _numInstanceData)
-				//{
-				//	for (uint32_t ii = 0; UINT16_MAX != program.m_instanceData[ii]; ++ii)
-				//	{
-				//		const uint32_t loc = program.m_instanceData[ii];
-				//		wgpu::VertexAttributeDescriptor& attrDesc = input.attributes[loc];
-				//		attrDesc.format         = wgpu::VertexFormat::Float4;
-				//		attrDesc.inputSlot      = stream+1;
-				//		attrDesc.shaderLocation = loc;
-				//		attrDesc.offset         = ii*16;
-				//		input.numAttributes++;
-				//	}
-				//
-				//	input.inputs[stream+1].stride   = _numInstanceData * 16;
-				//	input.inputs[stream+1].stepMode = wgpu::InputStepMode::Instance;
-				//	//inputs[stream+1].stepRate = 1;
-				//}
+				if (0 < _numInstanceData)
+				{
+					uint32_t numBindings = input.desc.vertexBufferCount; // == stream+1 // .vertexBindingDescriptionCount;
+					uint32_t firstAttrib = input.vertexBuffers[0].attributeCount;
+					uint32_t numAttribs = input.vertexBuffers[0].attributeCount;
+
+					wgpu::VertexBufferLayoutDescriptor* inputBinding = &input.vertexBuffers[stream+1];
+					wgpu::VertexAttributeDescriptor* inputAttrib = &input.attributes[numAttribs];
+
+					inputBinding->arrayStride = _numInstanceData * 16;
+					inputBinding->stepMode = wgpu::InputStepMode::Instance;
+
+					for (uint32_t inst = 0; inst < _numInstanceData; ++inst)
+					{
+						inputAttrib->shaderLocation = numAttribs;
+						inputAttrib->format = wgpu::VertexFormat::Float4;
+						inputAttrib->offset = inst * 16;
+
+						++numAttribs;
+						++inputAttrib;
+					}
+
+					input.desc.vertexBufferCount = numBindings + 1;
+					input.vertexBuffers[1].attributeCount = numAttribs - firstAttrib;
+					input.vertexBuffers[1].attributes = &input.attributes[firstAttrib];
+
+					//for (uint32_t ii = 0; UINT16_MAX != program.m_instanceData[ii]; ++ii)
+					//{
+					//	const uint32_t loc = program.m_instanceData[ii];
+					//	wgpu::VertexAttributeDescriptor& attrDesc = input.attributes[loc];
+					//	attrDesc.format         = wgpu::VertexFormat::Float4;
+					//	//attrDesc.inputSlot      = stream+1;
+					//	attrDesc.shaderLocation = loc;
+					//	attrDesc.offset         = ii*16;
+					//
+					//	input.vertexBuffers[stream + 1].attributeCount = 1;
+					//}
+					//
+					//input.desc.vertexBufferCount++; // = 2;
+					//input.vertexBuffers[stream+1].arrayStride = _numInstanceData * 16;
+					//input.vertexBuffers[stream+1].stepMode    = wgpu::InputStepMode::Instance;
+					//inputs[stream+1].stepRate = 1;
+				}
+
 
 				input.desc.indexFormat = _index32 ? wgpu::IndexFormat::Uint32 : wgpu::IndexFormat::Uint16;
 
@@ -4263,7 +4281,7 @@ namespace bgfx { namespace webgpu
 					if (isValid(draw.m_instanceDataBuffer) )
 					{
 						const VertexBufferWgpu& inst = m_vertexBuffers[draw.m_instanceDataBuffer.idx];
-						rce.SetVertexBuffer(numStreams+1, inst.m_ptr, draw.m_instanceDataOffset);
+						rce.SetVertexBuffer(numStreams/*+1*/, inst.m_ptr, draw.m_instanceDataOffset);
 					}
 
 					programChanged =
