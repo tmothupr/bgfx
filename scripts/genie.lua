@@ -568,6 +568,14 @@ or _OPTIONS["with-combined-examples"] then
 		, "41-tess"
 		)
 
+	project "example-01-cubes"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_cubes.bin") .. "@/shaders/spirv/vs_cubes.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_cubes.bin") .. "@/shaders/spirv/fs_cubes.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_cubes_color.bin") .. "@/shaders/spirv/fs_cubes_color.bin",
+			}
+
 	project "example-03-raymarch"
 		configuration { "asmjs" }
 			linkoptions {
@@ -581,6 +589,13 @@ or _OPTIONS["with-combined-examples"] then
 				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_mesh.bin") .. "@/shaders/spirv/vs_mesh.bin",
 				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_mesh.bin") .. "@/shaders/spirv/fs_mesh.bin",
 				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/meshes/bunny.bin") .. "@/meshes/bunny.bin",
+			}
+
+	project "example-05-instancing"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_instancing.bin") .. "@/shaders/spirv/vs_instancing.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_instancing.bin") .. "@/shaders/spirv/fs_instancing.bin",
 			}
 
 	project "example-06-bump"
