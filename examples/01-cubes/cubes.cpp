@@ -9,18 +9,25 @@
 
 #include "bgfx/embedded_shader.h"
 
+#include <bx/rng.h>
+
+#include <vector>
+
 #define CUBES 1
 #define IMGUI 1
-#define EMBEDDED 1
+#define EMBEDDED 0
+#define COLORS 1
 
 #if EMBEDDED
 #include "vs_cubes.bin.h"
 #include "fs_cubes.bin.h"
+#include "fs_cubes_color.bin.h"
 
 static const bgfx::EmbeddedShader s_embeddedShaders[] =
 {
 	BGFX_EMBEDDED_SHADER(vs_cubes),
 	BGFX_EMBEDDED_SHADER(fs_cubes),
+	BGFX_EMBEDDED_SHADER(fs_cubes_color),
 
 	BGFX_EMBEDDED_SHADER_END()
 };
@@ -28,6 +35,14 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 
 namespace
 {
+
+struct Color
+{
+	float r;
+	float g;
+	float b;
+	float a;
+};
 
 struct PosColorVertex
 {
@@ -146,6 +161,35 @@ static const uint64_t s_ptState[]
 BX_STATIC_ASSERT(BX_COUNTOF(s_ptState) == BX_COUNTOF(s_ptNames) );
 #endif
 
+float hueToRgb(float p, float q, float t)
+{
+	if(t < 0.f) t += 1.f;
+	if(t > 1.f) t -= 1.f;
+	if(t < 1.f / 6.f) return p + (q - p) * 6.f * t;
+	if(t < 1.f / 2.f) return q;
+	if(t < 2.f / 3.f) return p + (q - p) * (2.f / 3.f - t) * 6.f;
+	return p;
+}
+
+Color colorHSL(float h, float s, float l)
+{
+	float r, g, b;
+
+	if(s == 0.f)
+	{
+		r = g = b = l; // achromatic
+	}
+	else
+	{
+		float q = l < 0.5f ? l * (1.f + s) : l + s - l * s;
+		float p = 2.f * l - q;
+		r = hueToRgb(p, q, h + 1.f / 3.f);
+		g = hueToRgb(p, q, h);
+		b = hueToRgb(p, q, h - 1.f / 3.f);
+	}
+	return { r, g, b, 1.f };
+}
+
 class ExampleCubes : public entry::AppI
 {
 public:
@@ -229,18 +273,34 @@ public:
 			bgfx::makeRef(s_cubePoints, sizeof(s_cubePoints) )
 			);
 
-		BX_TRACE("");
+		u_color = bgfx::createUniform("u_color", bgfx::UniformType::Vec4);
 
 		// Create program from shaders.
 #if EMBEDDED
 		bgfx::ShaderHandle vsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "vs_cubes");
+#if !COLORS
 		bgfx::ShaderHandle fsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "fs_cubes");
+#else
+		bgfx::ShaderHandle fsh = bgfx::createEmbeddedShader(s_embeddedShaders, bgfx::getCaps()->rendererType, "fs_cubes_color");
+#endif
 		m_program = bgfx::createProgram(vsh, fsh, true /* destroy shaders when program is destroyed */);
 #else
+#if !COLORS
 		m_program = loadProgram("vs_cubes", "fs_cubes");
+#else
+		m_program = loadProgram("vs_cubes", "fs_cubes_color");
+#endif
 #endif
 
 		m_timeOffset = bx::getHPCounter();
+
+#if COLORS
+		m_colors.resize(11 * 11);
+		for(Color& color : m_colors)
+		{
+			color = colorHSL(bx::frnd(&m_rng), 1.0, 0.6);
+		}
+#endif
 
 #if IMGUI
 		imguiCreate();
@@ -261,6 +321,7 @@ public:
 
 		bgfx::destroy(m_vbh);
 		bgfx::destroy(m_program);
+		bgfx::destroy(u_color);
 
 		// Shutdown bgfx.
 		bgfx::shutdown();
@@ -365,6 +426,11 @@ public:
 					bgfx::setVertexBuffer(0, m_vbh);
 					bgfx::setIndexBuffer(ibh);
 
+#if COLORS
+					// Set uniforms.
+					bgfx::setUniform(u_color, &m_colors[xx + yy * 11]);
+#endif
+
 					// Set render states.
 					bgfx::setState(state);
 
@@ -396,6 +462,7 @@ public:
 	uint32_t m_reset;
 	bgfx::VertexBufferHandle m_vbh;
 	bgfx::IndexBufferHandle m_ibh[BX_COUNTOF(s_ptState)];
+	bgfx::UniformHandle u_color;
 	bgfx::ProgramHandle m_program;
 	int64_t m_timeOffset;
 	int32_t m_pt;
@@ -404,6 +471,10 @@ public:
 	bool m_g;
 	bool m_b;
 	bool m_a;
+
+	bx::RngMwc m_rng;
+
+	std::vector<Color> m_colors;
 };
 
 } // namespace
