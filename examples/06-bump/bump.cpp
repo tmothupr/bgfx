@@ -124,7 +124,7 @@ public:
 		// Get renderer capabilities info.
 		const bgfx::Caps* caps = bgfx::getCaps();
 		m_instancingSupported = 0 != (caps->supported & BGFX_CAPS_INSTANCING);
-		//m_instancingSupported = false;
+		m_instancingSupported = false;
 
 		// Create vertex stream declaration.
 		PosNormalTangentTexcoordVertex::init();
