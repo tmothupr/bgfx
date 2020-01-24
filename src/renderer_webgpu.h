@@ -155,6 +155,7 @@ namespace bgfx {
 			uint32_t m_hash = 0;
 			uint16_t m_numUniforms = 0;
 			uint16_t m_size = 0;
+			uint16_t m_gpuSize = 0;
 			uint8_t m_numPredefined = 0;
 			uint8_t m_numAttrs = 0;
 			uint16_t m_numThreads[3];
@@ -183,6 +184,7 @@ namespace bgfx {
 			wgpu::BindGroupLayout m_uniforms;
 			wgpu::BindGroupLayout m_textures;
 			wgpu::BindGroupLayout m_samplers;
+			uint16_t			  m_gpuSize = 0;
 			uint32_t			  m_numUniforms;
 			uint32_t			  m_bindGroupLayoutHash;
 
@@ -252,6 +254,11 @@ namespace bgfx {
 			wgpu::BindGroup m_samplersGroup;
 		};
 
+		struct RenderPassStateWgpu
+		{
+			RenderPassDescriptor m_rpd;
+		};
+
 		struct PipelineStateWgpu
 		{
 			RenderPipelineDescriptor m_rpd;
@@ -263,6 +270,11 @@ namespace bgfx {
 			wgpu::RenderPipeline m_rps;
 			wgpu::ComputePipeline m_cps;
 		};
+
+		void release(RenderPassStateWgpu* _ptr)
+		{
+			BX_DELETE(g_allocator, _ptr);
+		}
 
 		void release(PipelineStateWgpu* _ptr)
 		{
@@ -416,7 +428,7 @@ namespace bgfx {
 			void consume();
 
 #if BGFX_CONFIG_MULTITHREADED
-			bx::Semaphore 		 m_framesSemaphore;
+			//bx::Semaphore 		 m_framesSemaphore;
 #endif
 
 			wgpu::Queue		     m_queue;
