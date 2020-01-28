@@ -185,6 +185,64 @@ namespace bgfx { namespace spirv
 		return true;
 	}
 
+	enum class TextureComponentType : uint32_t {
+		Float = 0x00000000,
+		Sint = 0x00000001,
+		Uint = 0x00000002,
+	};
+
+	enum class TextureViewDimension : uint32_t {
+		Undefined = 0x00000000,
+		e1D = 0x00000001,
+		e2D = 0x00000002,
+		e2DArray = 0x00000003,
+		Cube = 0x00000004,
+		CubeArray = 0x00000005,
+		e3D = 0x00000006,
+	};
+
+	TextureComponentType SpirvCrossBaseTypeToFormatType(spirv_cross::SPIRType::BaseType spirvBaseType)
+	{
+		switch (spirvBaseType)
+		{
+			case spirv_cross::SPIRType::Float:
+				return TextureComponentType::Float;
+			case spirv_cross::SPIRType::Int:
+				return TextureComponentType::Sint;
+			case spirv_cross::SPIRType::UInt:
+				return TextureComponentType::Uint;
+			//default:
+			//    UNREACHABLE();
+			//    return Format::Other;
+		}
+	}
+
+    TextureViewDimension SpirvDimToTextureViewDimension(spv::Dim dim, bool arrayed)
+	{
+        switch (dim)
+		{
+            case spv::Dim::Dim1D:
+                return TextureViewDimension::e1D;
+            case spv::Dim::Dim2D:
+                if (arrayed) {
+                    return TextureViewDimension::e2DArray;
+                } else {
+                    return TextureViewDimension::e2D;
+                }
+            case spv::Dim::Dim3D:
+                return TextureViewDimension::e3D;
+            case spv::Dim::DimCube:
+                if (arrayed) {
+                    return TextureViewDimension::CubeArray;
+                } else {
+                    return TextureViewDimension::Cube;
+                }
+            //default:
+            //    UNREACHABLE();
+            //    return TextureViewDimension::Undefined;
+        }
+    }
+
 	struct SpvReflection
 	{
 		struct TypeId
@@ -1164,11 +1222,11 @@ namespace bgfx { namespace spirv
 
 							const uint32_t binding = refl.get_decoration(resource.id, spv::DecorationBinding);
 
-							auto textureType = refl.get_type(resource.base_type_id);
-							auto componentType = refl.get_type(textureType.image.type).basetype;
+							auto imageType = refl.get_type(resource.base_type_id).image;
+							auto componentType = refl.get_type(imageType.type).basetype;
 
-							un.texComponent = uint8_t(componentType);
-							un.texDimension = uint8_t(textureType.image.dim);
+							un.texComponent = uint8_t(SpirvCrossBaseTypeToFormatType(componentType));
+							un.texDimension = uint8_t(SpirvDimToTextureViewDimension(imageType.dim, imageType.arrayed));
 
 							uint32_t texture_binding_index = refl.get_decoration(resource.id, spv::Decoration::DecorationBinding);
 							uint32_t sampler_binding_index = 0;
