@@ -4672,6 +4672,9 @@ VK_DESTROY
 				uint16_t regCount;
 				bx::read(&reader, regCount);
 
+				uint16_t texInfo;
+				bx::read(&reader, texInfo);
+
 				const char* kind = "invalid";
 
 				PredefinedUniform::Enum predefined = nameToPredefinedUniformEnum(name);

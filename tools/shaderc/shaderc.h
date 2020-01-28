@@ -120,6 +120,8 @@ namespace bgfx
 		uint8_t num;
 		uint16_t regIndex;
 		uint16_t regCount;
+		uint8_t texComponent;
+		uint8_t texDimension;
 	};
 
 	struct Options

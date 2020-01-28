@@ -662,6 +662,8 @@ namespace bgfx { namespace spirv
 			bx::write(_writer, un.num);
 			bx::write(_writer, un.regIndex);
 			bx::write(_writer, un.regCount);
+			bx::write(_writer, un.texComponent);
+			bx::write(_writer, un.texDimension);
 
 			BX_TRACE("%s, %s, %d, %d, %d"
 				, un.name.c_str()
@@ -1107,7 +1109,12 @@ namespace bgfx { namespace spirv
 						{
 							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
 							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
-							std::cout << "[debug] texture - " << name << " set = " << set << " binding  = " << location << std::endl;
+
+							auto type = refl.get_type(resource.base_type_id);
+							auto componentType = refl.get_type(type.image.type).basetype;
+
+							std::cout << "[debug] texture - " << name << " set = " << set << " binding  = " << location
+								      << " component = " << componentType << " dimension = " << type.image.dim << std::endl;
 						}
 					}
 
@@ -1157,7 +1164,12 @@ namespace bgfx { namespace spirv
 
 							const uint32_t binding = refl.get_decoration(resource.id, spv::DecorationBinding);
 
-//<<<<<<< HEAD
+							auto textureType = refl.get_type(resource.base_type_id);
+							auto componentType = refl.get_type(textureType.image.type).basetype;
+
+							un.texComponent = uint8_t(componentType);
+							un.texDimension = uint8_t(textureType.image.dim);
+
 							uint32_t texture_binding_index = refl.get_decoration(resource.id, spv::Decoration::DecorationBinding);
 							uint32_t sampler_binding_index = 0;
 							std::string sampler_name;
@@ -1179,11 +1191,6 @@ namespace bgfx { namespace spirv
 							un.num = stageMap[sampler_name];	// want to write stage index
 							un.regIndex = texture_binding_index;	// for sampled image binding index
 							un.regCount = sampler_binding_index;	// for sampler binding index
-//=======
-//							un.num = 1;			// needed?
-//							un.regIndex = uint16_t(binding);
-//							un.regCount = 0;	// needed?
-//>>>>>>> a8d05cf8f... WebGPU first draft (does not compile)
 
 							uniforms.push_back(un);
 						}

@@ -120,6 +120,9 @@ namespace bgfx
 
 				uint16_t regCount;
 				bx::read(_reader, regCount, _err);
+
+				uint16_t texInfo;
+				bx::read(_reader, texInfo, _err);
 			}
 
 			uint32_t shaderSize;

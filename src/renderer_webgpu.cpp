@@ -2350,6 +2350,12 @@ namespace bgfx { namespace webgpu
 				uint16_t regCount;
 				bx::read(&reader, regCount);
 
+				uint8_t texComponent;
+				bx::read(&reader, texComponent);
+
+				uint8_t texDimension;
+				bx::read(&reader, texDimension);
+
 				const char* kind = "invalid";
 
 				PredefinedUniform::Enum predefined = nameToPredefinedUniformEnum(name);
@@ -2386,24 +2392,12 @@ namespace bgfx { namespace webgpu
 
 						//BX_TRACE("\tsampler binding: %2d", regIndex);
 
-#if 0
-						wgpu::BindGroupLayoutBinding samplerDesc;
-						samplerDesc.binding = regIndex;
-						samplerDesc.visibility = wgpu::ShaderStage::Fragment;
-						samplerDesc.type = wgpu::BindingType::Sampler;
-						samplerDesc.multisampled = false;
+						wgpu::ShaderStage shaderStage = fragmentBit ? wgpu::ShaderStage::Fragment : wgpu::ShaderStage::Vertex;
 
-						wgpu::BindGroupLayoutBinding textureDesc;
-						textureDesc.binding = regIndex;
-						textureDesc.visibility = wgpu::ShaderStage::Fragment;
-						textureDesc.type = wgpu::BindingType::SampledTexture;
-						textureDesc.textureDimension = TextureViewDimension::Undefined;
-						textureDesc.textureComponentType = TextureComponentType::Float;
-						// TODO (hugoam) need to get this from SPIRV ?
-#endif
+						m_samplers[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::Sampler };
+						m_textures[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::SampledTexture, false, false,
+													  wgpu::TextureViewDimension(texDimension), wgpu::TextureComponentType(texComponent) };
 
-						m_samplers[m_numSamplers] = { regIndex, wgpu::ShaderStage::Fragment, wgpu::BindingType::Sampler };
-						m_textures[m_numSamplers] = { regIndex, wgpu::ShaderStage::Fragment, wgpu::BindingType::SampledTexture };
 
 						if(NULL != info)
 						{

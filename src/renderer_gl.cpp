@@ -5381,6 +5381,9 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 			uint16_t regCount;
 			bx::read(&reader, regCount);
+
+			uint16_t texInfo;
+			bx::read(&reader, texInfo);
 		}
 
 		uint32_t shaderSize;

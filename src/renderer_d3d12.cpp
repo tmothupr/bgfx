@@ -4486,6 +4486,9 @@ namespace bgfx { namespace d3d12
 				uint16_t regCount = 0;
 				bx::read(&reader, regCount);
 
+				uint16_t texInfo = 0;
+				bx::read(&reader, texInfo);
+
 				const char* kind = "invalid";
 
 				PredefinedUniform::Enum predefined = nameToPredefinedUniformEnum(name);

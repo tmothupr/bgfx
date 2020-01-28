@@ -135,6 +135,22 @@ namespace bgfx
 		};
 	};
 
+	/// Texture dimension enum.
+	///
+	struct TextureDimension
+	{
+		enum Enum
+		{
+			Dim1D,
+			Dim2D,
+		  //Dim2DArray,
+			Dim3D,
+			DimCube,
+			
+			Count
+		};
+	};
+
 	/// Texture format enum.
 	///
 	/// Notation:

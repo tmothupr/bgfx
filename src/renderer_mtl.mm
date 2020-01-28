@@ -2440,6 +2440,9 @@ namespace bgfx { namespace mtl
 
 			uint16_t regCount;
 			bx::read(&reader, regCount);
+			
+			uint16_t texInfo;
+			bx::read(&reader, texInfo);
 		}
 
 		if (isShaderType(magic, 'C'))
