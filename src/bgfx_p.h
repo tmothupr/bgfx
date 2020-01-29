@@ -3891,6 +3891,9 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 				uint16_t regCount;
 				bx::read(&reader, regCount, &err);
 
+				uint16_t texInfo;
+				bx::read(&reader, texInfo, &err);
+
 				PredefinedUniform::Enum predefined = nameToPredefinedUniformEnum(name);
 				if (PredefinedUniform::Count == predefined && UniformType::End != UniformType::Enum(type))
 				{

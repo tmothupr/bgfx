@@ -346,6 +346,7 @@ namespace bgfx {
 			uint8_t m_textureFormat;
 			uint8_t m_numMips = 0;
 			uint8_t m_numLayers;
+			uint32_t m_numSides;
 			uint8_t m_sampleCount;
 		};
 
