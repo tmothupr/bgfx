@@ -8,6 +8,9 @@
 #include "imgui/imgui.h"
 #include <bx/rng.h>
 
+#define WEBGPU 1
+#define LUMINANCE 1
+
 namespace
 {
 
@@ -155,7 +158,7 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
@@ -312,11 +315,11 @@ public:
 
 				const uint64_t textureFlags = BGFX_TEXTURE_RT_WRITE_ONLY|(uint64_t(msaa+1)<<BGFX_TEXTURE_RT_MSAA_SHIFT);
 
-				bgfx::TextureFormat::Enum depthFormat =
-					  bgfx::isTextureValid(0, false, 1, bgfx::TextureFormat::D16,   textureFlags) ? bgfx::TextureFormat::D16
-					: bgfx::isTextureValid(0, false, 1, bgfx::TextureFormat::D24S8, textureFlags) ? bgfx::TextureFormat::D24S8
-					: bgfx::TextureFormat::D32
-					;
+				bgfx::TextureFormat::Enum depthFormat = bgfx::TextureFormat::D24S8;
+				//	  bgfx::isTextureValid(0, false, 1, bgfx::TextureFormat::D16,   textureFlags) ? bgfx::TextureFormat::D16
+				//	: bgfx::isTextureValid(0, false, 1, bgfx::TextureFormat::D24S8, textureFlags) ? bgfx::TextureFormat::D24S8
+				//	: bgfx::TextureFormat::D32
+				//	;
 
 				m_fbtextures[1] = bgfx::createTexture2D(
 					  uint16_t(m_width)
@@ -501,6 +504,7 @@ public:
 			bgfx::setUniform(u_tonemap, tonemap);
 			meshSubmit(m_mesh, hdrMesh, m_meshProgram, NULL);
 
+#if LUMINANCE
 			// Calculate luminance.
 			setOffsets2x2Lum(u_offset, 128, 128);
 			bgfx::setTexture(0, s_texColor, m_fbtextures[0]);
@@ -551,6 +555,7 @@ public:
 			bgfx::setUniform(u_tonemap, tonemap);
 			screenSpaceQuad( (float)m_width/8.0f, (float)m_height/8.0f, m_caps->originBottomLeft);
 			bgfx::submit(hdrVBlur, m_blurProgram);
+#endif
 
 			// m_blur m_bright pass horizontally, do tonemaping and combine.
 			bgfx::setTexture(0, s_texColor, m_fbtextures[0]);
@@ -560,15 +565,19 @@ public:
 			screenSpaceQuad( (float)m_width, (float)m_height, m_caps->originBottomLeft);
 			bgfx::submit(hdrHBlurTonemap, m_tonemapProgram);
 
-			if (bgfx::isValid(m_rb) )
-			{
-				bgfx::blit(hdrHBlurTonemap, m_rb, 0, 0, bgfx::getTexture(m_lum[4]) );
-				bgfx::readTexture(m_rb, &m_lumBgra8);
-			}
+			//if (bgfx::isValid(m_rb) )
+			//{
+			//	bgfx::blit(hdrHBlurTonemap, m_rb, 0, 0, bgfx::getTexture(m_lum[4]) );
+			//	bgfx::readTexture(m_rb, &m_lumBgra8);
+			//}
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
-			bgfx::frame();
+			const uint32_t capture_freq = 60;
+			static bool capture = false;
+			uint32_t frame = bgfx::frame(capture);
+			capture = (frame + WEBGPU) % capture_freq == 0;
+			BX_UNUSED(frame);
 
 			return true;
 		}

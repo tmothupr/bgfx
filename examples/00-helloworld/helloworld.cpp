@@ -30,7 +30,8 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+	  //init.type     = bgfx::RendererType::WebGPU;
+        init.type     = args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
@@ -111,7 +112,11 @@ public:
 
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
-			bgfx::frame();
+			const uint32_t capture_freq = 60;
+			static bool capture = false;
+			uint32_t frame = bgfx::frame(capture);
+			capture = (frame + 1) % capture_freq == 0;
+			BX_UNUSED(frame);
 
 			return true;
 		}
