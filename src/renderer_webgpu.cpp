@@ -13,6 +13,7 @@
 #	include "debug_renderdoc.h"
 
 #include <cfloat>
+#include <new>
 
 #if !BX_PLATFORM_EMSCRIPTEN
 #include <dawn_native/D3D12Backend.h>

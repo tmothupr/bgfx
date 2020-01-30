@@ -15,9 +15,10 @@
 
 #define WEBGPU 1
 #define CUBES 1
+#define ROTATE 1
 #define IMGUI 1
 #define EMBEDDED 0
-#define COLORS 1
+#define COLORS 0
 
 #if EMBEDDED
 #include "vs_cubes.bin.h"
@@ -162,6 +163,7 @@ static const uint64_t s_ptState[]
 BX_STATIC_ASSERT(BX_COUNTOF(s_ptState) == BX_COUNTOF(s_ptNames) );
 #endif
 
+#if COLORS
 float hueToRgb(float p, float q, float t)
 {
 	if(t < 0.f) t += 1.f;
@@ -190,6 +192,7 @@ Color colorHSL(float h, float s, float l)
 	}
 	return { r, g, b, 1.f };
 }
+#endif
 
 class ExampleCubes : public entry::AppI
 {
@@ -414,7 +417,12 @@ public:
 				for (uint32_t xx = 0; xx < 11; ++xx)
 				{
 					float mtx[16];
+#if ROTATE
 					bx::mtxRotateXY(mtx, time + xx*0.21f, time + yy*0.37f);
+#else
+					bx::mtxIdentity(mtx);
+					BX_UNUSED(time);
+#endif
 					mtx[12] = -15.0f + float(xx)*3.0f;
 					mtx[13] = -15.0f + float(yy)*3.0f;
 					mtx[14] = 0.0f;

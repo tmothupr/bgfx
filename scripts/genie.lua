@@ -608,6 +608,28 @@ or _OPTIONS["with-combined-examples"] then
 		      --"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/") .. "@/",
 			}
 
+	project "example-09-hdr"
+		configuration { "asmjs" }
+			linkoptions {
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_skybox.bin") .. "@/shaders/spirv/vs_hdr_skybox.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_skybox.bin") .. "@/shaders/spirv/fs_hdr_skybox.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_lum.bin") .. "@/shaders/spirv/vs_hdr_lum.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_lum.bin") .. "@/shaders/spirv/fs_hdr_lum.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_lumavg.bin") .. "@/shaders/spirv/vs_hdr_lumavg.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_lumavg.bin") .. "@/shaders/spirv/fs_hdr_lumavg.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_blur.bin") .. "@/shaders/spirv/vs_hdr_blur.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_blur.bin") .. "@/shaders/spirv/fs_hdr_blur.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_bright.bin") .. "@/shaders/spirv/vs_hdr_bright.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_bright.bin") .. "@/shaders/spirv/fs_hdr_bright.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_mesh.bin") .. "@/shaders/spirv/vs_hdr_mesh.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_mesh.bin") .. "@/shaders/spirv/fs_hdr_mesh.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_tonemap.bin") .. "@/shaders/spirv/vs_hdr_tonemap.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_tonemap.bin") .. "@/shaders/spirv/fs_hdr_tonemap.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/meshes/bunny.bin") .. "@/meshes/bunny.bin",
+				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/uffizi.ktx") .. "@/textures/uffizi.ktx",
+		      --"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/") .. "@/",
+			}
+
 	-- C99 source doesn't compile under WinRT settings
 	if not premake.vstudio.iswinrt() then
 		exampleProject(false, "25-c99")
