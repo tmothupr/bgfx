@@ -1794,7 +1794,6 @@ namespace bgfx { namespace webgpu
 				}
 				else
 				{
-					//const FrameBufferWgpu& frameBuffer = m_frameBuffers[_fbh.idx];
 					frameBufferAttachment = frameBuffer.m_num;
 
 					for (uint32_t ii = 0; ii < frameBuffer.m_num; ++ii)
@@ -1804,8 +1803,10 @@ namespace bgfx { namespace webgpu
 							? texture.m_sampleCount
 							: 1
 							;
-						pd.colorStates[0].format = s_textureFormat[texture.m_textureFormat];
+						pd.colorStates[ii].format = s_textureFormat[texture.m_textureFormat];
 					}
+
+					pd.desc.colorStateCount = frameBuffer.m_num;
 
 					if (isValid(frameBuffer.m_depthHandle) )
 					{
