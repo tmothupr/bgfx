@@ -18,8 +18,8 @@ rebuild:
 #	@make -s --no-print-directory rebuild -C 12-lod
 	@make -s --no-print-directory rebuild -C 13-stencil
 	@make -s --no-print-directory rebuild -C 14-shadowvolumes
-#	@make -s --no-print-directory rebuild -C 15-shadowmaps-simple
-#	@make -s --no-print-directory rebuild -C 16-shadowmaps
+	@make -s --no-print-directory rebuild -C 15-shadowmaps-simple
+	@make -s --no-print-directory rebuild -C 16-shadowmaps
 #	@make -s --no-print-directory rebuild -C 17-drawstress
 #	@make -s --no-print-directory rebuild -C 18-ibl
 #	@make -s --no-print-directory rebuild -C 19-oit

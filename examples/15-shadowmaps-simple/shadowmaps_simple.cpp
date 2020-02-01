@@ -17,6 +17,8 @@
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
 
+#define WEBGPU 1
+
 namespace
 {
 
@@ -76,7 +78,7 @@ public:
 		m_reset = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
@@ -130,7 +132,12 @@ public:
 
 		// Shadow samplers are supported at least partially supported if texture
 		// compare less equal feature is supported.
+#if WEBGPU
+		// Not supported yet, see Dawn -> Format::HasComponentType(wgpu::TextureComponentType componentType)
+		m_shadowSamplerSupported = false;
+#else
 		m_shadowSamplerSupported = 0 != (caps->supported & BGFX_CAPS_TEXTURE_COMPARE_LEQUAL);
+#endif
 		m_useShadowSampler = m_shadowSamplerSupported;
 
 		m_shadowMapFB = BGFX_INVALID_HANDLE;
@@ -276,7 +283,11 @@ public:
 							, m_shadowMapSize
 							, false
 							, 1
+#ifdef WEBGPU
+							, bgfx::TextureFormat::D24
+#else
 							, bgfx::TextureFormat::D16
+#endif
 							, BGFX_TEXTURE_RT | BGFX_SAMPLER_COMPARE_LEQUAL
 							),
 					};
@@ -305,7 +316,11 @@ public:
 							, m_shadowMapSize
 							, false
 							, 1
+#ifdef WEBGPU
+							, bgfx::TextureFormat::D24
+#else
 							, bgfx::TextureFormat::D16
+#endif
 							, BGFX_TEXTURE_RT_WRITE_ONLY
 							),
 					};
