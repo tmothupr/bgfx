@@ -22,7 +22,7 @@ rebuild:
 	@make -s --no-print-directory rebuild -C 16-shadowmaps
 	@make -s --no-print-directory rebuild -C 17-drawstress
 	@make -s --no-print-directory rebuild -C 18-ibl
-#	@make -s --no-print-directory rebuild -C 19-oit
+	@make -s --no-print-directory rebuild -C 19-oit
 ##	@make -s --no-print-directory rebuild -C 20-nanovg
 #	@make -s --no-print-directory rebuild -C 21-deferred
 #	@make -s --no-print-directory rebuild -C 23-vectordisplay
