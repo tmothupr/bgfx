@@ -542,7 +542,7 @@ or _OPTIONS["with-combined-examples"] then
 		, "14-shadowvolumes"
 		, "15-shadowmaps-simple"
 		, "16-shadowmaps"
-		, "17-drawstress"
+		--, "17-drawstress"
 		, "18-ibl"
 		, "19-oit"
 		, "20-nanovg"
@@ -571,27 +571,29 @@ or _OPTIONS["with-combined-examples"] then
 	function addWebAssets(name, shaders, models, textures)
 		project(name)
 			configuration { "asmjs" }
-			
+
 				for _, shader in ipairs(shaders or {}) do
 					local asset = "shaders/spirv/" .. shader .. ".bin"
 					linkoptions {
 						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
 					}
 				end
-				
+
 				for _, model in ipairs(models or {}) do
 					local asset = "meshes/" .. model .. ".bin"
 					linkoptions {
 						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
 					}
 				end
-				
+
 				for _, texture in ipairs(textures or {}) do
 					local asset = "textures/" .. texture
 					linkoptions {
 						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
 					}
 				end
+
+			configuration {}
 	end
 
 	addWebAssets("example-01-cubes", { "vs_cubes", "fs_cubes", "fs_cubes_color" })
@@ -623,6 +625,11 @@ or _OPTIONS["with-combined-examples"] then
 		},
 		{ "bunny_patched", "bunny_decimated", "column", "platform", "cube" },
 		{ "figure-rgba.dds", "flare.dds", "fieldstone-rgba.dds" })
+
+	project "example-14-shadowvolumes"
+		removelinkoptions { "-s TOTAL_MEMORY=256MB" }
+		linkoptions       { "-s TOTAL_MEMORY=512MB" }
+
 
 	addWebAssets("example-15-shadowmaps-simple", { "vs_sms_shadow_pd", "fs_sms_shadow_pd", "vs_sms_mesh", "fs_sms_mesh_pd", "vs_sms_shadow", "fs_sms_shadow", "vs_sms_mesh", "fs_sms_mesh" },
 												 { "bunny", "cube", "hollowcube" })
@@ -685,7 +692,8 @@ or _OPTIONS["with-combined-examples"] then
 			"vs_ibl_mesh",   "fs_ibl_mesh",
 			"vs_ibl_skybox", "fs_ibl_skybox",
 		},
-		{ "bunny", "orb" })
+		{ "bunny", "orb" },
+		{ "bolonga_lod.dds", "bolonga_irr.dds", "kyoto_lod.dds", "kyoto_irr.dds" })
 
 	addWebAssets("example-19-oit",
 		{
