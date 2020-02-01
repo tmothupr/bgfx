@@ -186,6 +186,7 @@ namespace bgfx {
 			wgpu::BindGroupLayout m_uniformsGroup;
 			wgpu::BindGroupLayout m_texturesGroup;
 			wgpu::BindGroupLayout m_samplersGroup;
+			wgpu::BindGroupLayout m_buffersGroup;
 			uint16_t			  m_gpuSize = 0;
 			uint32_t			  m_numUniforms;
 			uint32_t			  m_bindGroupLayoutHash;
@@ -194,6 +195,8 @@ namespace bgfx {
 			wgpu::BindGroupLayoutBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			wgpu::BindGroupLayoutBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			uint32_t	                 m_numSamplers = 0;
+			wgpu::BindGroupLayoutBinding m_buffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			uint32_t	                 m_numBuffers = 0;
 		};
 
 		constexpr size_t kMaxVertexInputs = 16;
@@ -252,10 +255,12 @@ namespace bgfx {
 			wgpu::BindGroupBinding m_uniforms[2];
 			wgpu::BindGroupBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			wgpu::BindGroupBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupBinding m_buffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 
 			wgpu::BindGroup m_uniformsGroup;
 			wgpu::BindGroup m_texturesGroup;
 			wgpu::BindGroup m_samplersGroup;
+			wgpu::BindGroup m_buffersGroup;
 		};
 
 		struct RenderPassStateWgpu
