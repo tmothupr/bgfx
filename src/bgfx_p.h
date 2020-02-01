@@ -3097,6 +3097,7 @@ constexpr uint64_t kSortKeyComputeProgramMask  = uint64_t(BGFX_CONFIG_MAX_PROGRA
 				CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::CreateVertexLayout);
 				cmdbuf.write(layoutHandle);
 				cmdbuf.write(_layout);
+				m_vertexLayoutRef.add(layoutHandle, _layout.m_hash);
 			}
 
 			return layoutHandle;

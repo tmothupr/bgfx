@@ -1128,7 +1128,7 @@ namespace bgfx { namespace webgpu
 
 				rce.SetViewport(0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f);
 				//rce.SetViewport(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
-				rce.SetScissorRect(0, 0, width, height);
+				//rce.SetScissorRect(0, 0, width, height);
 
 				rce.SetPipeline(pso->m_rps);
 
@@ -3552,10 +3552,6 @@ namespace bgfx { namespace webgpu
 		
 		const int32_t sampleCount = s_msaa[(_flags&BGFX_RESET_MSAA_MASK)>>BGFX_RESET_MSAA_SHIFT];
 
-#if BX_PLATFORM_OSX > 101300
-		m_metalLayer.displaySyncEnabled = 0 != (_flags&BGFX_RESET_VSYNC);
-#endif // BX_PLATFORM_OSX > 101300
-
 		wgpu::TextureFormat format = (_flags & BGFX_RESET_SRGB_BACKBUFFER)
 			? wgpu::TextureFormat::RGBA8Unorm //wgpu::TextureFormat::BGRA8Unorm_sRGB
 			: wgpu::TextureFormat::RGBA8Unorm
@@ -3587,10 +3583,6 @@ namespace bgfx { namespace webgpu
 		desc.sampleCount = sampleCount;
 		desc.arrayLayerCount = 1;
 		desc.usage = wgpu::TextureUsage::OutputAttachment;
-
-		//desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
-		//desc.storageMode  = MTLStorageModePrivate;
-		//desc.usage        = MTLTextureUsageRenderTarget;
 
 		if (m_backBufferDepth)
 		{
@@ -4408,8 +4400,6 @@ namespace bgfx { namespace webgpu
 					else
 					{
 						m_computeEncoder.Dispatch(compute.m_numX, compute.m_numY, compute.m_numZ);
-						//	, threadsPerGroup
-						//	);
 					}
 
 					continue;
