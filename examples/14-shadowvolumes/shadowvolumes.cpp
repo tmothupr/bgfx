@@ -24,6 +24,8 @@ namespace stl = tinystl;
 #include "camera.h"
 #include "imgui/imgui.h"
 
+#define WEBGPU 0
+
 namespace bgfx
 {
 	int32_t read(bx::ReaderI* _reader, bgfx::VertexLayout& _layout, bx::Error* _err = NULL);
@@ -1779,7 +1781,7 @@ public:
 		m_reset = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_viewState.m_width;
 		init.resolution.height = m_viewState.m_height;
@@ -1807,7 +1809,11 @@ public:
 		bgfx::TextureHandle fbtextures[] =
 		{
 			bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::BGRA8, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_TEXTURE_RT),
+#if WEBGPU
+			bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::D24,   BGFX_TEXTURE_RT_WRITE_ONLY),
+#else
 			bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::D16,   BGFX_TEXTURE_RT_WRITE_ONLY),
+#endif
 		};
 
 		s_stencilFb  = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
@@ -2010,7 +2016,8 @@ public:
 				bgfx::TextureHandle fbtextures[] =
 				{
 					bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::BGRA8, BGFX_SAMPLER_U_CLAMP|BGFX_SAMPLER_V_CLAMP|BGFX_TEXTURE_RT),
-					bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::D16, BGFX_TEXTURE_RT_WRITE_ONLY)
+					//bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::D16, BGFX_TEXTURE_RT_WRITE_ONLY)
+					bgfx::createTexture2D(uint16_t(m_viewState.m_width), uint16_t(m_viewState.m_height), false, 1, bgfx::TextureFormat::D24, BGFX_TEXTURE_RT_WRITE_ONLY)
 				};
 				s_stencilFb = bgfx::createFrameBuffer(BX_COUNTOF(fbtextures), fbtextures, true);
 			}
