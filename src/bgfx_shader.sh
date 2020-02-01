@@ -51,8 +51,8 @@
 #	define bvec4 bool4
 
 #	if BGFX_SHADER_LANGUAGE_SPIRV
-#		define LAYOUT(_set, _binding) [[vk::binding(_binding, _set)]]
-//#		define LAYOUT(_set, _binding) layout(set = _set, binding = _binding)
+//#		define LAYOUT(_set, _binding) [[vk::binding(_binding, _set)]]
+#		define LAYOUT(_set, _binding) layout(set = _set, binding = _binding)
 #	else
 #		define LAYOUT(_set, _binding)
 #	endif // BGFX_SHADER_LANGUAGE_HLSL

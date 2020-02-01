@@ -29,6 +29,8 @@
 
 #define DAWN_ENABLE_BACKEND_D3D12
 
+#define VARIABLE_BIND_GROUPS 1
+
 namespace bgfx { namespace webgpu
 {
 	template <class T>
@@ -589,7 +591,7 @@ namespace bgfx { namespace webgpu
 				| BGFX_CAPS_TEXTURE_READ_BACK
 				| BGFX_CAPS_VERTEX_ATTRIB_HALF
 				| BGFX_CAPS_VERTEX_ATTRIB_UINT10
-			//	| BGFX_CAPS_COMPUTE
+				| BGFX_CAPS_COMPUTE
 				);
 
 			g_caps.limits.maxTextureSize   = 16384;
@@ -1168,14 +1170,12 @@ namespace bgfx { namespace webgpu
 					? getSamplerState(state)
 					: texture.m_sampler;
 
-				bindProgram(program, bindState, 1);
+				bindGroups(program, bindState, 1);
 
 				uint32_t numOffset = 2;
 				uint32_t offsets[2] = { voffset, foffset };
 
-				rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-				rce.SetBindGroup(1, bindState.m_texturesGroup);
-				rce.SetBindGroup(2, bindState.m_samplersGroup);
+				bindProgram(rce, program, bindState, numOffset, offsets);
 
 				VertexBufferWgpu& vb = m_vertexBuffers[_blitter.m_vb->handle.idx];
 				rce.SetVertexBuffer(0, vb.m_ptr);
@@ -1300,25 +1300,25 @@ namespace bgfx { namespace webgpu
 			return bindState;
 		}
 
-		void bindProgram(const ProgramWgpu& program, BindStateWgpu& bindState, uint32_t numSamplers, uint32_t numBuffers = 0)
+		void bindGroups(const ProgramWgpu& program, BindStateWgpu& bindState, uint32_t numSamplers, uint32_t numBuffers = 0)
 		{
 			wgpu::BindGroupDescriptor uniformsDesc;
-			uniformsDesc.layout = program.m_uniformsGroup;
+			uniformsDesc.layout = program.m_uniformsLayout;
 			uniformsDesc.bindingCount = program.m_numUniforms;
 			uniformsDesc.bindings = bindState.m_uniforms;
 
 			bindState.m_uniformsGroup = m_device.CreateBindGroup(&uniformsDesc);
 
 			BX_CHECK(numSamplers == program.m_numSamplers, "Missing texture bindings not allowed");
-			if (program.m_numSamplers > 0)
+			if (!VARIABLE_BIND_GROUPS || program.m_numSamplers > 0)
 			{
 				wgpu::BindGroupDescriptor texturesDesc;
-				texturesDesc.layout = program.m_texturesGroup;
+				texturesDesc.layout = program.m_texturesLayout;
 				texturesDesc.bindingCount = numSamplers;
 				texturesDesc.bindings = bindState.m_textures;
 
 				wgpu::BindGroupDescriptor samplersDesc;
-				samplersDesc.layout = program.m_samplersGroup;
+				samplersDesc.layout = program.m_samplersLayout;
 				samplersDesc.bindingCount = numSamplers;
 				samplersDesc.bindings = bindState.m_samplers;
 
@@ -1327,14 +1327,30 @@ namespace bgfx { namespace webgpu
 			}
 
 			BX_CHECK(numBuffers == program.m_numBuffers, "Missing buffer bindings not allowed");
-			if (program.m_numBuffers > 0)
+			if (!VARIABLE_BIND_GROUPS || program.m_numBuffers > 0)
 			{
 				wgpu::BindGroupDescriptor buffersDesc;
-				buffersDesc.layout = program.m_buffersGroup;
+				buffersDesc.layout = program.m_buffersLayout;
 				buffersDesc.bindingCount = numBuffers;
 				buffersDesc.bindings = bindState.m_buffers;
 
 				bindState.m_buffersGroup = m_device.CreateBindGroup(&buffersDesc);
+			}
+		}
+
+		template <class Encoder>
+		void bindProgram(Encoder& encoder, const ProgramWgpu& program, BindStateWgpu& bindState, uint32_t numOffset, uint32_t* offsets)
+		{
+			BX_CHECK(bindState.numOffset == numOffset, "We're obviously doing something wrong");
+			encoder.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
+			if (!VARIABLE_BIND_GROUPS || program.m_numSamplers > 0)
+			{
+				encoder.SetBindGroup(1, bindState.m_texturesGroup);
+				encoder.SetBindGroup(2, bindState.m_samplersGroup);
+			}
+			if (!VARIABLE_BIND_GROUPS || program.m_numBuffers > 0)
+			{
+				encoder.SetBindGroup(3, bindState.m_buffersGroup);
 			}
 		}
 
@@ -1560,16 +1576,11 @@ namespace bgfx { namespace webgpu
 			uint32_t numOffset = 2;
 			uint32_t offsets[2] = { voffset, foffset };
 
-			bindProgram(program, bindState, 0);
+			bindGroups(program, bindState, 0);
 
 			const VertexBufferWgpu& vb = m_vertexBuffers[_clearQuad.m_vb.idx];
 
-			rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-			if (program.m_numSamplers > 0) // always false
-			{
-				rce.SetBindGroup(1, bindState.m_texturesGroup);
-				rce.SetBindGroup(2, bindState.m_samplersGroup);
-			}
+			bindProgram(rce, program, bindState, numOffset, offsets);
 
 			rce.SetVertexBuffer(0, vb.m_ptr);
 			rce.Draw(4, 1, 0, 0);
@@ -1895,10 +1906,6 @@ namespace bgfx { namespace webgpu
 				pd.desc.vertexStage.module = program.m_vsh->m_module;
 				pd.fragmentStage.module = program.m_fsh != NULL ? program.m_fsh->m_module : wgpu::ShaderModule();
 
-				wgpu::PipelineLayoutDescriptor layout = defaultDescriptor<wgpu::PipelineLayoutDescriptor>();
-				layout.bindGroupLayouts = &program.m_uniformsGroup;
-				layout.bindGroupLayoutCount = program.m_numSamplers > 0 ? 3 : 1;
-
 				setDepthStencilState(pd.depthStencilState, _state, _stencil);
 
 				const uint64_t cull = _state & BGFX_STATE_CULL_MASK;
@@ -1909,6 +1916,10 @@ namespace bgfx { namespace webgpu
 
 				// pd.desc = m_renderPipelineDescriptor;
 				pd.desc.sampleCount = sampleCount;
+
+				wgpu::PipelineLayoutDescriptor layout = defaultDescriptor<wgpu::PipelineLayoutDescriptor>();
+				layout.bindGroupLayouts = program.m_bindGroupLayouts;
+				layout.bindGroupLayoutCount = program.m_numBindGroups;
 
 				pd.desc.layout = m_device.CreatePipelineLayout(&layout);
 				// @todo this should be cached too
@@ -2112,13 +2123,17 @@ namespace bgfx { namespace webgpu
 				PipelineStateWgpu* pso = BX_NEW(g_allocator, PipelineStateWgpu);
 				program.m_computePS = pso;
 
-				wgpu::ComputePipelineDescriptor desc;
-				pso->m_cps = m_device.CreateComputePipeline(&desc);
+				wgpu::PipelineLayoutDescriptor layout = defaultDescriptor<wgpu::PipelineLayoutDescriptor>();
+				layout.bindGroupLayouts = program.m_bindGroupLayouts;
+				layout.bindGroupLayoutCount = program.m_numBindGroups;
 
-				for (uint32_t ii = 0; ii < 3; ++ii)
-				{
-					pso->m_numThreads[ii] = program.m_vsh->m_numThreads[ii];
-				}
+				pso->m_layout = m_device.CreatePipelineLayout(&layout);
+
+				wgpu::ComputePipelineDescriptor desc;
+				desc.layout = pso->m_layout;
+				desc.computeStage = { nullptr, program.m_vsh->m_module, "main" };
+
+				pso->m_cps = m_device.CreateComputePipeline(&desc);
 			}
 
 			return program.m_computePS;
@@ -2377,6 +2392,26 @@ namespace bgfx { namespace webgpu
 		uint32_t magic;
 		bx::read(&reader, magic);
 
+		wgpu::ShaderStage shaderStage;
+		BX_UNUSED(shaderStage);
+
+		if (isShaderType(magic, 'C'))
+		{
+			shaderStage = wgpu::ShaderStage::Compute;
+		}
+		else if (isShaderType(magic, 'F'))
+		{
+			shaderStage = wgpu::ShaderStage::Fragment;
+		}
+		else if (isShaderType(magic, 'G'))
+		{
+			//shaderStage = wgpu::ShaderStage::Geometry;
+		}
+		else if (isShaderType(magic, 'V'))
+		{
+			shaderStage = wgpu::ShaderStage::Vertex;
+		}
+
 		uint32_t hashIn;
 		bx::read(&reader, hashIn);
 
@@ -2448,52 +2483,58 @@ namespace bgfx { namespace webgpu
 					m_predefined[m_numPredefined].m_type  = uint8_t(predefined|fragmentBit);
 					m_numPredefined++;
 				}
+				else if (UniformType::End == (~BGFX_UNIFORM_MASK & type))
+				{
+					//m_bindInfo[num].uniformHandle = { 0 };
+					//m_bindInfo[num].type = BindType::Storage;
+					//m_bindInfo[num].binding = regCount; // regCount is used for buffer binding index
+					//m_bindInfo[num].samplerBinding = regIndex; // regIndex is used for descriptor type
+
+					m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::StorageBuffer };
+					//m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::ReadonlyStorageBuffer };
+
+					m_numBuffers++;
+
+					kind = "storage";
+				}
+				else if (UniformType::Sampler == (~BGFX_UNIFORM_MASK & type))
+				{
+					const UniformRegInfo* info = s_renderWgpu->m_uniformReg.find(name);
+					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
+
+					//BX_TRACE("\tsampler binding: %2d", regIndex);
+
+					m_samplers[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::Sampler };
+					m_textures[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::SampledTexture, false, false,
+												  wgpu::TextureViewDimension(texDimension), wgpu::TextureComponentType(texComponent) };
+
+					const uint8_t stage = num;
+					BX_CHECK(regIndex == stage + 2, "Register to binding index should be 1:1");
+
+					m_samplerInfo[stage].m_index = m_numSamplers;
+					m_samplerInfo[stage].m_binding = regIndex;
+					m_samplerInfo[stage].m_stage = stage;
+					m_samplerInfo[stage].m_uniform = info->m_handle;
+					m_samplerInfo[stage].m_fragment = fragmentBit ? 1 : 0;
+					BX_TRACE("texture %s %d index:%d", name, info->m_handle.idx, 0); // uint32_t(arg.index));
+
+					m_numSamplers++;
+
+					kind = "sampler";
+				}
 				else
 				{
 					const UniformRegInfo* info = s_renderWgpu->m_uniformReg.find(name);
 					BX_CHECK(NULL != info, "User defined uniform '%s' is not found, it won't be set.", name);
 
-					if(0 == (BGFX_UNIFORM_SAMPLERBIT & type))
+					const UniformSet::Enum freq = info->m_freq;
+					if(NULL == m_constantBuffer[freq])
 					{
-						if(NULL != info)
-						{
-							const UniformSet::Enum freq = info->m_freq;
-							if(NULL == m_constantBuffer[freq])
-							{
-								m_constantBuffer[freq] = UniformBuffer::create(1024);
-							}
-
-							kind = "user";
-							m_constantBuffer[freq]->writeUniformHandle((UniformType::Enum)(type | fragmentBit), regIndex, info->m_handle, regCount);
-						}
+						m_constantBuffer[freq] = UniformBuffer::create(1024);
 					}
-					else
-					{
-						kind = "sampler";
 
-						//BX_TRACE("\tsampler binding: %2d", regIndex);
-
-						wgpu::ShaderStage shaderStage = fragmentBit ? wgpu::ShaderStage::Fragment : wgpu::ShaderStage::Vertex;
-
-						m_samplers[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::Sampler };
-						m_textures[m_numSamplers] = { regIndex, shaderStage, wgpu::BindingType::SampledTexture, false, false,
-													  wgpu::TextureViewDimension(texDimension), wgpu::TextureComponentType(texComponent) };
-
-						const uint8_t stage = num;
-						BX_CHECK(regIndex == stage + 2, "Register to binding index should be 1:1");
-
-						if(NULL != info)
-						{
-							m_samplerInfo[stage].m_index = m_numSamplers;
-							m_samplerInfo[stage].m_binding = regIndex;
-							m_samplerInfo[stage].m_stage = stage;
-							m_samplerInfo[stage].m_uniform = info->m_handle;
-							m_samplerInfo[stage].m_fragment = fragmentBit ? 1 : 0;
-							BX_TRACE("texture %s %d index:%d", name, info->m_handle.idx, 0); // uint32_t(arg.index));
-						}
-
-						m_numSamplers++;
-					}
+					kind = "user";
+					m_constantBuffer[freq]->writeUniformHandle((UniformType::Enum)(type | fragmentBit), regIndex, info->m_handle, regCount);
 				}
 
 				BX_TRACE("\t%s: %s (%s), num %2d, r.index %3d, r.count %2d"
@@ -2513,14 +2554,6 @@ namespace bgfx { namespace webgpu
 				{
 					m_constantBuffer[ii]->finish();
 				}
-			}
-		}
-
-		if (isShaderType(magic, 'C'))
-		{
-			for (uint32_t ii = 0; ii < 3; ++ii)
-			{
-				bx::read(&reader, m_numThreads[ii]);
 			}
 		}
 
@@ -2644,7 +2677,7 @@ namespace bgfx { namespace webgpu
 
 		// bind uniform buffer at slot 0
 		uniforms[0].binding = 0;
-		uniforms[0].visibility = wgpu::ShaderStage::Vertex;
+		uniforms[0].visibility = _fsh ? wgpu::ShaderStage::Vertex : wgpu::ShaderStage::Compute;
 		uniforms[0].type = wgpu::BindingType::UniformBuffer;
 		uniforms[0].hasDynamicOffset = true;
 
@@ -2666,10 +2699,15 @@ namespace bgfx { namespace webgpu
 
 		numSamplers += _vsh->m_numSamplers;
 
-		for (uint32_t ii = 0; ii < _fsh->m_numSamplers; ++ii)
+		if (NULL != _fsh)
 		{
-			m_textures[numSamplers+ii] = _fsh->m_textures[ii];
-			m_samplers[numSamplers+ii] = _fsh->m_samplers[ii];
+			for (uint32_t ii = 0; ii < _fsh->m_numSamplers; ++ii)
+			{
+				m_textures[numSamplers + ii] = _fsh->m_textures[ii];
+				m_samplers[numSamplers + ii] = _fsh->m_samplers[ii];
+			}
+
+			numSamplers += _fsh->m_numSamplers;
 		}
 
 		for (uint8_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)
@@ -2684,29 +2722,55 @@ namespace bgfx { namespace webgpu
 			}
 		}
 
-		numSamplers += _fsh->m_numSamplers;
 		m_numSamplers = numSamplers;
+
+		for (uint32_t ii = 0; ii < _vsh->m_numBuffers; ++ii)
+		{
+			m_buffers[ii] = _vsh->m_buffers[ii];
+		}
+
+		m_numBuffers = _vsh->m_numBuffers;
+
+		uint8_t numBindGroups = 0;
 
 		wgpu::BindGroupLayoutDescriptor uniformsDesc;
 		uniformsDesc.bindingCount = m_numUniforms;
 		uniformsDesc.bindings = uniforms;
-		m_uniformsGroup = s_renderWgpu->m_device.CreateBindGroupLayout(&uniformsDesc);
+		m_uniformsLayout = s_renderWgpu->m_device.CreateBindGroupLayout(&uniformsDesc);
+		m_bindGroupLayouts[numBindGroups++] = m_uniformsLayout;
 
-		wgpu::BindGroupLayoutDescriptor samplersDesc;
-		samplersDesc.bindingCount = numSamplers;
-		samplersDesc.bindings = m_samplers;
-		m_samplersGroup = s_renderWgpu->m_device.CreateBindGroupLayout(&samplersDesc);
+		if (!VARIABLE_BIND_GROUPS || numSamplers > 0)
+		{
+			wgpu::BindGroupLayoutDescriptor texturesDesc;
+			texturesDesc.bindingCount = numSamplers;
+			texturesDesc.bindings = m_textures;
+			m_texturesLayout = s_renderWgpu->m_device.CreateBindGroupLayout(&texturesDesc);
+			m_bindGroupLayouts[numBindGroups++] = m_texturesLayout;
 
-		wgpu::BindGroupLayoutDescriptor texturesDesc;
-		texturesDesc.bindingCount = numSamplers;
-		texturesDesc.bindings = m_textures;
-		m_texturesGroup = s_renderWgpu->m_device.CreateBindGroupLayout(&texturesDesc);
+			wgpu::BindGroupLayoutDescriptor samplersDesc;
+			samplersDesc.bindingCount = numSamplers;
+			samplersDesc.bindings = m_samplers;
+			m_samplersLayout = s_renderWgpu->m_device.CreateBindGroupLayout(&samplersDesc);
+			m_bindGroupLayouts[numBindGroups++] = m_samplersLayout;
+		}
+
+		if (!VARIABLE_BIND_GROUPS || m_numBuffers > 0)
+		{
+			wgpu::BindGroupLayoutDescriptor buffersDesc;
+			buffersDesc.bindingCount = m_numBuffers;
+			buffersDesc.bindings = m_buffers;
+			m_buffersLayout = s_renderWgpu->m_device.CreateBindGroupLayout(&buffersDesc);
+			m_bindGroupLayouts[numBindGroups++] = m_buffersLayout;
+		}
+
+		m_numBindGroups = numBindGroups;
 
 		bx::HashMurmur2A murmur;
 		murmur.begin();
 		murmur.add(m_numUniforms);
 		murmur.add(m_textures, sizeof(wgpu::BindGroupLayoutBinding) * numSamplers);
 		murmur.add(m_samplers, sizeof(wgpu::BindGroupLayoutBinding) * numSamplers);
+		murmur.add(m_buffers,  sizeof(wgpu::BindGroupLayoutBinding) * m_numBuffers);
 		m_bindGroupLayoutHash = murmur.end();
 	}
 
@@ -2731,9 +2795,14 @@ namespace bgfx { namespace webgpu
 
 		const uint32_t paddedSize = (_size % 4 == 0) ? _size : _size + 2;
 
+		bool storage = m_flags & BGFX_BUFFER_COMPUTE_READ_WRITE;
+		bool indirect = m_flags & BGFX_BUFFER_DRAW_INDIRECT;
+
 		wgpu::BufferDescriptor desc;
 		desc.size = paddedSize;
 		desc.usage = _vertex ? wgpu::BufferUsage::Vertex : wgpu::BufferUsage::Index;
+		desc.usage |= (storage || indirect ? wgpu::BufferUsage::Storage : wgpu::BufferUsage(0));
+		desc.usage |= (indirect ? wgpu::BufferUsage::Indirect : wgpu::BufferUsage(0));
 		desc.usage |= wgpu::BufferUsage::CopyDst;
 
 		m_ptr = s_renderWgpu->m_device.CreateBuffer(&desc);
@@ -3359,6 +3428,7 @@ namespace bgfx { namespace webgpu
 		m_uniformsGroup = nullptr;
 		m_texturesGroup = nullptr;
 		m_samplersGroup = nullptr;
+		m_buffersGroup = nullptr;
 	}
 
 	void ScratchBufferWgpu::create(uint32_t _size)
@@ -4231,13 +4301,6 @@ namespace bgfx { namespace webgpu
 
 					BindStateWgpu& bindState = this->allocBindState(program, bindStates, scratchBuffer);
 
-					const uint32_t vsize = program.m_vsh->m_gpuSize;
-					const uint32_t voffset = scratchBuffer.m_offset;
-
-					bindState.m_uniforms[0].offset = voffset;
-					bindState.m_uniforms[0].size = vsize;
-					scratchBuffer.m_offset += program.m_vsh->m_gpuSize;
-
 					if (constantsChanged)
 					{
 						UniformBuffer* vcb = program.m_vsh->m_constantBuffer[UniformSet::Submit];
@@ -4248,6 +4311,12 @@ namespace bgfx { namespace webgpu
 					}
 
 					viewState.setPredefined<4>(this, view, program, _render, compute, programChanged || viewChanged);
+
+					uint32_t numOffset = 1;
+					uint32_t offsets[2] = { scratchBuffer.m_offset, 0 };
+					//if (program.m_vsh->m_size > 0)
+						scratchBuffer.m_buffer.SetSubData(scratchBuffer.m_offset, program.m_vsh->m_gpuSize, m_vsScratch);
+					scratchBuffer.m_offset += program.m_vsh->m_gpuSize;
 
 					uint8_t currentSampler = 0;
 					uint8_t currentBuffer = 0;
@@ -4262,6 +4331,7 @@ namespace bgfx { namespace webgpu
 							case Binding::Image:
 							{
 								TextureWgpu& texture = m_textures[bind.m_idx];
+								BX_TRACE("Binding compute image %d", stage);
 								bindState.m_textures[currentSampler].binding = stage;
 								bindState.m_textures[currentSampler].textureView = texture.getTextureMipLevel(bind.m_mip);
 								currentSampler++;
@@ -4273,6 +4343,7 @@ namespace bgfx { namespace webgpu
 								TextureWgpu& texture = m_textures[bind.m_idx];
 								uint32_t flags = bind.m_samplerFlags;
 
+								BX_TRACE("Binding compute texture %d", stage);
 								bindState.m_textures[currentSampler].binding = stage;
 								bindState.m_textures[currentSampler].textureView = texture.m_ptr.CreateView();
 								bindState.m_samplers[currentSampler].binding = stage;
@@ -4291,9 +4362,13 @@ namespace bgfx { namespace webgpu
 									: m_vertexBuffers[bind.m_idx]
 									;
 
-								bindState.m_uniforms[currentBuffer].binding = 2 + stage;
-								bindState.m_uniforms[currentBuffer].offset = 0;
-								bindState.m_uniforms[currentBuffer].buffer = buffer.m_ptr;
+								BX_TRACE("Binding compute buffer %d", stage);
+								bindState.m_buffers[currentBuffer].binding = stage;
+								bindState.m_buffers[currentBuffer].offset = 0;
+								bindState.m_buffers[currentBuffer].buffer = buffer.m_ptr;
+								//bindState.m_uniforms[currentBuffer].binding = 2 + stage;
+								//bindState.m_uniforms[currentBuffer].offset = 0;
+								//bindState.m_uniforms[currentBuffer].buffer = buffer.m_ptr;
 								currentBuffer++;
 							}
 							break;
@@ -4301,20 +4376,9 @@ namespace bgfx { namespace webgpu
 						}
 					}
 
-					bindProgram(program, bindState, currentSampler, currentBuffer);
+					bindGroups(program, bindState, currentSampler, currentBuffer);
 
-					m_computeEncoder.SetBindGroup(0, bindState.m_uniformsGroup);
-
-					if (program.m_numSamplers > 0)
-					{
-						m_computeEncoder.SetBindGroup(1, bindState.m_texturesGroup);
-						m_computeEncoder.SetBindGroup(2, bindState.m_samplersGroup);
-					}
-
-					if (program.m_numBuffers > 0)
-					{
-						m_computeEncoder.SetBindGroup(3, bindState.m_buffersGroup);
-					}
+					bindProgram(m_computeEncoder, program, bindState, numOffset, offsets);
 
 					if (isValid(compute.m_indirectBuffer))
 					{
@@ -4719,7 +4783,7 @@ namespace bgfx { namespace webgpu
 						}
 #endif
 
-						bindProgram(program, bindState, currentSampler);
+						bindGroups(program, bindState, currentSampler);
 					};
 
 					uint32_t bindHash = bx::hash<bx::HashMurmur2A>(renderBind.m_bind, sizeof(renderBind.m_bind));
@@ -4735,13 +4799,7 @@ namespace bgfx { namespace webgpu
 
 					BindStateWgpu& bindState = bindStates.m_bindStates[bindStates.m_currentBindState-1];
 
-					BX_CHECK(bindState.numOffset == numOffset, "We're obviously doing something wrong");
-					rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-					if (program.m_numSamplers > 0)
-					{
-						rce.SetBindGroup(1, bindState.m_texturesGroup);
-						rce.SetBindGroup(2, bindState.m_samplersGroup);
-					}
+					bindProgram(rce, program, bindState, numOffset, offsets);
 				}
 
 				if (0 != currentState.m_streamMask)

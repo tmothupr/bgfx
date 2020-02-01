@@ -160,12 +160,13 @@ namespace bgfx {
 			uint16_t m_gpuSize = 0;
 			uint8_t m_numPredefined = 0;
 			uint8_t m_numAttrs = 0;
-			uint16_t m_numThreads[3];
 
 			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			wgpu::BindGroupLayoutBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			wgpu::BindGroupLayoutBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			uint8_t m_numSamplers = 0;
+			uint8_t                      m_numSamplers = 0;
+			wgpu::BindGroupLayoutBinding m_buffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			uint32_t	                 m_numBuffers = 0;
 		};
 
 		struct PipelineStateWgpu;
@@ -183,10 +184,12 @@ namespace bgfx {
 
 			PipelineStateWgpu* m_computePS = NULL;
 
-			wgpu::BindGroupLayout m_uniformsGroup;
-			wgpu::BindGroupLayout m_texturesGroup;
-			wgpu::BindGroupLayout m_samplersGroup;
-			wgpu::BindGroupLayout m_buffersGroup;
+			wgpu::BindGroupLayout m_uniformsLayout;
+			wgpu::BindGroupLayout m_texturesLayout;
+			wgpu::BindGroupLayout m_samplersLayout;
+			wgpu::BindGroupLayout m_buffersLayout;
+			wgpu::BindGroupLayout m_bindGroupLayouts[4];
+			uint8_t               m_numBindGroups = 0;
 			uint16_t			  m_gpuSize = 0;
 			uint32_t			  m_numUniforms;
 			uint32_t			  m_bindGroupLayoutHash;
@@ -272,9 +275,7 @@ namespace bgfx {
 		{
 			RenderPipelineDescriptor m_rpd;
 
-			uint16_t m_numThreads[3] = { 1, 1, 1 };
-
-			wgpu::BindGroupLayout m_bind;
+			wgpu::PipelineLayout m_layout;
 
 			wgpu::RenderPipeline m_rps;
 			wgpu::ComputePipeline m_cps;
