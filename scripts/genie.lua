@@ -568,67 +568,139 @@ or _OPTIONS["with-combined-examples"] then
 		, "41-tess"
 		)
 
-	project "example-01-cubes"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_cubes.bin") .. "@/shaders/spirv/vs_cubes.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_cubes.bin") .. "@/shaders/spirv/fs_cubes.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_cubes_color.bin") .. "@/shaders/spirv/fs_cubes_color.bin",
-			}
+	function addWebAssets(name, shaders, models, textures)
+		project(name)
+			configuration { "asmjs" }
+			
+				for _, shader in ipairs(shaders or {}) do
+					local asset = "shaders/spirv/" .. shader .. ".bin"
+					linkoptions {
+						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
+					}
+				end
+				
+				for _, model in ipairs(models or {}) do
+					local asset = "meshes/" .. model .. ".bin"
+					linkoptions {
+						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
+					}
+				end
+				
+				for _, texture in ipairs(textures or {}) do
+					local asset = "textures/" .. texture
+					linkoptions {
+						"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/" .. asset) .. "@/" .. asset,
+					}
+				end
+	end
 
-	project "example-03-raymarch"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_raymarching.bin") .. "@/shaders/spirv/vs_raymarching.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_raymarching.bin") .. "@/shaders/spirv/fs_raymarching.bin",
-			}
+	addWebAssets("example-01-cubes", { "vs_cubes", "fs_cubes", "fs_cubes_color" })
+	addWebAssets("example-03-raymarch", { "vs_raymarching", "fs_raymarching" })
+	addWebAssets("example-04-mesh", { "vs_mesh", "fs_mesh" }, { "bunny" })
+	addWebAssets("example-05-instancing", { "vs_instancing", "fs_instancing" })
+	addWebAssets("example-06-bump", { "vs_bump", "fs_bump" }, {}, { "fieldstone-rgba.png", "fieldstone-n.png" })
 
-	project "example-04-mesh"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_mesh.bin") .. "@/shaders/spirv/vs_mesh.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_mesh.bin") .. "@/shaders/spirv/fs_mesh.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/meshes/bunny.bin") .. "@/meshes/bunny.bin",
-			}
+	addWebAssets("example-09-hdr", { "vs_hdr_skybox", "fs_hdr_skybox", "vs_hdr_lum", "fs_hdr_lum", "vs_hdr_lumavg", "fs_hdr_lumavg", "vs_hdr_blur",
+									 "fs_hdr_blur", "vs_hdr_bright", "fs_hdr_bright", "vs_hdr_mesh", "fs_hdr_mesh", "vs_hdr_tonemap", "fs_hdr_tonemap" },
+								   { "bunny" }, { "uffizi.ktx" })
+	
+	addWebAssets("example-13-stencil", { "vs_stencil_texture_lighting", "fs_stencil_texture_lighting", "vs_stencil_color_lighting", "fs_stencil_color_lighting",
+										 "vs_stencil_color_texture", "fs_stencil_color_texture", "vs_stencil_color", "fs_stencil_color_black", "vs_stencil_texture",
+										 "fs_stencil_texture" }, { "bunny", "column" }, { "figure-rgba.dds", "flare.dds", "fieldstone-rgba.dds" })
 
-	project "example-05-instancing"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_instancing.bin") .. "@/shaders/spirv/vs_instancing.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_instancing.bin") .. "@/shaders/spirv/fs_instancing.bin",
-			}
+	addWebAssets("example-14-shadowvolumes",
+		{
+			"vs_shadowvolume_texture_lighting", "fs_shadowvolume_texture_lighting",
+			"vs_shadowvolume_color_lighting",  "fs_shadowvolume_color_lighting",
+			"vs_shadowvolume_color_texture", "fs_shadowvolume_color_texture",
+			"vs_shadowvolume_texture", "fs_shadowvolume_texture",
+			"vs_shadowvolume_svback", "vs_shadowvolume_svside",  "vs_shadowvolume_svfront",
+			"fs_shadowvolume_svbackblank", "fs_shadowvolume_svsideblank", "fs_shadowvolume_svfrontblank",
+			"fs_shadowvolume_svbackcolor", "fs_shadowvolume_svsidecolor", "fs_shadowvolume_svfrontcolor",
+			"fs_shadowvolume_svsidetex",
+			"fs_shadowvolume_svbacktex1", "fs_shadowvolume_svbacktex2",
+			"fs_shadowvolume_svfronttex1", "fs_shadowvolume_svfronttex2"
+		},
+		{ "bunny_patched", "bunny_decimated", "column", "platform", "cube" },
+		{ "figure-rgba.dds", "flare.dds", "fieldstone-rgba.dds" })
 
-	project "example-06-bump"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_bump.bin") .. "@/shaders/spirv/vs_bump.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_bump.bin") .. "@/shaders/spirv/fs_bump.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/fieldstone-rgba.png") .. "@/textures/fieldstone-rgba.png",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/fieldstone-n.png") .. "@/textures/fieldstone-n.png",
-		      --"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/") .. "@/",
-			}
+	addWebAssets("example-15-shadowmaps-simple", { "vs_sms_shadow_pd", "fs_sms_shadow_pd", "vs_sms_mesh", "fs_sms_mesh_pd", "vs_sms_shadow", "fs_sms_shadow", "vs_sms_mesh", "fs_sms_mesh" },
+												 { "bunny", "cube", "hollowcube" })
 
-	project "example-09-hdr"
-		configuration { "asmjs" }
-			linkoptions {
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_skybox.bin") .. "@/shaders/spirv/vs_hdr_skybox.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_skybox.bin") .. "@/shaders/spirv/fs_hdr_skybox.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_lum.bin") .. "@/shaders/spirv/vs_hdr_lum.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_lum.bin") .. "@/shaders/spirv/fs_hdr_lum.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_lumavg.bin") .. "@/shaders/spirv/vs_hdr_lumavg.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_lumavg.bin") .. "@/shaders/spirv/fs_hdr_lumavg.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_blur.bin") .. "@/shaders/spirv/vs_hdr_blur.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_blur.bin") .. "@/shaders/spirv/fs_hdr_blur.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_bright.bin") .. "@/shaders/spirv/vs_hdr_bright.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_bright.bin") .. "@/shaders/spirv/fs_hdr_bright.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_mesh.bin") .. "@/shaders/spirv/vs_hdr_mesh.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_mesh.bin") .. "@/shaders/spirv/fs_hdr_mesh.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/vs_hdr_tonemap.bin") .. "@/shaders/spirv/vs_hdr_tonemap.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/shaders/spirv/fs_hdr_tonemap.bin") .. "@/shaders/spirv/fs_hdr_tonemap.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/meshes/bunny.bin") .. "@/meshes/bunny.bin",
-				"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/textures/uffizi.ktx") .. "@/textures/uffizi.ktx",
-		      --"--preload-file " .. path.join(BGFX_DIR, "examples/runtime/") .. "@/",
-			}
+	addWebAssets("example-16-shadowmaps",
+		{
+			"vs_shadowmaps_color",         "fs_shadowmaps_color_black",
+			"vs_shadowmaps_texture",       "fs_shadowmaps_texture",
+			"vs_shadowmaps_color_texture", "fs_shadowmaps_color_texture",
+
+			"vs_shadowmaps_vblur", "fs_shadowmaps_vblur",
+			"vs_shadowmaps_hblur", "fs_shadowmaps_hblur",
+			"vs_shadowmaps_vblur", "fs_shadowmaps_vblur_vsm",
+			"vs_shadowmaps_hblur", "fs_shadowmaps_hblur_vsm",
+
+			"vs_shadowmaps_unpackdepth", "fs_shadowmaps_unpackdepth",
+			"vs_shadowmaps_unpackdepth", "fs_shadowmaps_unpackdepth_vsm",
+
+			"vs_shadowmaps_packdepth", "fs_shadowmaps_packdepth",
+			"vs_shadowmaps_packdepth", "fs_shadowmaps_packdepth_vsm",
+
+			"vs_shadowmaps_packdepth_linear", "fs_shadowmaps_packdepth_linear",
+			"vs_shadowmaps_packdepth_linear", "fs_shadowmaps_packdepth_vsm_linear",
+
+			"vs_shadowmaps_color_lighting", "fs_shadowmaps_color_lighting_hard",
+			"vs_shadowmaps_color_lighting", "fs_shadowmaps_color_lighting_pcf",
+			"vs_shadowmaps_color_lighting", "fs_shadowmaps_color_lighting_vsm",
+			"vs_shadowmaps_color_lighting", "fs_shadowmaps_color_lighting_esm",
+
+			"vs_shadowmaps_color_lighting_linear", "fs_shadowmaps_color_lighting_hard_linear",
+			"vs_shadowmaps_color_lighting_linear", "fs_shadowmaps_color_lighting_pcf_linear",
+			"vs_shadowmaps_color_lighting_linear", "fs_shadowmaps_color_lighting_vsm_linear",
+			"vs_shadowmaps_color_lighting_linear", "fs_shadowmaps_color_lighting_esm_linear",
+
+			"vs_shadowmaps_color_lighting_omni", "fs_shadowmaps_color_lighting_hard_omni",
+			"vs_shadowmaps_color_lighting_omni", "fs_shadowmaps_color_lighting_pcf_omni",
+			"vs_shadowmaps_color_lighting_omni", "fs_shadowmaps_color_lighting_vsm_omni",
+			"vs_shadowmaps_color_lighting_omni", "fs_shadowmaps_color_lighting_esm_omni",
+
+			"vs_shadowmaps_color_lighting_linear_omni", "fs_shadowmaps_color_lighting_hard_linear_omni",
+			"vs_shadowmaps_color_lighting_linear_omni", "fs_shadowmaps_color_lighting_pcf_linear_omni",
+			"vs_shadowmaps_color_lighting_linear_omni", "fs_shadowmaps_color_lighting_vsm_linear_omni",
+			"vs_shadowmaps_color_lighting_linear_omni", "fs_shadowmaps_color_lighting_esm_linear_omni",
+
+			"vs_shadowmaps_color_lighting_csm", "fs_shadowmaps_color_lighting_hard_csm",
+			"vs_shadowmaps_color_lighting_csm", "fs_shadowmaps_color_lighting_pcf_csm",
+			"vs_shadowmaps_color_lighting_csm", "fs_shadowmaps_color_lighting_vsm_csm",
+			"vs_shadowmaps_color_lighting_csm", "fs_shadowmaps_color_lighting_esm_csm",
+
+			"vs_shadowmaps_color_lighting_linear_csm", "fs_shadowmaps_color_lighting_hard_linear_csm",
+			"vs_shadowmaps_color_lighting_linear_csm", "fs_shadowmaps_color_lighting_pcf_linear_csm",
+			"vs_shadowmaps_color_lighting_linear_csm", "fs_shadowmaps_color_lighting_vsm_linear_csm",
+			"vs_shadowmaps_color_lighting_linear_csm", "fs_shadowmaps_color_lighting_esm_linear_csm",
+		},
+		{ "bunny", "tree", "cube", "hollowcube" },
+		{ "figure-rgba.dds", "flare.dds", "fieldstone-rgba.dds" })
+
+	addWebAssets("example-18-ibl",
+		{
+			"vs_ibl_mesh",   "fs_ibl_mesh",
+			"vs_ibl_skybox", "fs_ibl_skybox",
+		},
+		{ "bunny", "orb" })
+
+	addWebAssets("example-19-oit",
+		{
+			"vs_oit",      "fs_oit",
+			"vs_oit",      "fs_oit_wb_separate",
+			"vs_oit_blit", "fs_oit_wb_separate_blit",
+			"vs_oit",      "fs_oit_wb",
+			"vs_oit_blit", "fs_oit_wb_blit"
+		})
+	
+	addWebAssets("example-24-nbody",
+		{
+			"vs_particle", "fs_particle",
+			"cs_init_instances", "cs_update_instances", "cs_indirect"
+		})
 
 	-- C99 source doesn't compile under WinRT settings
 	if not premake.vstudio.iswinrt() then
