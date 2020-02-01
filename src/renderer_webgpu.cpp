@@ -3525,8 +3525,8 @@ namespace bgfx { namespace webgpu
 		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
 		m_swapChain = _device.CreateSwapChain(&desc);
 #else
-		wgpu::SurfaceDescriptorFromHTMLCanvas canvasDesc{};
-		canvasDesc.target = "#canvas";
+		wgpu::SurfaceDescriptorFromHTMLCanvasId canvasDesc{};
+		canvasDesc.id = "canvas";
 
 		wgpu::SurfaceDescriptor surfDesc{};
 		surfDesc.nextInChain = &canvasDesc;
@@ -4261,17 +4261,22 @@ namespace bgfx { namespace webgpu
 
 						m_computeEncoder = m_cmd.m_encoder.BeginComputePass();
 					}
-					else if (viewChanged && BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+					else if (viewChanged)
 					{
-						m_computeEncoder.PopDebugGroup();
+						if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+						{
+							m_computeEncoder.PopDebugGroup();
+						}
 					}
 
-					if (viewChanged
-						&& BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+					if (viewChanged)
 					{
-						s_viewName[view][3] = L'C';
-						m_computeEncoder.PushDebugGroup(s_viewName[view]);
-						s_viewName[view][3] = L' ';
+						if (BX_ENABLED(BGFX_CONFIG_DEBUG_ANNOTATION))
+						{
+							s_viewName[view][3] = L'C';
+							m_computeEncoder.PushDebugGroup(s_viewName[view]);
+							s_viewName[view][3] = L' ';
+						}
 					}
 
 					const RenderCompute& compute = renderItem.compute;
