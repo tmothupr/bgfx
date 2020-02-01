@@ -9,6 +9,8 @@
 #include "logo.h"
 #include "imgui/imgui.h"
 
+#define WEBGPU 1
+
 namespace
 {
 
@@ -30,7 +32,7 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-	  //init.type     = bgfx::RendererType::WebGPU;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
         init.type     = args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
