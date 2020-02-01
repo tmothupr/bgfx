@@ -124,9 +124,9 @@ namespace bgfx {
 
 		struct SamplerInfo
 		{
-			uint32_t      m_index;
-			UniformHandle m_uniform;
-			bool          m_fragment;
+			uint32_t      m_index = UINT32_MAX;
+			UniformHandle m_uniform = BGFX_INVALID_HANDLE;
+			bool          m_fragment = false;
 		};
 
 		struct ShaderWgpu
@@ -181,15 +181,17 @@ namespace bgfx {
 
 			PipelineStateWgpu* m_computePS = NULL;
 
-			wgpu::BindGroupLayout m_uniforms;
-			wgpu::BindGroupLayout m_textures;
-			wgpu::BindGroupLayout m_samplers;
+			wgpu::BindGroupLayout m_uniformsGroup;
+			wgpu::BindGroupLayout m_texturesGroup;
+			wgpu::BindGroupLayout m_samplersGroup;
 			uint16_t			  m_gpuSize = 0;
 			uint32_t			  m_numUniforms;
 			uint32_t			  m_bindGroupLayoutHash;
 
-			SamplerInfo m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			uint32_t	m_numSamplers = 0;
+			SamplerInfo                  m_samplerInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupLayoutBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupLayoutBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			uint32_t	                 m_numSamplers = 0;
 		};
 
 		constexpr size_t kMaxVertexInputs = 16;
