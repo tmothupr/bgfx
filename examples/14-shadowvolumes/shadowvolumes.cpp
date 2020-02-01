@@ -24,7 +24,7 @@ namespace stl = tinystl;
 #include "camera.h"
 #include "imgui/imgui.h"
 
-#define WEBGPU 0
+#define WEBGPU 1
 
 namespace bgfx
 {
