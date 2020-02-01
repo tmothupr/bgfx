@@ -3519,11 +3519,18 @@ namespace bgfx { namespace webgpu
 	{
 		BX_UNUSED(_nwh);
 
-#if !BX_PLATFORM_EMSCRIPTEN
 		wgpu::SwapChainDescriptor desc;
+		desc.usage = wgpu::TextureUsage::OutputAttachment;
+		desc.format = wgpu::TextureFormat::RGBA8Unorm;
+		//desc.format = wgpu::TextureFormat::BGRA8Unorm;
+		desc.width = _width;
+		desc.height = _height;
+		desc.presentMode = wgpu::PresentMode::VSync;
+
+#if !BX_PLATFORM_EMSCRIPTEN
 		m_impl = CreateSwapChain(_device, _nwh);
 		desc.implementation = reinterpret_cast<uint64_t>(&m_impl);
-		m_swapChain = _device.CreateSwapChain(&desc);
+		m_swapChain = _device.CreateSwapChain(nullptr, &desc);
 #else
 		wgpu::SurfaceDescriptorFromHTMLCanvasId canvasDesc{};
 		canvasDesc.id = "canvas";
@@ -3532,14 +3539,7 @@ namespace bgfx { namespace webgpu
 		surfDesc.nextInChain = &canvasDesc;
 		wgpu::Surface surface = wgpu::Instance().CreateSurface(&surfDesc);
 
-		wgpu::SwapChainDescriptor scDesc{};
-		scDesc.usage = wgpu::TextureUsage::OutputAttachment;
-		scDesc.format = wgpu::TextureFormat::RGBA8Unorm;
-		//scDesc.format = wgpu::TextureFormat::BGRA8Unorm;
-		scDesc.width = _width;
-		scDesc.height = _height;
-		scDesc.presentMode = wgpu::PresentMode::VSync;
-		m_swapChain = _device.CreateSwapChain(surface, &scDesc);
+		m_swapChain = _device.CreateSwapChain(surface, &desc);
 #endif
 
 		m_colorFormat = wgpu::TextureFormat::RGBA8Unorm;
