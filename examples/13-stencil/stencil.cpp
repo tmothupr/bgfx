@@ -13,6 +13,8 @@
 #include "camera.h"
 #include "imgui/imgui.h"
 
+#define WEBGPU 1
+
 namespace bgfx
 {
 	int32_t read(bx::ReaderI* _reader, bgfx::VertexLayout& _layout, bx::Error* _err = NULL);
@@ -805,7 +807,7 @@ public:
 		m_reset = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = args.m_type;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_viewState.m_width;
 		init.resolution.height = m_viewState.m_height;
