@@ -1484,6 +1484,9 @@ namespace bgfx { namespace webgpu
 				numMrt = bx::uint32_max(1, fb.m_num);
 			}
 
+			wgpu::RenderPassEncoder rce = m_renderEncoder;
+			ProgramHandle programHandle = _clearQuad.m_program[numMrt-1];
+
 			const VertexLayout* decl = &_clearQuad.m_layout;
 			const PipelineStateWgpu* pso = getPipelineState(
 				  state
@@ -1493,10 +1496,10 @@ namespace bgfx { namespace webgpu
 				, 1
 				, &decl
 				, false
-				, _clearQuad.m_program[numMrt-1]
+				, programHandle
 				, 0
 				);
-			m_renderEncoder.SetPipeline(pso->m_rps);
+			rce.SetPipeline(pso->m_rps);
 
 			float mrtClearColor[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS][4];
 			float mrtClearDepth[4] = { _clear.m_depth };
@@ -1528,7 +1531,7 @@ namespace bgfx { namespace webgpu
 				}
 			}
 
-			ProgramWgpu& program = m_program[_clearQuad.m_program[numMrt - 1].idx];
+			ProgramWgpu& program = m_program[programHandle.idx];
 
 			ScratchBufferWgpu& scratchBuffer = m_scratchBuffers[0];
 			BindStateCacheWgpu& bindStates = m_bindStateCache[0];
@@ -1542,15 +1545,22 @@ namespace bgfx { namespace webgpu
 			scratchBuffer.m_buffer.SetSubData(voffset, bx::uint32_min(program.m_vsh->m_gpuSize, sizeof(mrtClearDepth)), (uint8_t*)mrtClearDepth);
 			scratchBuffer.m_buffer.SetSubData(foffset, bx::uint32_min(program.m_fsh->m_gpuSize, sizeof(mrtClearColor)), (uint8_t*)mrtClearColor);
 
-			uint32_t numOffset = 0;
+			uint32_t numOffset = 2;
 			uint32_t offsets[2] = { voffset, foffset };
 
 			bindProgram(program, bindState, 0);
 
 			const VertexBufferWgpu& vb = m_vertexBuffers[_clearQuad.m_vb.idx];
 
-			m_renderEncoder.SetVertexBuffer(0, vb.m_ptr);
-			m_renderEncoder.Draw(4, 1, 0, 0);
+			rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
+			if (program.m_numSamplers > 0) // always false
+			{
+				rce.SetBindGroup(1, bindState.m_texturesGroup);
+				rce.SetBindGroup(2, bindState.m_samplersGroup);
+			}
+
+			rce.SetVertexBuffer(0, vb.m_ptr);
+			rce.Draw(4, 1, 0, 0);
 		}
 
 		wgpu::TextureViewDescriptor attachmentView(const Attachment& _at, uint8_t _textureType, bool _resolve)
@@ -2461,7 +2471,9 @@ namespace bgfx { namespace webgpu
 
 						if(NULL != info)
 						{
-							m_samplerInfo[stage].m_index = regIndex;
+							m_samplerInfo[stage].m_index = m_numSamplers;
+							m_samplerInfo[stage].m_binding = regIndex;
+							m_samplerInfo[stage].m_stage = stage;
 							m_samplerInfo[stage].m_uniform = info->m_handle;
 							m_samplerInfo[stage].m_fragment = fragmentBit ? 1 : 0;
 							BX_TRACE("texture %s %d index:%d", name, info->m_handle.idx, 0); // uint32_t(arg.index));
@@ -4659,19 +4671,23 @@ namespace bgfx { namespace webgpu
 						BindStateWgpu& bindState = this->allocBindState(program, bindStates, scratchBuffer);
 
 						uint8_t currentSampler = 0;
-#define LIKE_D3D12 0
+#define LIKE_D3D12 1
 #if LIKE_D3D12
 						for (uint8_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)
 						{
 							const Binding& bind = renderBind.m_bind[stage];
-							if (kInvalidHandle != bind.m_idx)
-							//if (isValid(program.m_samplerInfo[stage].m_uniform))
+							if (kInvalidHandle != bind.m_idx
+							// apparently bgfx allows to set a texture to a stage that a program does not even use
+							 && isValid(program.m_samplerInfo[stage].m_uniform))
 							{
+								const SamplerInfo& samplerInfo = program.m_samplerInfo[stage];
+								const uint32_t index = samplerInfo.m_index;
+
 								switch (bind.m_type)
 								{
 								case Binding::Texture:
 								{
-									bindTexture(program, bindState, bind, currentSampler, stage);
+									bindTexture(program, bindState, bind, index, stage);
 								}
 								}
 								currentSampler++;
@@ -4681,7 +4697,6 @@ namespace bgfx { namespace webgpu
 						for (uint32_t sampler = 0, numSamplers = program.m_numSamplers; sampler < numSamplers; ++sampler)
 						{
 							uint32_t stage = program.m_textures[sampler].binding - 2;
-							//const SamplerInfo& samplerInfo = program.m_samplerInfo[sampler];
 							//int stage = samplerInfo.m_index - 2;
 
 							const Binding& bind = renderBind.m_bind[stage];
@@ -4709,7 +4724,7 @@ namespace bgfx { namespace webgpu
 
 					BX_CHECK(bindState.numOffset == numOffset, "We're obviously doing something wrong");
 					rce.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
-					if (bindState.m_texturesGroup)
+					if (program.m_numSamplers > 0)
 					{
 						rce.SetBindGroup(1, bindState.m_texturesGroup);
 						rce.SetBindGroup(2, bindState.m_samplersGroup);

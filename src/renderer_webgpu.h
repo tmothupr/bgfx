@@ -125,6 +125,8 @@ namespace bgfx {
 		struct SamplerInfo
 		{
 			uint32_t      m_index = UINT32_MAX;
+			uint32_t      m_binding = UINT32_MAX;
+			uint32_t      m_stage = UINT32_MAX;
 			UniformHandle m_uniform = BGFX_INVALID_HANDLE;
 			bool          m_fragment = false;
 		};
