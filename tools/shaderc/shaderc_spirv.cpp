@@ -1150,15 +1150,31 @@ namespace bgfx { namespace spirv
 						}
 					}
 
-					//for(auto &resource : resourcesrefl.storage_buffers)
-					//{
-					//	std::string name = refl.get_name(resource.id);
-					//	if(refl.has_decoration(resource.id, spv::DecorationBinding))
-					//	{
-					//		uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
-					//		std::cout << "[debug] storage buffer - binding " << name << ": " << location << std::endl;
-					//	}
-					//}
+					for(auto &resource : resourcesrefl.storage_buffers)
+					{
+						std::string name = refl.get_name(resource.id);
+						if(refl.has_decoration(resource.id, spv::DecorationBinding))
+						{
+							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+							auto flags = refl.get_buffer_block_flags(resource.id);
+							bool readonly = flags.get(spv::DecorationNonWritable);
+							std::cout << "[debug] storage buffer - " << name << " set = " << set << " binding  = " << location << " readonly = " << readonly << std::endl;
+						}
+					}
+
+					for (auto& resource : resourcesrefl.storage_images)
+					{
+						std::string name = refl.get_name(resource.id);
+						if (refl.has_decoration(resource.id, spv::DecorationBinding))
+						{
+							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
+							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
+							auto flags = refl.get_buffer_block_flags(resource.id);
+							bool readonly = flags.get(spv::DecorationNonWritable);
+							std::cout << "[debug] storage image - " << name << " set = " << set << " binding  = " << location << " readonly = " << readonly << std::endl;
+						}
+					}
 
 					for(auto &resource : resourcesrefl.separate_images)
 					{
@@ -1192,8 +1208,9 @@ namespace bgfx { namespace spirv
 						std::string name = refl.get_name(resource.id);
 						if(refl.has_decoration(resource.id, spv::DecorationBinding))
 						{
+							uint32_t set = refl.get_decoration(resource.id, spv::DecorationDescriptorSet);
 							uint32_t location = refl.get_decoration(resource.id, spv::DecorationBinding);
-							std::cout << "[debug] uniform buffer - binding " << name << ": " << location << std::endl;
+							std::cout << "[debug] uniform buffer - " << name << " set = " << set << " binding  = " << location << std::endl;
 						}
 					}
 
@@ -1266,9 +1283,14 @@ namespace bgfx { namespace spirv
 							uint32_t binding_index = refl.get_decoration(resource.id, spv::Decoration::DecorationBinding);
 							std::string sampler_name = uniform_name + "Sampler";
 
+							spirv_cross::Bitset flags = refl.get_buffer_block_flags(resource.id);
+							UniformType::Enum type = flags.get(spv::DecorationNonWritable)
+								? UniformType::Enum(BGFX_UNIFORM_READONLYBIT | UniformType::End)
+								: UniformType::End;
+
 							Uniform un;
 							un.name = uniform_name;
-							un.type = UniformType::End;
+							un.type = type;
 							un.num = stageMap[sampler_name];	// want to write stage index
 							un.regIndex = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;	// for descriptor type
 							un.regCount = binding_index; // for image binding index
@@ -1286,9 +1308,14 @@ namespace bgfx { namespace spirv
 						{
 							if (!bx::strFind(uniform.name.c_str(), name.c_str()).isEmpty())
 							{
+								spirv_cross::Bitset flags = refl.get_buffer_block_flags(resource.id);
+								UniformType::Enum type = flags.get(spv::DecorationNonWritable)
+									? UniformType::Enum(BGFX_UNIFORM_READONLYBIT | UniformType::End)
+									: UniformType::End;
+
 								uint32_t binding_index = refl.get_decoration(resource.id, spv::Decoration::DecorationBinding);
 								uniform.name = name;
-								uniform.type = UniformType::End;
+								uniform.type = type;
 								uniform.num = stageMap[name];
 								uniform.regIndex = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 								uniform.regCount = binding_index;

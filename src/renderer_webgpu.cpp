@@ -29,7 +29,7 @@
 
 #define DAWN_ENABLE_BACKEND_D3D12
 
-#define VARIABLE_BIND_GROUPS 1
+#define VARIABLE_BIND_GROUPS 0
 
 namespace bgfx { namespace webgpu
 {
@@ -462,6 +462,7 @@ namespace bgfx { namespace webgpu
 #error
 #endif
 
+			m_instance.EnableBackendValidation(true);
 			m_instance.DiscoverDefaultAdapters();
 
 			dawn_native::Adapter backendAdapter;
@@ -1342,15 +1343,16 @@ namespace bgfx { namespace webgpu
 		void bindProgram(Encoder& encoder, const ProgramWgpu& program, BindStateWgpu& bindState, uint32_t numOffset, uint32_t* offsets)
 		{
 			BX_CHECK(bindState.numOffset == numOffset, "We're obviously doing something wrong");
-			encoder.SetBindGroup(0, bindState.m_uniformsGroup, numOffset, offsets);
+			uint8_t numBindGroups = 0;
+			encoder.SetBindGroup(numBindGroups++, bindState.m_uniformsGroup, numOffset, offsets);
 			if (!VARIABLE_BIND_GROUPS || program.m_numSamplers > 0)
 			{
-				encoder.SetBindGroup(1, bindState.m_texturesGroup);
-				encoder.SetBindGroup(2, bindState.m_samplersGroup);
+				encoder.SetBindGroup(numBindGroups++, bindState.m_texturesGroup);
+				encoder.SetBindGroup(numBindGroups++, bindState.m_samplersGroup);
 			}
 			if (!VARIABLE_BIND_GROUPS || program.m_numBuffers > 0)
 			{
-				encoder.SetBindGroup(3, bindState.m_buffersGroup);
+				encoder.SetBindGroup(numBindGroups++, bindState.m_buffersGroup);
 			}
 		}
 
@@ -2490,8 +2492,10 @@ namespace bgfx { namespace webgpu
 					//m_bindInfo[num].binding = regCount; // regCount is used for buffer binding index
 					//m_bindInfo[num].samplerBinding = regIndex; // regIndex is used for descriptor type
 
-					m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::StorageBuffer };
-					//m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::ReadonlyStorageBuffer };
+					if ((type & BGFX_UNIFORM_READONLYBIT) == 0)
+						m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::StorageBuffer };
+					else
+						m_buffers[m_numBuffers] = { regCount, shaderStage, wgpu::BindingType::ReadonlyStorageBuffer };
 
 					m_numBuffers++;
 
@@ -4331,7 +4335,6 @@ namespace bgfx { namespace webgpu
 							case Binding::Image:
 							{
 								TextureWgpu& texture = m_textures[bind.m_idx];
-								BX_TRACE("Binding compute image %d", stage);
 								bindState.m_textures[currentSampler].binding = stage;
 								bindState.m_textures[currentSampler].textureView = texture.getTextureMipLevel(bind.m_mip);
 								currentSampler++;
@@ -4343,7 +4346,6 @@ namespace bgfx { namespace webgpu
 								TextureWgpu& texture = m_textures[bind.m_idx];
 								uint32_t flags = bind.m_samplerFlags;
 
-								BX_TRACE("Binding compute texture %d", stage);
 								bindState.m_textures[currentSampler].binding = stage;
 								bindState.m_textures[currentSampler].textureView = texture.m_ptr.CreateView();
 								bindState.m_samplers[currentSampler].binding = stage;
@@ -4362,13 +4364,11 @@ namespace bgfx { namespace webgpu
 									: m_vertexBuffers[bind.m_idx]
 									;
 
-								BX_TRACE("Binding compute buffer %d", stage);
 								bindState.m_buffers[currentBuffer].binding = stage;
 								bindState.m_buffers[currentBuffer].offset = 0;
+								bindState.m_buffers[currentBuffer].size = buffer.m_size;
 								bindState.m_buffers[currentBuffer].buffer = buffer.m_ptr;
-								//bindState.m_uniforms[currentBuffer].binding = 2 + stage;
-								//bindState.m_uniforms[currentBuffer].offset = 0;
-								//bindState.m_uniforms[currentBuffer].buffer = buffer.m_ptr;
+
 								currentBuffer++;
 							}
 							break;
