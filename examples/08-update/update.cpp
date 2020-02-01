@@ -12,6 +12,8 @@
 
 #include <list>
 
+#define WEBGPU 1
+
 namespace
 {
 
@@ -161,8 +163,7 @@ public:
 		m_reset  = BGFX_RESET_VSYNC;
 
 		bgfx::Init init;
-		init.type     = bgfx::RendererType::WebGPU;
-      //init.type     = args.m_type;
+        init.type     = WEBGPU ? bgfx::RendererType::WebGPU : args.m_type;
 		init.vendorId = args.m_pciId;
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
