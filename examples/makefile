@@ -15,7 +15,7 @@ rebuild:
 #	@make -s --no-print-directory rebuild -C 09-hdr
 ###	@make -s --no-print-directory rebuild -C 10-font
 ###	@make -s --no-print-directory rebuild -C 11-fontsdf
-##	@make -s --no-print-directory rebuild -C 12-lod
+	@make -s --no-print-directory rebuild -C 12-lod
 #	@make -s --no-print-directory rebuild -C 13-stencil
 #	@make -s --no-print-directory rebuild -C 14-shadowvolumes
 #	@make -s --no-print-directory rebuild -C 15-shadowmaps-simple
@@ -25,7 +25,7 @@ rebuild:
 #	@make -s --no-print-directory rebuild -C 19-oit
 ###	@make -s --no-print-directory rebuild -C 20-nanovg
 #	@make -s --no-print-directory rebuild -C 21-deferred
-	@make -s --no-print-directory rebuild -C 23-vectordisplay
+#	@make -s --no-print-directory rebuild -C 23-vectordisplay
 #	@make -s --no-print-directory rebuild -C 24-nbody
 ###	@make -s --no-print-directory rebuild -C 25-c99
 ###	@make -s --no-print-directory rebuild -C 26-occlusion
