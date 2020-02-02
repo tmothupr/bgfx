@@ -6,6 +6,8 @@
 #include <bgfx/c99/bgfx.h>
 #include "../00-helloworld/logo.h"
 
+#define WEBGPU 1
+
 extern bool entry_process_events(uint32_t* _width, uint32_t* _height, uint32_t* _debug, uint32_t* _reset);
 
 uint16_t uint16_max(uint16_t _a, uint16_t _b)
@@ -25,6 +27,9 @@ int32_t _main_(int32_t _argc, char** _argv)
 	bgfx_init_t init;
 	bgfx_init_ctor(&init);
 
+#if WEBGPU
+	init.type = BGFX_RENDERER_TYPE_WEBGPU;
+#endif
 	bgfx_init(&init);
 	bgfx_reset(width, height, reset, init.resolution.format);
 
