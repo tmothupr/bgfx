@@ -24,12 +24,12 @@ rebuild:
 	@make -s --no-print-directory rebuild -C 18-ibl
 	@make -s --no-print-directory rebuild -C 19-oit
 ##	@make -s --no-print-directory rebuild -C 20-nanovg
-#	@make -s --no-print-directory rebuild -C 21-deferred
+	@make -s --no-print-directory rebuild -C 21-deferred
 #	@make -s --no-print-directory rebuild -C 23-vectordisplay
-#	@make -s --no-print-directory rebuild -C 24-nbody
+	@make -s --no-print-directory rebuild -C 24-nbody
 ##	@make -s --no-print-directory rebuild -C 25-c99
 ##	@make -s --no-print-directory rebuild -C 26-occlusion
-#	@make -s --no-print-directory rebuild -C 27-terrain
+	@make -s --no-print-directory rebuild -C 27-terrain
 #	@make -s --no-print-directory rebuild -C 28-wireframe
 #	@make -s --no-print-directory rebuild -C 30-picking
 #	@make -s --no-print-directory rebuild -C 31-rsm
