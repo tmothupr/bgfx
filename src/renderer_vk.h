@@ -311,6 +311,12 @@ VK_DESTROY
 		HashMap m_hashMap;
 	};
 
+	class DescriptorSetVK
+	{
+	public:
+		VkDescriptorSet m_sets[4];
+	};
+
 	class ScratchBufferVK
 	{
 	public:
@@ -318,12 +324,12 @@ VK_DESTROY
 		void destroy();
 		void reset();
 
-		VkDescriptorSet& getCurrentDS()
+		DescriptorSetVK& getCurrentDS()
 		{
 			return m_descriptorSet[m_currentDs - 1];
 		}
 
-		VkDescriptorSet* m_descriptorSet; // [1024];
+		DescriptorSetVK* m_descriptorSet; // [1024];
 		VkBuffer m_buffer;
 		VkDeviceMemory m_deviceMem;
 		uint8_t* m_data;

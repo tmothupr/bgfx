@@ -2606,9 +2606,9 @@ VK_IMPORT_DEVICE
 			dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			dsai.pNext = NULL;
 			dsai.descriptorPool = m_descriptorPool;
-			dsai.descriptorSetCount = 1;
+			dsai.descriptorSetCount = 4;
 			dsai.pSetLayouts = &dsl;
-			vkAllocateDescriptorSets(m_device, &dsai, &scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs]);
+			vkAllocateDescriptorSets(m_device, &dsai, scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs].m_sets);
 
 			const uint32_t align = uint32_t(m_deviceProperties.limits.minUniformBufferOffsetAlignment);
 			TextureVK& texture = m_textures[_blitter.m_texture.idx];
@@ -2624,53 +2624,58 @@ VK_IMPORT_DEVICE
 			bx::memCopy(&scratchBuffer.m_data[scratchBuffer.m_pos], m_vsScratch, program.m_vsh->m_size);
 			scratchBuffer.m_pos += size;
 
-			VkWriteDescriptorSet wds[3];
-			wds[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			wds[0].pNext = NULL;
-			wds[0].dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs];
-			wds[0].dstBinding = program.m_vsh->m_uniformBinding;
-			wds[0].dstArrayElement = 0;
-			wds[0].descriptorCount = 1;
-			wds[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-			wds[0].pImageInfo = NULL;
-			wds[0].pBufferInfo = &bufferInfo;
-			wds[0].pTexelBufferView = NULL;
+			VkWriteDescriptorSet wdsUniform;
+			VkWriteDescriptorSet wdsTexture;
+			VkWriteDescriptorSet wdsSampler;
+			wdsUniform.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wdsUniform.pNext = NULL;
+			wdsUniform.dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs].m_sets[0];
+			wdsUniform.dstBinding = program.m_vsh->m_uniformBinding;
+			wdsUniform.dstArrayElement = 0;
+			wdsUniform.descriptorCount = 1;
+			wdsUniform.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			wdsUniform.pImageInfo = NULL;
+			wdsUniform.pBufferInfo = &bufferInfo;
+			wdsUniform.pTexelBufferView = NULL;
 
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.imageLayout = texture.m_currentImageLayout;
 			imageInfo.imageView = texture.m_textureImageView;
 			imageInfo.sampler = sampler;
 
-			wds[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			wds[1].pNext = NULL;
-			wds[1].dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs];
-			wds[1].dstBinding = program.m_fsh->m_bindInfo[0].binding;
-			wds[1].dstArrayElement = 0;
-			wds[1].descriptorCount = 1;
-			wds[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-			wds[1].pImageInfo = &imageInfo;
-			wds[1].pBufferInfo = NULL;
-			wds[1].pTexelBufferView = NULL;
+			wdsTexture.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wdsTexture.pNext = NULL;
+			wdsTexture.dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs].m_sets[1];
+			wdsTexture.dstBinding = program.m_fsh->m_bindInfo[0].binding;
+			wdsTexture.dstArrayElement = 0;
+			wdsTexture.descriptorCount = 1;
+			wdsTexture.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			wdsTexture.pImageInfo = &imageInfo;
+			wdsTexture.pBufferInfo = NULL;
+			wdsTexture.pTexelBufferView = NULL;
 
-			wds[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			wds[2].pNext = NULL;
-			wds[2].dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs];
-			wds[2].dstBinding = program.m_fsh->m_bindInfo[0].samplerBinding;
-			wds[2].dstArrayElement = 0;
-			wds[2].descriptorCount = 1;
-			wds[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-			wds[2].pImageInfo = &imageInfo;
-			wds[2].pBufferInfo = NULL;
-			wds[2].pTexelBufferView = NULL;
+			wdsSampler.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wdsSampler.pNext = NULL;
+			wdsSampler.dstSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs].m_sets[2];
+			wdsSampler.dstBinding = program.m_fsh->m_bindInfo[0].samplerBinding;
+			wdsSampler.dstArrayElement = 0;
+			wdsSampler.descriptorCount = 1;
+			wdsSampler.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			wdsSampler.pImageInfo = &imageInfo;
+			wdsSampler.pBufferInfo = NULL;
+			wdsSampler.pTexelBufferView = NULL;
 
-			vkUpdateDescriptorSets(m_device, 3, wds, 0, NULL);
+			vkUpdateDescriptorSets(m_device, 1, &wdsUniform, 0, NULL);
+			vkUpdateDescriptorSets(m_device, 1, &wdsTexture, 0, NULL);
+			vkUpdateDescriptorSets(m_device, 1, &wdsSampler, 0, NULL);
+
 			vkCmdBindDescriptorSets(
 				m_commandBuffer
 				, VK_PIPELINE_BIND_POINT_GRAPHICS
 				, program.m_pipelineLayout
 				, 0
-				, 1
-				, &scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs]
+				, 4
+				, scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs].m_sets
 				, 1
 				, &bufferOffset
 				);
@@ -3629,20 +3634,29 @@ VK_IMPORT_DEVICE
 			dsai.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			dsai.pNext              = NULL;
 			dsai.descriptorPool     = m_descriptorPool;
-			dsai.descriptorSetCount = 1;
+			dsai.descriptorSetCount = 4;
 			dsai.pSetLayouts        = &dsl;
 
-			VkDescriptorSet& descriptorSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs];
-			vkAllocateDescriptorSets(m_device, &dsai, &descriptorSet);
+			DescriptorSetVK& descriptorSet = scratchBuffer.m_descriptorSet[scratchBuffer.m_currentDs];
+			vkAllocateDescriptorSets(m_device, &dsai, descriptorSet.m_sets);
 			scratchBuffer.m_currentDs++;
 
 			VkDescriptorImageInfo imageInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 			VkDescriptorBufferInfo bufferInfo[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			VkWriteDescriptorSet wds[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			bx::memSet(wds, 0, sizeof(VkWriteDescriptorSet) * BGFX_CONFIG_MAX_TEXTURE_SAMPLERS);
-			uint32_t wdsCount    = 0;
-			uint32_t bufferCount = 0;
-			uint32_t imageCount  = 0;
+			VkWriteDescriptorSet wdsUniforms[2];
+			VkWriteDescriptorSet wdsSamplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			VkWriteDescriptorSet wdsTextures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			VkWriteDescriptorSet wdsBuffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			bx::memSet(wdsSamplers, 0, sizeof(VkWriteDescriptorSet) * 2);
+			bx::memSet(wdsSamplers, 0, sizeof(VkWriteDescriptorSet) * BGFX_CONFIG_MAX_TEXTURE_SAMPLERS);
+			bx::memSet(wdsTextures, 0, sizeof(VkWriteDescriptorSet) * BGFX_CONFIG_MAX_TEXTURE_SAMPLERS);
+			bx::memSet(wdsBuffers, 0, sizeof(VkWriteDescriptorSet) * BGFX_CONFIG_MAX_TEXTURE_SAMPLERS);
+			uint32_t uniformCount = 0;
+			uint32_t textureCount = 0;
+			uint32_t storageCount = 0;
+
+			uint32_t imageCount   = 0;
+			uint32_t bufferCount  = 0;
 
 			for (uint32_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)
 			{
@@ -3664,58 +3678,72 @@ VK_IMPORT_DEVICE
 						continue;
 					}
 
-					if (ShaderVK::BindType::Storage == bindInfo->type)
+					// TODO (hugoam) if we use a 1:1 mapping between stages in each possible descriptor sets (1 - textures 2 - samplers 3 - storage)
+					// then we can switch case based on the binding type as in the other renderers
+					switch (bind.m_type)
 					{
-						VkDescriptorType descriptorType = (VkDescriptorType)bindInfo->samplerBinding;
-						wds[wdsCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						wds[wdsCount].pNext            = NULL;
-						wds[wdsCount].dstSet           = descriptorSet;
-						wds[wdsCount].dstBinding       = bindInfo->binding;
-						wds[wdsCount].dstArrayElement  = 0;
-						wds[wdsCount].descriptorCount  = 1;
-						wds[wdsCount].descriptorType   = descriptorType;
-						wds[wdsCount].pImageInfo       = NULL;
-						wds[wdsCount].pBufferInfo      = NULL;
-						wds[wdsCount].pTexelBufferView = NULL;
+					case Binding::Image:
+					{
+						wdsBuffers[storageCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						wdsBuffers[storageCount].pNext = NULL;
+						wdsBuffers[storageCount].dstSet = descriptorSet.m_sets[3];
+						wdsBuffers[storageCount].dstBinding = bindInfo->binding;
+						wdsBuffers[storageCount].dstArrayElement = 0;
+						wdsBuffers[storageCount].descriptorCount = 1;
+						wdsBuffers[storageCount].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+						wdsBuffers[storageCount].pImageInfo = NULL;
+						wdsBuffers[storageCount].pBufferInfo = NULL;
+						wdsBuffers[storageCount].pTexelBufferView = NULL;
 
-						if (VK_DESCRIPTOR_TYPE_STORAGE_BUFFER == descriptorType)
+						TextureVK& texture = m_textures[bind.m_idx];
+						VkSampler sampler = getSampler(
+							(0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
+								? bind.m_samplerFlags
+								: (uint32_t)texture.m_flags
+							) & (BGFX_SAMPLER_BITS_MASK | BGFX_SAMPLER_BORDER_COLOR_MASK)
+							, (uint32_t)texture.m_numMips);
+
+						if (VK_IMAGE_LAYOUT_GENERAL != texture.m_currentImageLayout
+						&&  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL != texture.m_currentImageLayout)
 						{
-							VertexBufferVK& vb = m_vertexBuffers[bind.m_idx];
-							bufferInfo[bufferCount].buffer = vb.m_buffer;
-							bufferInfo[bufferCount].offset = 0;
-							bufferInfo[bufferCount].range  = vb.m_size;
-							wds[wdsCount].pBufferInfo = &bufferInfo[bufferCount];
-							++bufferCount;
-						}
-						else if (VK_DESCRIPTOR_TYPE_STORAGE_IMAGE == descriptorType)
-						{
-							TextureVK& texture = m_textures[bind.m_idx];
-							VkSampler sampler = getSampler(
-								(0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
-									? bind.m_samplerFlags
-									: (uint32_t)texture.m_flags
-								) & (BGFX_SAMPLER_BITS_MASK | BGFX_SAMPLER_BORDER_COLOR_MASK)
-								, (uint32_t)texture.m_numMips);
-
-							if (VK_IMAGE_LAYOUT_GENERAL != texture.m_currentImageLayout
-							&&  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL != texture.m_currentImageLayout)
-							{
-								texture.setImageMemoryBarrier(m_commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-							}
-
-							imageInfo[imageCount].imageLayout = texture.m_currentImageLayout;
-							imageInfo[imageCount].imageView   = VK_NULL_HANDLE != texture.m_textureImageStorageView
-								? texture.m_textureImageStorageView
-								: texture.m_textureImageView
-								;
-							imageInfo[imageCount].sampler     = sampler;
-							wds[wdsCount].pImageInfo = &imageInfo[imageCount];
-							++imageCount;
+							texture.setImageMemoryBarrier(m_commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 						}
 
-						++wdsCount;
+						imageInfo[imageCount].imageLayout = texture.m_currentImageLayout;
+						imageInfo[imageCount].imageView   = VK_NULL_HANDLE != texture.m_textureImageStorageView
+							? texture.m_textureImageStorageView
+							: texture.m_textureImageView
+							;
+						imageInfo[imageCount].sampler     = sampler;
+						wdsBuffers[storageCount].pImageInfo = &imageInfo[imageCount];
+
+						++storageCount;
+						++imageCount;
 					}
-					else if (ShaderVK::BindType::Sampler == bindInfo->type)
+					case Binding::VertexBuffer:
+					case Binding::IndexBuffer:
+					{
+						wdsBuffers[storageCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						wdsBuffers[storageCount].pNext = NULL;
+						wdsBuffers[storageCount].dstSet = descriptorSet.m_sets[3];
+						wdsBuffers[storageCount].dstBinding = bindInfo->binding;
+						wdsBuffers[storageCount].dstArrayElement = 0;
+						wdsBuffers[storageCount].descriptorCount = 1;
+						wdsBuffers[storageCount].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+						wdsBuffers[storageCount].pImageInfo = NULL;
+						wdsBuffers[storageCount].pBufferInfo = NULL;
+						wdsBuffers[storageCount].pTexelBufferView = NULL;
+
+						VertexBufferVK& vb = m_vertexBuffers[bind.m_idx];
+						bufferInfo[bufferCount].buffer = vb.m_buffer;
+						bufferInfo[bufferCount].offset = 0;
+						bufferInfo[bufferCount].range = vb.m_size;
+						wdsBuffers[bufferCount].pBufferInfo = &bufferInfo[bufferCount];
+
+						++storageCount;
+						++bufferCount;
+					}
+					case Binding::Texture:
 					{
 						TextureVK& texture = m_textures[bind.m_idx];
 						VkSampler sampler = getSampler(
@@ -3738,31 +3766,31 @@ VK_IMPORT_DEVICE
 							;
 						imageInfo[imageCount].sampler     = sampler;
 
-						wds[wdsCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						wds[wdsCount].pNext            = NULL;
-						wds[wdsCount].dstSet           = descriptorSet;
-						wds[wdsCount].dstBinding       = bindInfo->binding;
-						wds[wdsCount].dstArrayElement  = 0;
-						wds[wdsCount].descriptorCount  = 1;
-						wds[wdsCount].descriptorType   = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-						wds[wdsCount].pImageInfo       = &imageInfo[imageCount];
-						wds[wdsCount].pBufferInfo      = NULL;
-						wds[wdsCount].pTexelBufferView = NULL;
-						++wdsCount;
+						wdsTextures[textureCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						wdsTextures[textureCount].pNext            = NULL;
+						wdsTextures[textureCount].dstSet           = descriptorSet.m_sets[1];
+						wdsTextures[textureCount].dstBinding       = bindInfo->binding;
+						wdsTextures[textureCount].dstArrayElement  = 0;
+						wdsTextures[textureCount].descriptorCount  = 1;
+						wdsTextures[textureCount].descriptorType   = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+						wdsTextures[textureCount].pImageInfo       = &imageInfo[imageCount];
+						wdsTextures[textureCount].pBufferInfo      = NULL;
+						wdsTextures[textureCount].pTexelBufferView = NULL;
 
-						wds[wdsCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						wds[wdsCount].pNext            = NULL;
-						wds[wdsCount].dstSet           = descriptorSet;
-						wds[wdsCount].dstBinding       = bindInfo->samplerBinding;
-						wds[wdsCount].dstArrayElement  = 0;
-						wds[wdsCount].descriptorCount  = 1;
-						wds[wdsCount].descriptorType   = VK_DESCRIPTOR_TYPE_SAMPLER;
-						wds[wdsCount].pImageInfo       = &imageInfo[imageCount];
-						wds[wdsCount].pBufferInfo      = NULL;
-						wds[wdsCount].pTexelBufferView = NULL;
-						++wdsCount;
+						wdsSamplers[textureCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						wdsSamplers[textureCount].pNext            = NULL;
+						wdsSamplers[textureCount].dstSet           = descriptorSet.m_sets[2];
+						wdsSamplers[textureCount].dstBinding       = bindInfo->samplerBinding;
+						wdsSamplers[textureCount].dstArrayElement  = 0;
+						wdsSamplers[textureCount].descriptorCount  = 1;
+						wdsSamplers[textureCount].descriptorType   = VK_DESCRIPTOR_TYPE_SAMPLER;
+						wdsSamplers[textureCount].pImageInfo       = &imageInfo[imageCount];
+						wdsSamplers[textureCount].pBufferInfo      = NULL;
+						wdsSamplers[textureCount].pTexelBufferView = NULL;
 
+						++textureCount;
 						++imageCount;
+					}
 					}
 				}
 			}
@@ -3783,17 +3811,18 @@ VK_IMPORT_DEVICE
 					bufferInfo[bufferCount].offset = 0;
 					bufferInfo[bufferCount].range  = vsize;
 
-					wds[wdsCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					wds[wdsCount].pNext            = NULL;
-					wds[wdsCount].dstSet           = descriptorSet;
-					wds[wdsCount].dstBinding       = vsUniformBinding;
-					wds[wdsCount].dstArrayElement  = 0;
-					wds[wdsCount].descriptorCount  = 1;
-					wds[wdsCount].descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					wds[wdsCount].pImageInfo       = NULL;
-					wds[wdsCount].pBufferInfo      = &bufferInfo[bufferCount];
-					wds[wdsCount].pTexelBufferView = NULL;
-					++wdsCount;
+					wdsUniforms[uniformCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					wdsUniforms[uniformCount].pNext            = NULL;
+					wdsUniforms[uniformCount].dstSet           = descriptorSet.m_sets[0];
+					wdsUniforms[uniformCount].dstBinding       = vsUniformBinding;
+					wdsUniforms[uniformCount].dstArrayElement  = 0;
+					wdsUniforms[uniformCount].descriptorCount  = 1;
+					wdsUniforms[uniformCount].descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+					wdsUniforms[uniformCount].pImageInfo       = NULL;
+					wdsUniforms[uniformCount].pBufferInfo      = &bufferInfo[bufferCount];
+					wdsUniforms[uniformCount].pTexelBufferView = NULL;
+
+					++uniformCount;
 					++bufferCount;
 				}
 
@@ -3803,22 +3832,26 @@ VK_IMPORT_DEVICE
 					bufferInfo[bufferCount].offset = 0;
 					bufferInfo[bufferCount].range  = fsize;
 
-					wds[wdsCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					wds[wdsCount].pNext            = NULL;
-					wds[wdsCount].dstSet           = descriptorSet;
-					wds[wdsCount].dstBinding       = fsUniformBinding;
-					wds[wdsCount].dstArrayElement  = 0;
-					wds[wdsCount].descriptorCount  = 1;
-					wds[wdsCount].descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					wds[wdsCount].pImageInfo       = NULL;
-					wds[wdsCount].pBufferInfo      = &bufferInfo[bufferCount];
-					wds[wdsCount].pTexelBufferView = NULL;
-					++wdsCount;
+					wdsUniforms[uniformCount].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					wdsUniforms[uniformCount].pNext            = NULL;
+					wdsUniforms[uniformCount].dstSet           = descriptorSet.m_sets[1];
+					wdsUniforms[uniformCount].dstBinding       = fsUniformBinding;
+					wdsUniforms[uniformCount].dstArrayElement  = 0;
+					wdsUniforms[uniformCount].descriptorCount  = 1;
+					wdsUniforms[uniformCount].descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+					wdsUniforms[uniformCount].pImageInfo       = NULL;
+					wdsUniforms[uniformCount].pBufferInfo      = &bufferInfo[bufferCount];
+					wdsUniforms[uniformCount].pTexelBufferView = NULL;
+
+					++uniformCount;
 					++bufferCount;
 				}
 			}
 
-			vkUpdateDescriptorSets(m_device, wdsCount, wds, 0, NULL);
+			vkUpdateDescriptorSets(m_device, uniformCount, wdsUniforms, 0, NULL);
+			vkUpdateDescriptorSets(m_device, textureCount, wdsTextures, 0, NULL);
+			vkUpdateDescriptorSets(m_device, textureCount, wdsSamplers, 0, NULL);
+			vkUpdateDescriptorSets(m_device, storageCount, wdsBuffers, 0, NULL);
 		}
 
 		void commit(UniformBuffer& _uniformBuffer, uint32_t _begin = 0, uint32_t _end = UINT32_MAX)
@@ -4188,7 +4221,7 @@ VK_DESTROY
 	{
 		m_maxDescriptors = _maxDescriptors;
 		m_currentDs = 0;
-		m_descriptorSet  = (VkDescriptorSet*)BX_ALLOC(g_allocator, m_maxDescriptors * sizeof(VkDescriptorSet) );
+		m_descriptorSet  = (DescriptorSetVK*)BX_ALLOC(g_allocator, m_maxDescriptors * sizeof(DescriptorSetVK) );
 		bx::memSet(m_descriptorSet, 0, sizeof(VkDescriptorSet) * m_maxDescriptors);
 
 		VkAllocationCallbacks* allocatorCb = s_renderVK->m_allocatorCb;
@@ -4262,8 +4295,8 @@ VK_DESTROY
 			vkFreeDescriptorSets(
 				  s_renderVK->m_device
 				, s_renderVK->m_descriptorPool
-				, m_currentDs
-				, m_descriptorSet
+				, m_currentDs*4
+				, m_descriptorSet[0].m_sets
 				);
 		}
 
@@ -6049,8 +6082,8 @@ VK_DESTROY
 						, VK_PIPELINE_BIND_POINT_COMPUTE
 						, program.m_pipelineLayout
 						, 0
-						, 1
-						, &scratchBuffer.getCurrentDS()
+						, 4
+						, scratchBuffer.getCurrentDS().m_sets
 						, constantsChanged || hasPredefined ? 1 : 0
 						, &offset
 						);
@@ -6353,8 +6386,8 @@ VK_DESTROY
 						, VK_PIPELINE_BIND_POINT_GRAPHICS
 						, program.m_pipelineLayout
 						, 0
-						, 1
-						, &scratchBuffer.getCurrentDS()
+						, 4
+						, scratchBuffer.getCurrentDS().m_sets
 						, numOffset
 						, offsets
 						);
