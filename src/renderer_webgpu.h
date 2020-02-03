@@ -249,16 +249,19 @@ namespace bgfx {
 			wgpu::ColorStateDescriptor colorStates[kMaxColorAttachments];
 		};
 
+		struct BindingsWgpu
+		{
+			wgpu::BindGroupBinding m_uniforms[2];
+			wgpu::BindGroupBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+			wgpu::BindGroupBinding m_buffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
+		};
+
 		struct BindStateWgpu
 		{
 			void clear();
 
 			uint32_t numOffset;
-
-			wgpu::BindGroupBinding m_uniforms[2];
-			wgpu::BindGroupBinding m_textures[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			wgpu::BindGroupBinding m_samplers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
-			wgpu::BindGroupBinding m_buffers[BGFX_CONFIG_MAX_TEXTURE_SAMPLERS];
 
 			wgpu::BindGroup m_uniformsGroup;
 			wgpu::BindGroup m_texturesGroup;

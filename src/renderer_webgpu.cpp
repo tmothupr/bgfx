@@ -585,7 +585,7 @@ namespace bgfx { namespace webgpu
 			//	| BGFX_CAPS_OCCLUSION_QUERY
 				| BGFX_CAPS_SWAP_CHAIN
 				| BGFX_CAPS_TEXTURE_2D_ARRAY
-				| BGFX_CAPS_TEXTURE_3D
+			//	| BGFX_CAPS_TEXTURE_3D
 				| BGFX_CAPS_TEXTURE_BLIT
 				| BGFX_CAPS_TEXTURE_COMPARE_ALL
 				| BGFX_CAPS_TEXTURE_COMPARE_LEQUAL
@@ -1137,7 +1137,9 @@ namespace bgfx { namespace webgpu
 				ScratchBufferWgpu& scratchBuffer = m_scratchBuffers[0];
 				BindStateCacheWgpu& bindStates = m_bindStateCache[0];
 
-				BindStateWgpu& bindState = allocBindState(program, bindStates, scratchBuffer);
+				BindingsWgpu b;
+
+				BindStateWgpu& bindState = allocBindState(program, bindStates, b, scratchBuffer);
 
 				const uint32_t voffset = scratchBuffer.m_offset;
 				const uint32_t foffset = scratchBuffer.m_offset + program.m_vsh->m_gpuSize;
@@ -1163,15 +1165,15 @@ namespace bgfx { namespace webgpu
 
 				TextureWgpu& texture = m_textures[_blitter.m_texture.idx];
 
-				bindState.m_textures[0].binding = program.m_textures[0].binding;
-				bindState.m_textures[0].textureView = texture.m_ptr.CreateView();
+				b.m_textures[0].binding = program.m_textures[0].binding;
+				b.m_textures[0].textureView = texture.m_ptr.CreateView();
 
-				bindState.m_samplers[0].binding = program.m_samplers[0].binding;
-				bindState.m_samplers[0].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & state)
+				b.m_samplers[0].binding = program.m_samplers[0].binding;
+				b.m_samplers[0].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & state)
 					? getSamplerState(state)
 					: texture.m_sampler;
 
-				bindGroups(program, bindState, 1);
+				bindGroups(program, bindState, b, 1);
 
 				uint32_t numOffset = 2;
 				uint32_t offsets[2] = { voffset, foffset };
@@ -1279,34 +1281,34 @@ namespace bgfx { namespace webgpu
 		{
 		}
 
-		BindStateWgpu& allocBindState(const ProgramWgpu& program, BindStateCacheWgpu& bindStates, ScratchBufferWgpu& scratchBuffer)
+		BindStateWgpu& allocBindState(const ProgramWgpu& program, BindStateCacheWgpu& bindStates, BindingsWgpu& bindings, ScratchBufferWgpu& scratchBuffer)
 		{
 			BindStateWgpu& bindState = bindStates.m_bindStates[bindStates.m_currentBindState];
 			bindStates.m_currentBindState++;
 
 			bindState.numOffset = program.m_numUniforms;
 
-			bindState.m_uniforms[0].buffer = scratchBuffer.m_buffer;
-			bindState.m_uniforms[1].buffer = scratchBuffer.m_buffer;
+			bindings.m_uniforms[0].buffer = scratchBuffer.m_buffer;
+			bindings.m_uniforms[1].buffer = scratchBuffer.m_buffer;
 
 			// first two bindings are always uniform buffer (vertex/fragment)
-			bindState.m_uniforms[0].binding = 0;
-			bindState.m_uniforms[0].offset = 0;
-			bindState.m_uniforms[0].size = program.m_vsh->m_gpuSize;
+			bindings.m_uniforms[0].binding = 0;
+			bindings.m_uniforms[0].offset = 0;
+			bindings.m_uniforms[0].size = program.m_vsh->m_gpuSize;
 
-			bindState.m_uniforms[1].binding = 1;
-			bindState.m_uniforms[1].offset = 0;
-			bindState.m_uniforms[1].size = (NULL != program.m_fsh ? program.m_fsh->m_gpuSize : 0);
+			bindings.m_uniforms[1].binding = 1;
+			bindings.m_uniforms[1].offset = 0;
+			bindings.m_uniforms[1].size = (NULL != program.m_fsh ? program.m_fsh->m_gpuSize : 0);
 
 			return bindState;
 		}
 
-		void bindGroups(const ProgramWgpu& program, BindStateWgpu& bindState, uint32_t numSamplers, uint32_t numBuffers = 0)
+		void bindGroups(const ProgramWgpu& program, BindStateWgpu& bindState, BindingsWgpu& bindings, uint32_t numSamplers, uint32_t numBuffers = 0)
 		{
 			wgpu::BindGroupDescriptor uniformsDesc;
 			uniformsDesc.layout = program.m_uniformsLayout;
 			uniformsDesc.bindingCount = program.m_numUniforms;
-			uniformsDesc.bindings = bindState.m_uniforms;
+			uniformsDesc.bindings = bindings.m_uniforms;
 
 			bindState.m_uniformsGroup = m_device.CreateBindGroup(&uniformsDesc);
 
@@ -1316,12 +1318,12 @@ namespace bgfx { namespace webgpu
 				wgpu::BindGroupDescriptor texturesDesc;
 				texturesDesc.layout = program.m_texturesLayout;
 				texturesDesc.bindingCount = numSamplers;
-				texturesDesc.bindings = bindState.m_textures;
+				texturesDesc.bindings = bindings.m_textures;
 
 				wgpu::BindGroupDescriptor samplersDesc;
 				samplersDesc.layout = program.m_samplersLayout;
 				samplersDesc.bindingCount = numSamplers;
-				samplersDesc.bindings = bindState.m_samplers;
+				samplersDesc.bindings = bindings.m_samplers;
 
 				bindState.m_texturesGroup = m_device.CreateBindGroup(&texturesDesc);
 				bindState.m_samplersGroup = m_device.CreateBindGroup(&samplersDesc);
@@ -1333,7 +1335,7 @@ namespace bgfx { namespace webgpu
 				wgpu::BindGroupDescriptor buffersDesc;
 				buffersDesc.layout = program.m_buffersLayout;
 				buffersDesc.bindingCount = numBuffers;
-				buffersDesc.bindings = bindState.m_buffers;
+				buffersDesc.bindings = bindings.m_buffers;
 
 				bindState.m_buffersGroup = m_device.CreateBindGroup(&buffersDesc);
 			}
@@ -1355,6 +1357,79 @@ namespace bgfx { namespace webgpu
 				encoder.SetBindGroup(numBindGroups++, bindState.m_buffersGroup);
 			}
 		}
+		
+		void allocBindState(const ProgramWgpu& program, BindStateCacheWgpu& bindStates, ScratchBufferWgpu& scratchBuffer, const RenderBind& renderBind)
+		{
+			BindingsWgpu b;
+
+			BindStateWgpu& bindState = allocBindState(program, bindStates, b, scratchBuffer);
+
+			auto bindTexture = [&](const Binding& bind, uint32_t index, uint32_t stage)
+			{
+				wgpu::TextureViewDescriptor viewDesc = defaultDescriptor<wgpu::TextureViewDescriptor>();
+				viewDesc.dimension = program.m_textures[stage].textureDimension;
+				//if (viewDesc.dimension == wgpu::TextureViewDimension::Cube)
+				//	viewDesc.arrayLayerCount = 6u;
+
+				BX_CHECK(program.m_textures[index].binding == stage, "Register to binding index should be 1:1");
+				BX_CHECK(program.m_samplers[index].binding == stage, "Register to binding index should be 1:1");
+
+				b.m_textures[index].binding = program.m_textures[index].binding;
+				b.m_samplers[index].binding = program.m_samplers[index].binding;
+
+				if (kInvalidHandle != bind.m_idx)
+				{
+					TextureWgpu& texture = m_textures[bind.m_idx];
+					b.m_textures[index].textureView = texture.m_ptr.CreateView(&viewDesc);
+					b.m_samplers[index].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
+						? getSamplerState(bind.m_samplerFlags)
+						: texture.m_sampler;
+				}
+				else
+				{
+					b.m_textures[index].textureView = wgpu::TextureView();
+					b.m_samplers[index].sampler = wgpu::Sampler();
+				}
+			};
+
+			uint8_t currentSampler = 0;
+#define LIKE_D3D12 1
+#if LIKE_D3D12
+			for (uint8_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)
+			{
+				const Binding& bind = renderBind.m_bind[stage];
+				if (kInvalidHandle != bind.m_idx
+				// apparently bgfx allows to set a texture to a stage that a program does not even use
+					&& isValid(program.m_samplerInfo[stage].m_uniform))
+				{
+					const SamplerInfo& samplerInfo = program.m_samplerInfo[stage];
+					const uint32_t index = samplerInfo.m_index;
+
+					switch (bind.m_type)
+					{
+					case Binding::Texture:
+					{
+						bindTexture(bind, index, stage);
+					}
+					}
+					currentSampler++;
+				}
+			}
+#else
+			for (uint32_t sampler = 0, numSamplers = program.m_numSamplers; sampler < numSamplers; ++sampler)
+			{
+				uint32_t stage = program.m_textures[sampler].binding - 2;
+				//int stage = samplerInfo.m_index - 2;
+
+				const Binding& bind = renderBind.m_bind[stage];
+
+				bindTexture(program, bindState, bind, currentSampler, stage);
+				currentSampler++;
+			}
+#endif
+
+			bindGroups(program, bindState, b, currentSampler);
+		};
 
 		void setShaderUniform(uint8_t _flags, uint32_t _regIndex, const void* _val, uint32_t _numRegs)
 		{
@@ -1566,7 +1641,8 @@ namespace bgfx { namespace webgpu
 			ScratchBufferWgpu& scratchBuffer = m_scratchBuffers[0];
 			BindStateCacheWgpu& bindStates = m_bindStateCache[0];
 
-			BindStateWgpu& bindState = allocBindState(program, bindStates, scratchBuffer);
+			BindingsWgpu b;
+			BindStateWgpu& bindState = allocBindState(program, bindStates, b, scratchBuffer);
 
 			const uint32_t voffset = scratchBuffer.m_offset;
 			const uint32_t foffset = scratchBuffer.m_offset + program.m_vsh->m_gpuSize;
@@ -1578,7 +1654,7 @@ namespace bgfx { namespace webgpu
 			uint32_t numOffset = 2;
 			uint32_t offsets[2] = { voffset, foffset };
 
-			bindGroups(program, bindState, 0);
+			bindGroups(program, bindState, b, 0);
 
 			const VertexBufferWgpu& vb = m_vertexBuffers[_clearQuad.m_vb.idx];
 
@@ -1595,6 +1671,7 @@ namespace bgfx { namespace webgpu
 			wgpu::TextureViewDescriptor desc;
 			desc.baseMipLevel = _at.mip;
 			desc.baseArrayLayer = _at.layer;
+			desc.arrayLayerCount = 1;
 
 			if (_textureType == TextureWgpu::Texture3D)
 				desc.dimension = wgpu::TextureViewDimension::e3D;
@@ -1615,9 +1692,13 @@ namespace bgfx { namespace webgpu
 				_renderPassDescriptor.colorAttachments[0] = defaultDescriptor<wgpu::RenderPassColorAttachmentDescriptor>();
 				_renderPassDescriptor.desc.colorAttachmentCount = 1;
 
+				// Force 1 array layers for attachments
+				wgpu::TextureViewDescriptor desc;
+				desc.arrayLayerCount = 1;
+
 				if (swapChain->m_backBufferColorMsaa)
 				{
-					_renderPassDescriptor.colorAttachments[0].attachment    = swapChain->m_backBufferColorMsaa.CreateView();
+					_renderPassDescriptor.colorAttachments[0].attachment    = swapChain->m_backBufferColorMsaa.CreateView(&desc);
 					_renderPassDescriptor.colorAttachments[0].resolveTarget = swapChain->current();
 				}
 				else
@@ -1696,22 +1777,21 @@ namespace bgfx { namespace webgpu
 			if (0 != _stencil)
 			{
 				// TODO (hugoam)
-				//const uint32_t readMask  = (fstencil&BGFX_STENCIL_FUNC_RMASK_MASK)>>BGFX_STENCIL_FUNC_RMASK_SHIFT;
-				//const uint32_t writeMask = 0xff;
+				const uint32_t readMask  = (fstencil&BGFX_STENCIL_FUNC_RMASK_MASK)>>BGFX_STENCIL_FUNC_RMASK_SHIFT;
+				const uint32_t writeMask = 0xff;
+
+				desc.stencilReadMask  = readMask;
+				desc.stencilWriteMask = writeMask;
 
 				desc.stencilFront.failOp      = s_stencilOp[(fstencil&BGFX_STENCIL_OP_FAIL_S_MASK)>>BGFX_STENCIL_OP_FAIL_S_SHIFT];
 				desc.stencilFront.depthFailOp = s_stencilOp[(fstencil&BGFX_STENCIL_OP_FAIL_Z_MASK)>>BGFX_STENCIL_OP_FAIL_Z_SHIFT];
 				desc.stencilFront.passOp      = s_stencilOp[(fstencil&BGFX_STENCIL_OP_PASS_Z_MASK)>>BGFX_STENCIL_OP_PASS_Z_SHIFT];
 				desc.stencilFront.compare     = s_cmpFunc[(fstencil&BGFX_STENCIL_TEST_MASK)>>BGFX_STENCIL_TEST_SHIFT];
-				//desc.stencilFront.readMask  = readMask;
-				//desc.stencilFront.writeMask = writeMask;
 
 				desc.stencilBack.failOp      = s_stencilOp[(bstencil&BGFX_STENCIL_OP_FAIL_S_MASK)>>BGFX_STENCIL_OP_FAIL_S_SHIFT];
 				desc.stencilBack.depthFailOp = s_stencilOp[(bstencil&BGFX_STENCIL_OP_FAIL_Z_MASK)>>BGFX_STENCIL_OP_FAIL_Z_SHIFT];
 				desc.stencilBack.passOp      = s_stencilOp[(bstencil&BGFX_STENCIL_OP_PASS_Z_MASK)>>BGFX_STENCIL_OP_PASS_Z_SHIFT];
 				desc.stencilBack.compare     = s_cmpFunc[(bstencil&BGFX_STENCIL_TEST_MASK)>>BGFX_STENCIL_TEST_SHIFT];
-				//desc.stencilBack.readMask  = readMask;
-				//desc.stencilBack.writeMask = writeMask;
 			}
 		}
 
@@ -2513,7 +2593,7 @@ namespace bgfx { namespace webgpu
 												  wgpu::TextureViewDimension(texDimension), wgpu::TextureComponentType(texComponent) };
 
 					const uint8_t stage = num;
-					BX_CHECK(regIndex == stage + 2, "Register to binding index should be 1:1");
+					BX_CHECK(regIndex == stage, "Register to binding index should be 1:1");
 
 					m_samplerInfo[stage].m_index = m_numSamplers;
 					m_samplerInfo[stage].m_binding = regIndex;
@@ -2797,7 +2877,7 @@ namespace bgfx { namespace webgpu
 		m_flags = _flags;
 		m_vertex = _vertex;
 
-		const uint32_t paddedSize = (_size % 4 == 0) ? _size : _size + 2;
+		const uint32_t paddedSize = bx::strideAlign(_size, 4);
 
 		bool storage = m_flags & BGFX_BUFFER_COMPUTE_READ_WRITE;
 		bool indirect = m_flags & BGFX_BUFFER_DRAW_INDIRECT;
@@ -3005,6 +3085,7 @@ namespace bgfx { namespace webgpu
 
 			desc.usage = wgpu::TextureUsage::Sampled;
 			desc.usage |= wgpu::TextureUsage::CopyDst;
+			desc.usage |= wgpu::TextureUsage::CopySrc;
 
 			if (computeWrite)
 			{
@@ -3025,7 +3106,6 @@ namespace bgfx { namespace webgpu
 				m_ptrMsaa = s_renderWgpu->m_device.CreateTexture(&desc);
 			}
 
-#if 1
 			// decode images
 			struct ImageInfo
 			{
@@ -3236,109 +3316,6 @@ namespace bgfx { namespace webgpu
 				//BX_FREE(g_allocator, imageInfos[ii].data);
 			}
 			BX_FREE(g_allocator, imageInfos);
-
-#else
-			uint8_t* temp = NULL;
-			if (convert)
-			{
-				temp = (uint8_t*)BX_ALLOC(g_allocator, ti.width*ti.height*4);
-			}
-
-			for (uint8_t side = 0; side < numSides; ++side)
-			{
-				uint32_t width  = ti.width;
-				uint32_t height = ti.height;
-				uint32_t depth  = ti.depth;
-
-				for (uint8_t lod = 0, num = ti.numMips; lod < num; ++lod)
-				{
-					width  = bx::max(1u, width);
-					height = bx::max(1u, height);
-					depth  = bx::max(1u, depth);
-
-					bimg::ImageMip mip;
-					if (bimg::imageGetRawData(imageContainer, side, lod+startLod, _mem->data, _mem->size, mip) )
-					{
-						const uint8_t* data = mip.m_data;
-
-						if (convert)
-						{
-							bimg::imageDecodeToBgra8(
-								  g_allocator
-								, temp
-								, mip.m_data
-								, mip.m_width
-								, mip.m_height
-								, mip.m_width*4
-								, mip.m_format
-								);
-							data = temp;
-						}
-
-						uint32_t pitch = 0;
-						uint32_t slice = 0;
-
-						if (compressed && !convert)
-						{
-							if (format >= wgpu::TextureFormat(160) /*PVRTC_RGB_2BPP*/
-							&&  format <= wgpu::TextureFormat(167) /*PVRTC_RGBA_4BPP_sRGB*/)
-							{
-								pitch = 0;
-								slice = 0;
-							}
-							else
-							{
-								pitch = (mip.m_width / blockInfo.blockWidth)*mip.m_blockSize;
-								slice = (mip.m_height / blockInfo.blockHeight)*pitch;
-							}
-						}
-						else
-						{
-							pitch = width * bpp / 8;
-							slice = pitch * height;
-						}
-
-						wgpu::BufferDescriptor bufferCopyDesc;
-						bufferCopyDesc.size = slice * depth;
-						bufferCopyDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::CopySrc;
-
-						wgpu::Buffer staging = s_renderWgpu->m_device.CreateBuffer(&bufferCopyDesc);
-						staging.SetSubData(0, slice * depth, data);
-
-						wgpu::BufferCopyView bufferCopyView;
-						bufferCopyView.buffer = staging;
-						bufferCopyView.offset = 0;
-						bufferCopyView.rowPitch = 0;
-						bufferCopyView.imageHeight = 0;
-
-						wgpu::TextureCopyView textureCopyView;
-						textureCopyView.texture = m_ptr;
-						textureCopyView.mipLevel = 0;
-						textureCopyView.arrayLayer = 0;
-						textureCopyView.origin = { 0, 0, 0 };
-
-						wgpu::Extent3D copySize = { width, height, depth };
-
-						wgpu::CommandEncoder encoder = s_renderWgpu->getBlitCommandEncoder();
-						//wgpu::CommandEncoder encoder = s_renderWgpu->m_cmd.m_encoder;
-						encoder.CopyBufferToTexture(&bufferCopyView, &textureCopyView, &copySize);
-
-						//wgpu::CommandBuffer copy = encoder.Finish();
-						//wgpu::Queue queue = s_renderWgpu->m_queue;
-						//queue.Submit(1, &copy);
-					}
-
-					width  >>= 1;
-					height >>= 1;
-					depth  >>= 1;
-				}
-			}
-
-			if (NULL != temp)
-			{
-				BX_FREE(g_allocator, temp);
-			}
-#endif
 		}
 	}
 
@@ -3975,51 +3952,32 @@ namespace bgfx { namespace webgpu
 			uint32_t depth     = bx::uint32_min(srcDepth,  dstDepth);
 			bool     readBack  = !!(dst.m_flags & BGFX_TEXTURE_READ_BACK);
 
-			BX_UNUSED(depth);
-#if 0
-			if (MTLTextureType3D == src.m_ptr.textureType() )
-			{
-				bce.copyFromTexture(
-					  src.m_ptr
-					, 0
-					, 0
-					, MTLOriginMake(blit.m_srcX, blit.m_srcY, blit.m_srcZ)
-					, MTLSizeMake(width, height, bx::uint32_imax(depth, 1) )
-					, dst.m_ptr
-					, 0
-					, 0
-					, MTLOriginMake(blit.m_dstX, blit.m_dstY, blit.m_dstZ)
-					);
+			wgpu::TextureCopyView srcView;
+			srcView.texture = src.m_ptr;
+			srcView.origin = { blit.m_srcX, blit.m_srcY, 0 };
+			srcView.mipLevel = blit.m_srcMip;
+			srcView.arrayLayer = blit.m_srcZ;
 
-				if (readBack)
-				{
-					m_blitCommandEncoder.synchronizeResource(dst.m_ptr);
-				}
+			wgpu::TextureCopyView dstView;
+			dstView.texture = dst.m_ptr;
+			dstView.origin = { blit.m_dstX, blit.m_dstY, 0 };
+			dstView.mipLevel = blit.m_dstMip;
+			dstView.arrayLayer = blit.m_dstZ;
+
+			if (depth == 0)
+			{
+				wgpu::Extent3D copyExtent = { width, height, 1 };
+				bce.CopyTextureToTexture(&srcView, &dstView, &copyExtent);
 			}
 			else
-#endif
 			{
-
-				wgpu::TextureCopyView srcView;
-				srcView.texture = src.m_ptr;
-				srcView.origin = { blit.m_srcX, blit.m_srcY, 0 };
-				srcView.mipLevel = blit.m_srcMip;
-				srcView.arrayLayer = blit.m_srcZ;
-
-				wgpu::TextureCopyView dstView;
-				dstView.texture = dst.m_ptr;
-				dstView.origin = { blit.m_dstX, blit.m_dstY, 0 };
-				dstView.mipLevel = blit.m_dstMip;
-				dstView.arrayLayer = blit.m_dstZ;
-
-				wgpu::Extent3D copyExtent = { width, height, 1 };
-
+				wgpu::Extent3D copyExtent = { width, height, depth };
 				bce.CopyTextureToTexture(&srcView, &dstView, &copyExtent);
+			}
 
-				if (readBack)
-				{
-					//bce..synchronizeTexture(dst.m_ptr, 0, blit.m_dstMip);
-				}
+			if (readBack)
+			{
+				//bce..synchronizeTexture(dst.m_ptr, 0, blit.m_dstMip);
 			}
 		}
 
@@ -4300,7 +4258,8 @@ namespace bgfx { namespace webgpu
 
 					const ProgramWgpu& program = m_program[currentProgram.idx];
 
-					BindStateWgpu& bindState = this->allocBindState(program, bindStates, scratchBuffer);
+					BindingsWgpu b;
+					BindStateWgpu& bindState = allocBindState(program, bindStates, b, scratchBuffer);
 
 					if (constantsChanged)
 					{
@@ -4332,8 +4291,8 @@ namespace bgfx { namespace webgpu
 							case Binding::Image:
 							{
 								TextureWgpu& texture = m_textures[bind.m_idx];
-								bindState.m_textures[currentSampler].binding = stage;
-								bindState.m_textures[currentSampler].textureView = texture.getTextureMipLevel(bind.m_mip);
+								b.m_textures[currentSampler].binding = stage;
+								b.m_textures[currentSampler].textureView = texture.getTextureMipLevel(bind.m_mip);
 								currentSampler++;
 							}
 							break;
@@ -4343,10 +4302,10 @@ namespace bgfx { namespace webgpu
 								TextureWgpu& texture = m_textures[bind.m_idx];
 								uint32_t flags = bind.m_samplerFlags;
 
-								bindState.m_textures[currentSampler].binding = stage;
-								bindState.m_textures[currentSampler].textureView = texture.m_ptr.CreateView();
-								bindState.m_samplers[currentSampler].binding = stage;
-								bindState.m_samplers[currentSampler].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & flags)
+								b.m_textures[currentSampler].binding = stage;
+								b.m_textures[currentSampler].textureView = texture.m_ptr.CreateView();
+								b.m_samplers[currentSampler].binding = stage;
+								b.m_samplers[currentSampler].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & flags)
 									? getSamplerState(flags)
 									: texture.m_sampler;
 								currentSampler++;
@@ -4361,10 +4320,10 @@ namespace bgfx { namespace webgpu
 									: m_vertexBuffers[bind.m_idx]
 									;
 
-								bindState.m_buffers[currentBuffer].binding = stage;
-								bindState.m_buffers[currentBuffer].offset = 0;
-								bindState.m_buffers[currentBuffer].size = buffer.m_size;
-								bindState.m_buffers[currentBuffer].buffer = buffer.m_ptr;
+								b.m_buffers[currentBuffer].binding = stage;
+								b.m_buffers[currentBuffer].offset = 0;
+								b.m_buffers[currentBuffer].size = buffer.m_size;
+								b.m_buffers[currentBuffer].buffer = buffer.m_ptr;
 
 								currentBuffer++;
 							}
@@ -4373,7 +4332,7 @@ namespace bgfx { namespace webgpu
 						}
 					}
 
-					bindGroups(program, bindState, currentSampler, currentBuffer);
+					bindGroups(program, bindState, b, currentSampler, currentBuffer);
 
 					bindProgram(m_computeEncoder, program, bindState, numOffset, offsets);
 
@@ -4479,26 +4438,17 @@ namespace bgfx { namespace webgpu
 				{
 					currentState.m_scissor = scissor;
 
-					//MTLScissorRect rc;
 					if (UINT16_MAX == scissor)
 					{
 						if (viewHasScissor)
 						{
-							rce.SetScissorRect(
-								viewScissorRect.m_x
-								, viewScissorRect.m_y
-								, viewScissorRect.m_width
-								, viewScissorRect.m_height
-							);
+							const auto& r = viewScissorRect;
+							rce.SetScissorRect(r.m_x, r.m_y, r.m_width, r.m_height);
 						}
 						else
 						{   // can't disable: set to view rect
-							rce.SetScissorRect(
-								viewState.m_rect.m_x
-								, viewState.m_rect.m_y
-								, viewState.m_rect.m_width
-								, viewState.m_rect.m_height
-							);
+							const auto& r = viewState.m_rect;
+							rce.SetScissorRect(r.m_x, r.m_y, r.m_width, r.m_height);
 						}
 					}
 					else
@@ -4506,12 +4456,8 @@ namespace bgfx { namespace webgpu
 						Rect scissorRect;
 						scissorRect.setIntersect(viewScissorRect, _render->m_frameCache.m_rectCache.m_cache[scissor]);
 
-						rce.SetScissorRect(
-							scissorRect.m_x
-							, scissorRect.m_y
-							, scissorRect.m_width
-							, scissorRect.m_height
-						);
+						const auto& r = scissorRect;
+						rce.SetScissorRect(r.m_x, r.m_y, r.m_width, r.m_height);
 					}
 
 				}
@@ -4710,77 +4656,6 @@ namespace bgfx { namespace webgpu
 						scratchBuffer.m_offset += program.m_gpuSize;
 					}
 
-					auto bindTexture = [this](const ProgramWgpu& program, BindStateWgpu& bindState, const Binding& bind, uint32_t index, uint32_t stage)
-					{
-						wgpu::TextureViewDescriptor viewDesc = defaultDescriptor<wgpu::TextureViewDescriptor>();
-						viewDesc.dimension = program.m_textures[stage].textureDimension;
-						//if (viewDesc.dimension == wgpu::TextureViewDimension::Cube)
-						//	viewDesc.arrayLayerCount = 6u;
-
-						BX_CHECK(program.m_textures[index].binding == stage + 2, "Register to binding index should be 1:1");
-						BX_CHECK(program.m_samplers[index].binding == stage + 2, "Register to binding index should be 1:1");
-
-						bindState.m_textures[index].binding = program.m_textures[index].binding;
-						bindState.m_samplers[index].binding = program.m_samplers[index].binding;
-
-						if (kInvalidHandle != bind.m_idx)
-						{
-							TextureWgpu& texture = m_textures[bind.m_idx];
-							bindState.m_textures[index].textureView = texture.m_ptr.CreateView(&viewDesc);
-							bindState.m_samplers[index].sampler = 0 == (BGFX_SAMPLER_INTERNAL_DEFAULT & bind.m_samplerFlags)
-								? getSamplerState(bind.m_samplerFlags)
-								: texture.m_sampler;
-						}
-						else
-						{
-							bindState.m_textures[index].textureView = wgpu::TextureView();
-							bindState.m_samplers[index].sampler = wgpu::Sampler();
-						}
-					};
-
-					auto allocBindState = [this, &bindStates, &scratchBuffer, bindTexture](const ProgramWgpu& program, const RenderBind& renderBind)
-					{
-						BindStateWgpu& bindState = this->allocBindState(program, bindStates, scratchBuffer);
-
-						uint8_t currentSampler = 0;
-#define LIKE_D3D12 1
-#if LIKE_D3D12
-						for (uint8_t stage = 0; stage < BGFX_CONFIG_MAX_TEXTURE_SAMPLERS; ++stage)
-						{
-							const Binding& bind = renderBind.m_bind[stage];
-							if (kInvalidHandle != bind.m_idx
-							// apparently bgfx allows to set a texture to a stage that a program does not even use
-							 && isValid(program.m_samplerInfo[stage].m_uniform))
-							{
-								const SamplerInfo& samplerInfo = program.m_samplerInfo[stage];
-								const uint32_t index = samplerInfo.m_index;
-
-								switch (bind.m_type)
-								{
-								case Binding::Texture:
-								{
-									bindTexture(program, bindState, bind, index, stage);
-								}
-								}
-								currentSampler++;
-							}
-						}
-#else
-						for (uint32_t sampler = 0, numSamplers = program.m_numSamplers; sampler < numSamplers; ++sampler)
-						{
-							uint32_t stage = program.m_textures[sampler].binding - 2;
-							//int stage = samplerInfo.m_index - 2;
-
-							const Binding& bind = renderBind.m_bind[stage];
-
-							bindTexture(program, bindState, bind, currentSampler, stage);
-							currentSampler++;
-						}
-#endif
-
-						bindGroups(program, bindState, currentSampler);
-					};
-
 					uint32_t bindHash = bx::hash<bx::HashMurmur2A>(renderBind.m_bind, sizeof(renderBind.m_bind));
 					if (currentBindHash != bindHash
 					||  currentBindLayoutHash != program.m_bindGroupLayoutHash)
@@ -4789,7 +4664,7 @@ namespace bgfx { namespace webgpu
 						currentBindLayoutHash = program.m_bindGroupLayoutHash;
 						previousBindState = &bindStates.m_bindStates[bindStates.m_currentBindState];
 
-						allocBindState(program, renderBind);
+						allocBindState(program, bindStates, scratchBuffer, renderBind);
 					}
 
 					BindStateWgpu& bindState = bindStates.m_bindStates[bindStates.m_currentBindState-1];
